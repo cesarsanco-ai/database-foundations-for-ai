@@ -1,0 +1,41 @@
+# Ignorar todo en el directorio raíz por defecto
+/*
+
+# Excepciones en el directorio raíz:
+# Mantener el README.md y este .gitignore
+!/.gitignore
+!/README.md
+
+# Mantener la carpeta TEORIA dentro de FUENTE/UMA_BBDD y todo su contenido
+!/FUENTE/
+/FUENTE/*
+!/FUENTE/
+/FUENTE/*
+!/FUENTE/TEORIA/
+
+# Mantener las carpetas de las Sesiones de la 1 a la 14
+!/Sesion1/
+!/Sesion2/
+!/Sesion3/
+!/Sesion4/
+!/Sesion5/
+!/Sesion6/
+!/Sesion7/
+!/Sesion8/
+!/Sesion9/
+!/Sesion10/
+!/Sesion11/
+!/Sesion12/
+!/Sesion13/
+!/Sesion14/
+
+# Sin embargo, dentro de esas carpetas de Sesión, ignorar todo por defecto
+/Sesion*/*
+
+# Y añadir como excepción únicamente los archivos que empiecen por PPT o SOL, o que sean notebooks .ipynb
+!/Sesion*/PPT*
+!/Sesion*/SOL*
+!/Sesion*/*.ipynb
+
+# Ignorar archivos del sistema
+.DS_Store

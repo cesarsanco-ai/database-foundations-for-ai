@@ -1,0 +1,892 @@
+\documentclass[12pt,a4paper,openany,oneside]{book}
+
+% --- Paquetes ---
+\usepackage[utf8]{inputenc}
+\usepackage[spanish, es-tabla]{babel}
+\usepackage{amsmath, amsfonts, amssymb}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{fancyhdr}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric, calc}
+
+\geometry{margin=2.5cm}
+
+% --- Colores y estilos para código ---
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinelanguage{SQL}{
+    keywords={SELECT, FROM, WHERE, INSERT, INTO, VALUES, UPDATE, SET, DELETE, CREATE, TABLE, INT, VARCHAR, DATE, PRIMARY, KEY, FOREIGN, REFERENCES, INDEX, VIEW, ALTER, DROP, AND, OR, NOT, NULL, CONSTRAINT, JOIN, INNER, LEFT, RIGHT, FULL, OUTER, ON, GROUP, BY, HAVING, ORDER, ASC, DESC, SERIAL, CHECK, UNIQUE, DEFAULT, CURRENT_DATE, CURRENT_TIMESTAMP, BEGIN, COMMIT, ROLLBACK, TRANSACTION, ISOLATION LEVEL, PROCEDURE, FUNCTION, TRIGGER, PLpgSQL, EXISTS, ANY, ALL, UNION, INTERSECT, EXCEPT, DISTINCT, AS, AVG, SUM, COUNT, MIN, MAX, WITH, RECURSIVE, CASE, COALESCE, NULLIF, GREATEST, LEAST, EXPLAIN, ANALYZE, BUFFERS, TIMING, COST, ROWS, WIDTH, FILTER, SCAN, INDEX, SEQUENTIAL, HASH, MERGE, NESTED, LOOP, CTE, MATERIALIZED, NOT MATERIALIZED},
+    sensitive=false,
+    morecomment=[l]{--},
+    morecomment=[s]{/*}{*/},
+    morestring=[b]'
+}
+\lstset{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    showstringspaces=false,
+    language=SQL
+}
+
+% --- Estilo de cabecera y pie ---
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\fancyhead[L]{\small Carlos César Sánchez Coronel}
+\fancyhead[R]{\small Sesión 5: Manipulación de Datos y Lógica de Conjuntos}
+\fancyfoot[L]{\small Carlos César Sánchez Coronel}
+\fancyfoot[C]{\thepage}
+
+% --- Portada ---
+\title{
+    \Huge \textbf{Sesión 5: MANIPULACIÓN DE DATOS Y LÓGICA DE CONJUNTOS} \\
+    \large DML, JOINs, Subconsultas, CTEs y Optimización en SQL
+}
+\author{
+    \small Por \\ \vspace{0.2cm}
+    \Large \textsc{Carlos César Sánchez Coronel}
+}
+\date{2026}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\addcontentsline{toc}{chapter}{Índice general}
+
+\chapter{Introducción a la Manipulación de Datos}
+En las sesiones anteriores hemos aprendido a modelar bases de datos, normalizar y definir estructuras. Ahora es el momento de interactuar con los datos: insertarlos, consultarlos, modificarlos y eliminarlos. El lenguaje SQL (Structured Query Language) es el estándar para estas tareas. En esta sesión nos centraremos en el sublenguaje DML (Data Manipulation Language) y en las operaciones de conjuntos que nos permiten combinar información de múltiples tablas: los JOINs. También exploraremos cómo el motor de base de datos interpreta y ejecuta nuestras consultas, qué sucede a nivel hardware, y cómo escribir SQL eficiente. Dominar estos conceptos es fundamental para cualquier profesional que trabaje con datos, ya que constituyen la base de cualquier análisis, informe o aplicación, y son temas recurrentes en entrevistas técnicas nacionales e internacionales.
+
+\section{El Lenguaje SQL y sus Sublenguajes}
+SQL se divide en varios sublenguajes según su función:
+\begin{itemize}
+    \item \textbf{DDL (Data Definition Language):} CREATE, ALTER, DROP – definen la estructura.
+    \item \textbf{DML (Data Manipulation Language):} SELECT, INSERT, UPDATE, DELETE – manipulan los datos.
+    \item \textbf{DCL (Data Control Language):} GRANT, REVOKE – controlan permisos.
+    \item \textbf{TCL (Transaction Control Language):} COMMIT, ROLLBACK – gestionan transacciones.
+\end{itemize}
+En esta sesión profundizaremos en DML, con especial énfasis en SELECT y JOINs.
+
+
+
+
+
+
+
+
+
+
+\chapter{Lenguaje SQL: Sublenguajes y Operaciones Fundamentales}
+El lenguaje SQL se divide en varios sublenguajes según la naturaleza de las operaciones. Conocer cada uno y sus comandos es esencial para cualquier profesional de bases de datos, ya que permite definir estructuras, manipular datos, controlar permisos y gestionar transacciones. En este capítulo exploraremos los cuatro sublenguajes principales: DDL, DML, DCL y TCL, con ejemplos prácticos y casos de uso que suelen aparecer en entrevistas técnicas.
+
+\section{DDL (Data Definition Language)}
+El sublenguaje de definición de datos se utiliza para crear, modificar y eliminar la estructura de los objetos de la base de datos (tablas, índices, vistas, etc.). Los comandos DDL suelen ser auto-commit, es decir, no se pueden deshacer con ROLLBACK en la mayoría de los motores.
+
+\subsection{CREATE}
+Crea nuevos objetos. El más común es \texttt{CREATE TABLE}.
+\begin{lstlisting}[language=SQL]
+CREATE TABLE clientes (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE,
+    ciudad VARCHAR(50),
+    fecha_registro DATE DEFAULT CURRENT_DATE
+);
+\end{lstlisting}
+También se pueden crear índices, vistas, etc.:
+\begin{lstlisting}[language=SQL]
+CREATE INDEX idx_ciudad ON clientes(ciudad);
+CREATE VIEW clientes_madrid AS SELECT * FROM clientes WHERE ciudad = 'Madrid';
+\end{lstlisting}
+
+\subsection{ALTER}
+Modifica la estructura de un objeto existente.
+\begin{lstlisting}[language=SQL]
+-- Añadir una columna
+ALTER TABLE clientes ADD COLUMN telefono VARCHAR(20);
+
+-- Modificar tipo de dato
+ALTER TABLE clientes ALTER COLUMN nombre TYPE VARCHAR(200);
+
+-- Añadir una restricción
+ALTER TABLE clientes ADD CONSTRAINT email_unico UNIQUE (email);
+\end{lstlisting}
+
+\subsection{DROP}
+Elimina objetos de la base de datos. ¡Cuidado! Es irreversible (a menos que tengas backup).
+\begin{lstlisting}[language=SQL]
+DROP TABLE clientes; -- Elimina la tabla y todos sus datos
+DROP INDEX idx_ciudad;
+DROP VIEW clientes_madrid;
+\end{lstlisting}
+
+\subsection{TRUNCATE}
+Elimina todas las filas de una tabla de forma rápida (no genera logs por fila, a diferencia de DELETE). Es DDL porque no se puede deshacer con ROLLBACK en muchos motores.
+\begin{lstlisting}[language=SQL]
+TRUNCATE TABLE clientes;
+\end{lstlisting}
+
+\subsection{Restricciones de Integridad en DDL}
+Las restricciones (constraints) se definen en DDL y garantizan la integridad de los datos:
+\begin{itemize}
+    \item \textbf{PRIMARY KEY}: Identifica unívocamente cada fila.
+    \item \textbf{FOREIGN KEY}: Mantiene integridad referencial.
+    \item \textbf{UNIQUE}: Valores únicos en una columna o combinación.
+    \item \textbf{CHECK}: Valida que los datos cumplan una condición (ej. salario > 0).
+    \item \textbf{NOT NULL}: La columna no puede tener valores nulos.
+\end{itemize}
+Ejemplo con todas ellas:
+\begin{lstlisting}[language=SQL]
+CREATE TABLE pedidos (
+    id SERIAL PRIMARY KEY,
+    cliente_id INT NOT NULL,
+    fecha DATE NOT NULL,
+    total DECIMAL(10,2) CHECK (total >= 0),
+    FOREIGN KEY (cliente_id) REFERENCES clientes(id)
+);
+\end{lstlisting}
+
+\section{DML (Data Manipulation Language)}
+El sublenguaje de manipulación de datos permite consultar, insertar, modificar y eliminar los datos almacenados. Es el más utilizado en el día a día.
+
+\subsection{SELECT}
+La sentencia SELECT recupera datos de una o más tablas. Ya la hemos visto en detalle, pero recordemos su sintaxis básica:
+\begin{lstlisting}[language=SQL]
+SELECT columnas
+FROM tabla
+WHERE condicion
+ORDER BY columna
+LIMIT n;
+\end{lstlisting}
+Ejemplo:
+\begin{lstlisting}[language=SQL]
+SELECT nombre, email FROM clientes WHERE ciudad = 'Barcelona' ORDER BY nombre;
+\end{lstlisting}
+
+\subsection{INSERT}
+Inserta nuevas filas en una tabla.
+\begin{lstlisting}[language=SQL]
+INSERT INTO clientes (nombre, email, ciudad) VALUES
+('Carlos Ruiz', 'carlos@mail.com', 'Valencia');
+\end{lstlisting}
+También se puede insertar desde una consulta:
+\begin{lstlisting}[language=SQL]
+INSERT INTO clientes_vip (nombre, email)
+SELECT nombre, email FROM clientes WHERE ciudad = 'Madrid';
+\end{lstlisting}
+
+\subsection{UPDATE}
+Modifica filas existentes.
+\begin{lstlisting}[language=SQL]
+UPDATE clientes SET ciudad = 'Sevilla' WHERE id = 5;
+\end{lstlisting}
+Siempre usar WHERE para no actualizar toda la tabla.
+
+\subsection{DELETE}
+Elimina filas.
+\begin{lstlisting}[language=SQL]
+DELETE FROM clientes WHERE email IS NULL;
+\end{lstlisting}
+Sin WHERE, elimina todas las filas (pero la tabla sigue existiendo). Para vaciado masivo, TRUNCATE es más rápido.
+
+\subsection{MERGE (UPSERT)}
+Algunos motores (SQL Server, Oracle, PostgreSQL con ON CONFLICT) permiten insertar o actualizar según exista o no la fila. Es muy útil en sincronización de datos.
+\begin{lstlisting}[language=SQL]
+-- PostgreSQL
+INSERT INTO clientes (id, nombre, email)
+VALUES (1, 'Ana', 'ana@mail.com')
+ON CONFLICT (id) DO UPDATE SET nombre = EXCLUDED.nombre, email = EXCLUDED.email;
+\end{lstlisting}
+
+\section{DCL (Data Control Language)}
+El sublenguaje de control de datos gestiona los permisos y accesos a los objetos de la base de datos. Es fundamental en entornos multiusuario y para cumplir normativas de seguridad.
+
+\subsection{GRANT}
+Otorga privilegios a usuarios o roles.
+\begin{lstlisting}[language=SQL]
+-- Otorgar permiso de SELECT sobre la tabla clientes al usuario 'analista'
+GRANT SELECT ON clientes TO analista;
+
+-- Otorgar todos los privilegios sobre la base de datos
+GRANT ALL PRIVILEGES ON DATABASE mi_bd TO admin;
+\end{lstlisting}
+Los privilegios comunes son: SELECT, INSERT, UPDATE, DELETE, REFERENCES, TRIGGER, CREATE, CONNECT, etc.
+
+\subsection{REVOKE}
+Revoca permisos previamente otorgados.
+\begin{lstlisting}[language=SQL]
+REVOKE DELETE ON clientes FROM analista;
+\end{lstlisting}
+
+\subsection{Casos de Uso en Entrevistas}
+En entrevistas suelen preguntar cómo se gestionan los permisos en entornos multi-rol, o cómo asegurar que un usuario solo pueda leer datos. También es común preguntar sobre el principio de mínimo privilegio.
+
+\section{TCL (Transaction Control Language)}
+El sublenguaje de control de transacciones permite gestionar los cambios realizados con DML, agrupándolos en unidades lógicas que pueden confirmarse o deshacerse.
+
+\subsection{BEGIN / START TRANSACTION}
+Inicia una transacción. En algunos motores (PostgreSQL) se usa BEGIN; en MySQL, START TRANSACTION.
+\begin{lstlisting}[language=SQL]
+BEGIN;
+UPDATE cuentas SET saldo = saldo - 100 WHERE id = 1;
+UPDATE cuentas SET saldo = saldo + 100 WHERE id = 2;
+-- Aún no son permanentes
+\end{lstlisting}
+
+\subsection{COMMIT}
+Confirma todos los cambios realizados en la transacción actual, haciéndolos permanentes.
+\begin{lstlisting}[language=SQL]
+COMMIT;
+\end{lstlisting}
+
+\subsection{ROLLBACK}
+Deshace todos los cambios realizados desde el BEGIN, volviendo al estado anterior.
+\begin{lstlisting}[language=SQL]
+ROLLBACK;
+\end{lstlisting}
+
+\subsection{SAVEPOINT}
+Permite establecer puntos intermedios dentro de una transacción para poder deshacer solo una parte.
+\begin{lstlisting}[language=SQL]
+BEGIN;
+UPDATE cuentas SET saldo = saldo - 100 WHERE id = 1;
+SAVEPOINT despues_de_restar;
+UPDATE cuentas SET saldo = saldo + 100 WHERE id = 2;
+-- Si algo falla, podemos retroceder al savepoint
+ROLLBACK TO SAVEPOINT despues_de_restar;
+-- Luego podemos continuar o hacer COMMIT
+COMMIT;
+\end{lstlisting}
+
+\subsection{Propiedades ACID}
+Las transacciones garantizan las propiedades ACID (Atomicidad, Consistencia, Aislamiento, Durabilidad), tema recurrente en entrevistas. Es importante saber explicarlas con ejemplos.
+
+\section{Comparativa entre Sublenguajes}
+A modo de resumen, la siguiente tabla muestra los comandos principales de cada sublenguaje:
+
+\begin{center}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Sublenguaje} & \textbf{Comandos principales} & \textbf{Uso} \\ \hline
+DDL & CREATE, ALTER, DROP, TRUNCATE & Definir estructura \\ \hline
+DML & SELECT, INSERT, UPDATE, DELETE, MERGE & Manipular datos \\ \hline
+DCL & GRANT, REVOKE & Controlar permisos \\ \hline
+TCL & BEGIN, COMMIT, ROLLBACK, SAVEPOINT & Gestionar transacciones \\ \hline
+\end{tabular}
+\end{center}
+
+\section{Ejercicios Resueltos Integradores}
+A continuación, ejercicios que combinan varios sublenguajes.
+
+\subsection{Ejercicio 1: Creación y manipulación}
+\textbf{Enunciado:} Crear una tabla \texttt{productos} con columnas id, nombre, precio, stock. Insertar tres productos. Actualizar el precio de uno. Eliminar un producto. Finalmente, otorgar permisos de SELECT a un usuario.
+
+\textbf{Solución:}
+\begin{lstlisting}[language=SQL]
+-- DDL
+CREATE TABLE productos (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    precio DECIMAL(10,2) CHECK (precio > 0),
+    stock INT DEFAULT 0
+);
+
+-- DML
+INSERT INTO productos (nombre, precio, stock) VALUES
+('Laptop', 1200.00, 10),
+('Mouse', 25.50, 50),
+('Teclado', 45.00, 30);
+
+UPDATE productos SET precio = 1150.00 WHERE nombre = 'Laptop';
+
+DELETE FROM productos WHERE nombre = 'Mouse';
+
+-- DCL
+GRANT SELECT ON productos TO analista;
+\end{lstlisting}
+
+\subsection{Ejercicio 2: Transacción con error}
+\textbf{Enunciado:} Realizar una transferencia bancaria entre dos cuentas, asegurando que si una operación falla, ninguna se aplique. Usar transacciones.
+
+\textbf{Solución:}
+\begin{lstlisting}[language=SQL]
+BEGIN;
+UPDATE cuentas SET saldo = saldo - 500 WHERE id = 1;
+UPDATE cuentas SET saldo = saldo + 500 WHERE id = 2;
+-- Si todo va bien
+COMMIT;
+-- Si ocurre un error antes del COMMIT, se puede hacer ROLLBACK
+\end{lstlisting}
+
+\subsection{Ejercicio 3: Permisos y seguridad}
+\textbf{Enunciado:} Crear un usuario 'lector' que solo pueda hacer SELECT en la tabla \texttt{clientes}, y un usuario 'editor' que pueda INSERT, UPDATE y DELETE. Implementar los comandos DCL.
+
+\textbf{Solución:}
+\begin{lstlisting}[language=SQL]
+-- Crear usuarios (en PostgreSQL)
+CREATE USER lector WITH PASSWORD 'pass1';
+CREATE USER editor WITH PASSWORD 'pass2';
+
+-- Otorgar permisos
+GRANT SELECT ON clientes TO lector;
+GRANT SELECT, INSERT, UPDATE, DELETE ON clientes TO editor;
+
+-- Revocar permisos si es necesario
+REVOKE DELETE ON clientes FROM editor;
+\end{lstlisting}
+
+\section{Conclusión}
+Dominar los cuatro sublenguajes de SQL es fundamental para cualquier profesional de datos. No solo se trata de escribir consultas, sino de entender cómo definir estructuras robustas (DDL), manipular datos eficientemente (DML), controlar accesos (DCL) y garantizar la integridad transaccional (TCL). Estos conceptos son evaluados constantemente en entrevistas técnicas y son la base para construir sistemas de bases de datos seguros, escalables y confiables.
+
+
+
+
+
+
+\chapter{El Proceso Interno de una Consulta SQL}
+Para escribir SQL eficiente, es crucial entender cómo el motor procesa una consulta. No basta con saber la sintaxis; hay que comprender el flujo lógico y físico.
+
+\section{Orden Lógico de Ejecución de una Consulta}
+Aunque escribimos SELECT ... FROM ... WHERE ... GROUP BY ... HAVING ... ORDER BY ... LIMIT, el motor ejecuta en un orden diferente. El orden lógico (conceptual) es:
+
+\begin{enumerate}
+    \item \textbf{FROM y JOINs}: Se construye el conjunto de datos base (producto cartesiano de las tablas involucradas, aplicando las condiciones de JOIN).
+    \item \textbf{WHERE}: Se filtran las filas según las condiciones.
+    \item \textbf{GROUP BY}: Se agrupan las filas.
+    \item \textbf{HAVING}: Se filtran los grupos.
+    \item \textbf{SELECT}: Se evalúan las expresiones de las columnas, incluyendo funciones de agregación.
+    \item \textbf{ORDER BY}: Se ordena el resultado.
+    \item \textbf{LIMIT / OFFSET}: Se recorta el resultado.
+\end{enumerate}
+
+Este orden es importante porque, por ejemplo, no se puede usar un alias de SELECT en WHERE (porque WHERE se ejecuta antes). Tampoco se pueden usar funciones de ventana en WHERE por la misma razón.
+
+\subsection{Ejemplo}
+\begin{lstlisting}[language=SQL]
+SELECT nombre, salario, salario * 12 AS salario_anual
+FROM empleados
+WHERE salario > 3000
+ORDER BY salario_anual;
+\end{lstlisting}
+Aquí, el alias \texttt{salario\_anual} se puede usar en ORDER BY porque se calcula antes de ordenar, pero no se podría usar en WHERE.
+
+\section{El Camino Físico: De la Consulta al Hardware}
+Cuando ejecutamos una consulta, ocurren múltiples etapas:
+
+\subsection{Parsing (Análisis Sintáctico)}
+El motor verifica que la consulta sea sintácticamente correcta y que las tablas y columnas existan. Genera un árbol de consulta.
+
+\subsection{Optimización}
+El optimizador (basado en costos, CBO) genera varios planes de ejecución posibles y estima su costo (en términos de E/S, CPU, memoria). Considera:
+\begin{itemize}
+    \item Estadísticas de las tablas (número de filas, distribución de valores, histogramas).
+    \item Existencia de índices.
+    \item Métodos de acceso (seq scan, index scan, bitmap scan).
+    \item Algoritmos de JOIN (nested loop, hash join, merge join).
+\end{itemize}
+Elige el plan de menor costo estimado.
+
+\subsection{Ejecución}
+El plan se ejecuta, interactuando con el buffer cache y el almacenamiento. Si los datos están en caché (buffer pool), se evita E/S a disco. De lo contrario, se leen páginas del disco.
+
+\subsection{Retorno de Resultados}
+Las filas resultantes se envían al cliente, posiblemente en lotes.
+
+\subsection{Hardware Involucrado}
+\begin{itemize}
+    \item \textbf{CPU}: Procesa las condiciones, cálculos, agregaciones.
+    \item \textbf{RAM (Buffer Pool)}: Almacena páginas de datos e índices recientemente usados.
+    \item \textbf{Disco (SSD/HDD)}: Si hay cache miss, se lee de disco.
+    \item \textbf{Red}: Transmite los resultados al cliente.
+\end{itemize}
+En entrevistas, preguntan cómo optimizar: reducir E/S, usar índices, evitar ordenamientos innecesarios, etc.
+
+\section{EXPLAIN: La Herramienta Clave}
+Para entender el plan de ejecución, usamos \texttt{EXPLAIN} (y \texttt{EXPLAIN ANALYZE} para ejecutar realmente y ver tiempos).
+\begin{lstlisting}[language=SQL]
+EXPLAIN (ANALYZE, BUFFERS) SELECT * FROM clientes WHERE ciudad = 'Madrid';
+\end{lstlisting}
+Muestra el plan, costos estimados, filas reales, tiempo, y accesos a buffers (caché vs disco). Es esencial en entrevistas para demostrar capacidad de diagnóstico.
+
+\chapter{Joins: Combinando Tablas}
+Las bases de datos relacionales se basan en la normalización, que distribuye la información en múltiples tablas relacionadas mediante claves. Para recuperar datos que están dispersos, necesitamos combinar tablas mediante JOINs. Un JOIN combina filas de dos o más tablas basándose en una condición relacionada.
+
+\section{Producto Cartesiano y JOIN}
+Si escribimos:
+\begin{lstlisting}[language=SQL]
+SELECT * FROM A, B;
+\end{lstlisting}
+Obtenemos el producto cartesiano (todas las combinaciones de filas de A con B). Esto rara vez es útil. Los JOINs añaden una condición para filtrar las combinaciones relevantes.
+
+\section{Tipos de JOIN}
+Existen varios tipos, que se ilustran con diagramas de Venn (aunque hay que tener cuidado porque los conjuntos no son exactamente así, son ilustrativos).
+
+\subsection{INNER JOIN}
+Devuelve solo las filas que tienen correspondencia en ambas tablas.
+\begin{center}
+\begin{tikzpicture}
+    \filldraw[fill=blue!30, draw=black] (0,0) circle (1.5cm) node {A};
+    \filldraw[fill=red!30, draw=black] (2,0) circle (1.5cm) node {B};
+    \begin{scope}
+        \clip (0,0) circle (1.5cm);
+        \fill[fill=purple!50] (2,0) circle (1.5cm);
+    \end{scope}
+    \node at (1,0) {INNER};
+\end{tikzpicture}
+\end{center}
+Sintaxis:
+\begin{lstlisting}[language=SQL]
+SELECT columnas
+FROM tablaA
+INNER JOIN tablaB ON tablaA.clave = tablaB.clave;
+\end{lstlisting}
+También se puede usar la palabra clave \texttt{JOIN} a secas (por defecto es INNER).
+
+\subsection{LEFT JOIN (o LEFT OUTER JOIN)}
+Devuelve todas las filas de la tabla izquierda, y las coincidentes de la derecha. Si no hay coincidencia, las columnas de la derecha son NULL.
+\begin{center}
+\begin{tikzpicture}
+    \filldraw[fill=blue!30, draw=black] (0,0) circle (1.5cm) node {A};
+    \filldraw[fill=red!30, draw=black] (2,0) circle (1.5cm) node {B};
+    \begin{scope}
+        \fill[blue!30] (0,0) circle (1.5cm);
+    \end{scope}
+    \begin{scope}
+        \clip (0,0) circle (1.5cm);
+        \fill[fill=purple!50] (2,0) circle (1.5cm);
+    \end{scope}
+    \node at (0,0) {LEFT};
+\end{tikzpicture}
+\end{center}
+Sintaxis:
+\begin{lstlisting}[language=SQL]
+SELECT columnas
+FROM tablaA
+LEFT JOIN tablaB ON tablaA.clave = tablaB.clave;
+\end{lstlisting}
+
+\subsection{RIGHT JOIN}
+Análogo al LEFT, pero con la tabla derecha como maestra. Es menos usado porque se puede escribir el LEFT cambiando el orden.
+
+\subsection{FULL OUTER JOIN}
+Devuelve todas las filas de ambas tablas, rellenando con NULL donde no hay coincidencia.
+\begin{center}
+\begin{tikzpicture}
+    \filldraw[fill=blue!30, draw=black] (0,0) circle (1.5cm) node {A};
+    \filldraw[fill=red!30, draw=black] (2,0) circle (1.5cm) node {B};
+    \begin{scope}
+        \fill[blue!30] (0,0) circle (1.5cm);
+        \fill[red!30] (2,0) circle (1.5cm);
+    \end{scope}
+    \begin{scope}
+        \clip (0,0) circle (1.5cm);
+        \fill[fill=purple!50] (2,0) circle (1.5cm);
+    \end{scope}
+    \node at (1, -1.5) {FULL OUTER};
+\end{tikzpicture}
+\end{center}
+Sintaxis:
+\begin{lstlisting}[language=SQL]
+SELECT columnas
+FROM tablaA
+FULL OUTER JOIN tablaB ON tablaA.clave = tablaB.clave;
+\end{lstlisting}
+
+\subsection{CROSS JOIN}
+Producto cartesiano (cada fila de A con cada fila de B). No lleva condición.
+\begin{lstlisting}[language=SQL]
+SELECT * FROM tablaA CROSS JOIN tablaB;
+-- Equivalente a SELECT * FROM tablaA, tablaB;
+\end{lstlisting}
+
+\subsection{Self-Join}
+Una tabla se une consigo misma. Es útil para relaciones jerárquicas (ej. empleados con jefe).
+\begin{lstlisting}[language=SQL]
+SELECT e1.nombre AS empleado, e2.nombre AS jefe
+FROM empleados e1
+LEFT JOIN empleados e2 ON e1.jefe_id = e2.id;
+\end{lstlisting}
+
+\subsection{JOIN con condiciones no equitativas}
+La condición puede incluir otros operadores (>, <, BETWEEN). Pero hay que tener en cuenta que estos joins pueden ser costosos.
+\begin{lstlisting}[language=SQL]
+SELECT *
+FROM ventas v
+JOIN productos p ON v.producto_id = p.id AND v.cantidad > p.stock_minimo;
+\end{lstlisting}
+
+\section{Algoritmos de JOIN Internos}
+El motor elige entre varios algoritmos según el tamaño de las tablas y los índices:
+\begin{itemize}
+    \item \textbf{Nested Loop:} Para cada fila de la tabla externa, busca coincidencias en la interna (ideal si una es pequeña o hay índice).
+    \item \textbf{Hash Join:} Construye una tabla hash en memoria con una de las tablas, luego recorre la otra. Eficiente para tablas grandes sin índices.
+    \item \textbf{Merge Join:} Ordena ambas tablas (si no lo están) y luego las fusiona. Útil si ya están ordenadas o se necesita ordenar de todas formas.
+\end{itemize}
+Saber cuándo se usa cada uno es una pregunta clásica en entrevistas.
+
+\section{Ejemplo Práctico con Múltiples Tablas}
+Supongamos una base de datos de ventas con las tablas:
+\begin{itemize}
+    \item \texttt{clientes} (id, nombre, ciudad)
+    \item \texttt{productos} (id, nombre, precio)
+    \item \texttt{pedidos} (id, cliente_id, fecha)
+    \item \texttt{detalle\_pedido} (pedido_id, producto_id, cantidad)
+\end{itemize}
+Queremos obtener una lista de pedidos con nombre del cliente, fecha, productos y cantidad:
+\begin{lstlisting}[language=SQL]
+SELECT c.nombre AS cliente, p.fecha, pr.nombre AS producto, dp.cantidad
+FROM pedidos p
+JOIN clientes c ON p.cliente_id = c.id
+JOIN detalle_pedido dp ON p.id = dp.pedido_id
+JOIN productos pr ON dp.producto_id = pr.id;
+\end{lstlisting}
+Este es un JOIN de cuatro tablas. El orden de los JOINs puede afectar el rendimiento, pero el optimizador suele reordenarlos.
+
+\chapter{Subconsultas}
+Una subconsulta es una consulta anidada dentro de otra. Pueden usarse en SELECT, FROM, WHERE, etc. Son herramientas poderosas pero a veces pueden reescribirse como JOINs para mejorar rendimiento.
+
+\section{Subconsultas Escalares}
+Devuelven un solo valor (una fila y una columna). Se usan en expresiones.
+\begin{lstlisting}[language=SQL]
+SELECT nombre, (SELECT AVG(precio) FROM productos) AS precio_medio
+FROM productos;
+\end{lstlisting}
+Deben asegurar que devuelven una sola fila; si devuelven varias, se produce error.
+
+\section{Subconsultas de Fila Única}
+Devuelven una fila con varias columnas. Se pueden comparar con operadores como \texttt{=, >, <} si se espera una sola fila.
+\begin{lstlisting}[language=SQL]
+SELECT * FROM productos
+WHERE (categoria, precio) = (SELECT categoria, MAX(precio) FROM productos GROUP BY categoria LIMIT 1);
+\end{lstlisting}
+(En la práctica, es más seguro usar EXISTS o IN.)
+
+\section{Subconsultas de Múltiples Filas}
+Devuelven varias filas. Se usan con \texttt{IN}, \texttt{ANY}, \texttt{ALL}, \texttt{EXISTS}.
+\begin{itemize}
+    \item \textbf{IN}: Verifica si el valor está en el conjunto.
+    \item \textbf{ANY / SOME}: Compara con algún valor del conjunto (ej. > ANY significa mayor que al menos uno).
+    \item \textbf{ALL}: Compara con todos los valores (ej. > ALL significa mayor que todos).
+    \item \textbf{EXISTS}: Verifica si la subconsulta devuelve alguna fila (es más eficiente que IN para conjuntos grandes porque puede parar al encontrar la primera).
+\end{itemize}
+\begin{lstlisting}[language=SQL]
+SELECT nombre FROM clientes
+WHERE id IN (SELECT cliente_id FROM pedidos WHERE fecha >= '2025-01-01');
+
+SELECT nombre FROM clientes c
+WHERE EXISTS (SELECT 1 FROM pedidos p WHERE p.cliente_id = c.id AND p.fecha >= '2025-01-01');
+\end{lstlisting}
+\texttt{EXISTS} suele ser más rápido cuando la subconsulta es correlacionada.
+
+\section{Subconsultas Correlacionadas}
+Hacen referencia a columnas de la consulta exterior. Se evalúan para cada fila de la consulta externa.
+\begin{lstlisting}[language=SQL]
+SELECT p.nombre, p.precio
+FROM productos p
+WHERE p.precio > (SELECT AVG(precio) FROM productos WHERE categoria = p.categoria);
+\end{lstlisting}
+Aquí, la subconsulta calcula el precio medio de la categoría del producto actual. Pueden ser lentas si la tabla externa es grande.
+
+\section{Subconsultas en la cláusula FROM}
+Se puede usar una subconsulta como una tabla derivada (vista temporal). Requiere un alias.
+\begin{lstlisting}[language=SQL]
+SELECT categoria, AVG(precio) AS precio_medio
+FROM (SELECT * FROM productos WHERE activo = true) AS productos_activos
+GROUP BY categoria;
+\end{lstlisting}
+
+\chapter{Common Table Expressions (CTEs)}
+Las CTEs (WITH queries) permiten definir consultas auxiliares que se comportan como tablas temporales dentro de una consulta principal. Mejoran la legibilidad y permiten consultas recursivas.
+
+\section{Sintaxis Básica}
+\begin{lstlisting}[language=SQL]
+WITH cte_nombre (columnas_opcional) AS (
+    consulta
+)
+SELECT ...
+FROM cte_nombre ...
+\end{lstlisting}
+
+\subsection{Ejemplo}
+Obtener el total de ventas por cliente y luego filtrar los que superan 1000:
+\begin{lstlisting}[language=SQL]
+WITH ventas_cliente AS (
+    SELECT c.id, c.nombre, SUM(dp.cantidad * pr.precio) AS total
+    FROM clientes c
+    LEFT JOIN pedidos p ON c.id = p.cliente_id
+    LEFT JOIN detalle_pedido dp ON p.id = dp.pedido_id
+    LEFT JOIN productos pr ON dp.producto_id = pr.id
+    GROUP BY c.id, c.nombre
+)
+SELECT * FROM ventas_cliente WHERE total > 1000;
+\end{lstlisting}
+
+\subsection{CTEs Múltiples}
+Se pueden definir varias CTEs separadas por comas.
+\begin{lstlisting}[language=SQL]
+WITH
+    ventas AS (SELECT ...),
+    clientes_vip AS (SELECT ...)
+SELECT ...
+\end{lstlisting}
+
+\subsection{CTEs Recursivas}
+Permiten consultar estructuras jerárquicas (ej. organigrama). La sintaxis incluye una parte no recursiva (anchor) y una parte recursiva unida con UNION ALL.
+\begin{lstlisting}[language=SQL]
+WITH RECURSIVE organigrama AS (
+    -- Anchor: el jefe máximo
+    SELECT id, nombre, jefe_id, 1 AS nivel
+    FROM empleados
+    WHERE jefe_id IS NULL
+    UNION ALL
+    -- Recursivo: empleados que tienen jefe
+    SELECT e.id, e.nombre, e.jefe_id, o.nivel + 1
+    FROM empleados e
+    JOIN organigrama o ON e.jefe_id = o.id
+)
+SELECT * FROM organigrama;
+\end{lstlisting}
+Es una pregunta común en entrevistas avanzadas.
+
+\section{CTEs vs. Subconsultas vs. Tablas Temporales}
+\begin{itemize}
+    \item Las CTEs son solo azúcar sintáctico; el optimizador puede tratarlas como subconsultas en línea o materializarlas según el motor (en PostgreSQL, se materializan por defecto a menos que se use \texttt{NOT MATERIALIZED}).
+    \item Son más legibles y permiten recursión.
+    \item Para reutilización múltiple en la misma consulta, una CTE evita repetir código.
+\end{itemize}
+
+\chapter{Buenas Prácticas y Optimización de Consultas SQL}
+Escribir SQL eficiente no solo es cuestión de sintaxis correcta, sino de entender cómo el motor ejecutará la consulta. Aquí hay reglas y patrones que suelen preguntar en entrevistas.
+
+\section{Preferir EXISTS a IN cuando la subconsulta es grande}
+\begin{lstlisting}[language=SQL]
+-- Menos eficiente si la subconsulta devuelve muchas filas
+SELECT * FROM clientes WHERE id IN (SELECT cliente_id FROM pedidos);
+
+-- Más eficiente (puede parar al encontrar el primero)
+SELECT * FROM clientes c WHERE EXISTS (SELECT 1 FROM pedidos p WHERE p.cliente_id = c.id);
+\end{lstlisting}
+
+\section{Evitar Funciones en Columnas Indexadas}
+\begin{lstlisting}[language=SQL]
+-- No usará índice en fecha
+SELECT * FROM pedidos WHERE EXTRACT(YEAR FROM fecha) = 2025;
+
+-- Mejor (si hay índice en fecha)
+SELECT * FROM pedidos WHERE fecha >= '2025-01-01' AND fecha < '2026-01-01';
+\end{lstlisting}
+
+\section{Usar UNION ALL en lugar de UNION si no se necesitan duplicados}
+UNION elimina duplicados (requiere ordenar y comparar), mientras que UNION ALL simplemente concatena.
+
+\section{SELECT * Es Peligroso}
+Siempre especificar las columnas necesarias. SELECT * puede traer más datos de los necesarios, aumentar E/S y red, y romper la aplicación si cambia el esquema.
+
+\section{Cuidado con las Conversiones Implícitas}
+Si comparas un texto con un número, el motor puede convertir toda la columna, impidiendo el uso de índices.
+\begin{lstlisting}[language=SQL]
+-- Si id es texto, pero lo comparas con número, puede haber conversión
+SELECT * FROM tabla WHERE id = 123; -- mejor usar '123'
+\end{lstlisting}
+
+\section{Índices y JOINs}
+Asegurar que las columnas de JOIN estén indexadas. Para JOINs de muchos a muchos, indexar ambas columnas en la tabla intermedia.
+
+\section{Analizar el Plan con EXPLAIN}
+Siempre que una consulta sea lenta, usar EXPLAIN (ANALYZE) para ver dónde está el cuello de botella.
+
+\section{Escritura de Consultas Legibles}
+Usar indentación, alias claros, y mayúsculas para palabras clave. No afecta el rendimiento pero facilita el mantenimiento.
+
+\chapter{Consideraciones de Hardware y Motor}
+\section{Buffer Pool y Caché}
+El tamaño del buffer pool (por ejemplo, \texttt{innodb\_buffer\_pool\_size} en MySQL, \texttt{shared\_buffers} en PostgreSQL) es crítico. Si los datos caben en memoria, las consultas son mucho más rápidas.
+
+\section{Disco: SSD vs HDD}
+En producción, siempre SSD. Las lecturas secuenciales son más rápidas, pero los índices requieren lecturas aleatorias. SSD mejora drásticamente las lecturas aleatorias.
+
+\section{Parallel Query}
+Algunos motores pueden usar múltiples CPUs para una consulta (paralelismo). Esto puede acelerar agregaciones y escaneos.
+
+\section{Configuración del Motor}
+Parámetros como el tamaño de memoria para hash joins, el costo de E/S, etc., pueden ajustarse. En entrevistas, suelen preguntar sobre parámetros genéricos.
+
+\chapter{Breve Comparación entre Motores (para JOINs y DML)}
+Aunque nos centramos en SQL estándar, cada motor tiene peculiaridades:
+\begin{itemize}
+    \item \textbf{PostgreSQL}: Cumple con el estándar, soporta CTEs recursivas, FULL JOIN, y tiene un optimizador muy maduro.
+    \item \textbf{MySQL}: No soporta FULL JOIN (se simula con UNION). Los JOINs pueden ser lentos si no se usan índices.
+    \item \textbf{SQL Server}: Ofrece sugerencias de JOIN (LOOP, HASH, MERGE) y soporta CTEs recursivas.
+    \item \textbf{Oracle}: Sintaxis antigua de JOIN (+) para outer joins, pero se recomienda usar ANSI.
+\end{itemize}
+En entrevistas, es importante conocer las diferencias si el puesto requiere un motor específico.
+
+
+
+\chapter{Joins en el Mundo NoSQL (Una Breve Mirada)}
+Aunque esta sesión se centra en SQL, es útil saber cómo se abordan las relaciones en bases de datos NoSQL, ya que en proyectos modernos pueden convivir ambos paradigmas.
+
+\begin{itemize}
+    \item \textbf{MongoDB (documental):} No soporta joins nativos entre colecciones, pero desde la versión 3.2 incluye el operador \texttt{\$lookup} en el pipeline de agregación, que realiza un left outer join con otra colección. Sin embargo, su uso es limitado y se recomienda diseñar documentos embebidos para evitar joins.
+    \item \textbf{Cassandra (columna ancha):} No soporta joins. El modelado se basa en desnormalización y tablas diseñadas específicamente para las consultas.
+    \item \textbf{Redis (clave-valor):} No tiene joins; las relaciones se manejan a nivel de aplicación o mediante estructuras como sets y sorted sets.
+    \item \textbf{Neo4j (grafos):} Las relaciones son nativas; en lugar de joins, se navegan los nodos y relaciones con patrones de camino.
+\end{itemize}
+En resumen, en NoSQL se sacrifica la capacidad de join en favor de escalabilidad y rendimiento, por lo que el diseño de datos es fundamental.
+
+
+
+
+\chapter{Ejercicios Resueltos}
+A continuación se presentan ejercicios que integran los conceptos vistos. Se resuelven paso a paso.
+
+\section{Ejercicio 1: Consultas Básicas con DML}
+\textbf{Enunciado:} Dada la tabla \texttt{empleados} con columnas \texttt{id}, \textit{nombre}, \textit{salario}, \textit{departamento\_id}. Insertar tres empleados, actualizar el salario de uno, y luego eliminar los empleados de un departamento específico.
+
+\textbf{Solución:}
+\begin{lstlisting}[language=SQL]
+-- Insertar
+INSERT INTO empleados (nombre, salario, departamento_id) VALUES
+('Juan Perez', 3000, 1),
+('Ana Garcia', 3500, 2),
+('Luis Fernandez', 3200, 1);
+
+-- Actualizar salario de Juan
+UPDATE empleados SET salario = 3300 WHERE nombre = 'Juan Perez';
+
+-- Eliminar empleados del departamento 2
+DELETE FROM empleados WHERE departamento_id = 2;
+\end{lstlisting}
+
+\section{Ejercicio 2: INNER JOIN y LEFT JOIN}
+\textbf{Enunciado:} Usar las tablas \texttt{clientes}, \texttt{pedidos} y \texttt{detalle\_pedido} del ejemplo anterior. Obtener:
+\begin{enumerate}
+    \item Todos los pedidos con el nombre del cliente y la fecha.
+    \item Todos los clientes, incluso si no tienen pedidos, mostrando el número de pedidos (0 si no tiene).
+    \item El total gastado por cada cliente (suma de cantidad * precio de cada producto en sus pedidos).
+\end{enumerate}
+
+\textbf{Solución:}
+\begin{lstlisting}[language=SQL]
+-- 1. Pedidos con cliente
+SELECT p.id, c.nombre, p.fecha
+FROM pedidos p
+INNER JOIN clientes c ON p.cliente_id = c.id;
+
+-- 2. Todos los clientes con número de pedidos
+SELECT c.id, c.nombre, COUNT(p.id) AS num_pedidos
+FROM clientes c
+LEFT JOIN pedidos p ON c.id = p.cliente_id
+GROUP BY c.id, c.nombre;
+
+-- 3. Total gastado por cliente
+SELECT c.id, c.nombre, COALESCE(SUM(dp.cantidad * pr.precio), 0) AS total_gastado
+FROM clientes c
+LEFT JOIN pedidos p ON c.id = p.cliente_id
+LEFT JOIN detalle_pedido dp ON p.id = dp.pedido_id
+LEFT JOIN productos pr ON dp.producto_id = pr.id
+GROUP BY c.id, c.nombre;
+\end{lstlisting}
+Explicación: Usamos LEFT JOIN para incluir clientes sin pedidos, y COALESCE para mostrar 0 en lugar de NULL.
+
+\section{Ejercicio 3: Subconsultas}
+\textbf{Enunciado:} Encontrar los productos cuyo precio es superior al precio medio de su categoría. Usar subconsulta correlacionada.
+
+\textbf{Solución:}
+\begin{lstlisting}[language=SQL]
+SELECT p.nombre, p.precio, p.categoria
+FROM productos p
+WHERE p.precio > (SELECT AVG(precio) FROM productos WHERE categoria = p.categoria);
+\end{lstlisting}
+
+\section{Ejercicio 4: Uso de CTE}
+\textbf{Enunciado:} Obtener los empleados que ganan más que el salario promedio de su departamento, mostrando el nombre del empleado, su salario y el promedio del departamento.
+
+\textbf{Solución:}
+\begin{lstlisting}[language=SQL]
+WITH promedio_depto AS (
+    SELECT departamento_id, AVG(salario) AS salario_prom
+    FROM empleados
+    GROUP BY departamento_id
+)
+SELECT e.nombre, e.salario, pd.salario_prom
+FROM empleados e
+JOIN promedio_depto pd ON e.departamento_id = pd.departamento_id
+WHERE e.salario > pd.salario_prom;
+\end{lstlisting}
+
+\section{Ejercicio 5: Optimización y EXPLAIN}
+\textbf{Enunciado:} Dada una consulta lenta, ¿cómo diagnosticarías y optimizarías?
+Supongamos: \texttt{SELECT * FROM pedidos WHERE EXTRACT(YEAR FROM fecha) = 2025;}
+
+\textbf{Solución:}
+\begin{enumerate}
+    \item Usar EXPLAIN ANALYZE para ver el plan.
+    \item Probablemente hará un seq scan porque la función impide usar índice en fecha.
+    \item Reescribir: \texttt{SELECT * FROM pedidos WHERE fecha >= '2025-01-01' AND fecha < '2026-01-01';}
+    \item Crear índice en \texttt{fecha} si no existe.
+    \item Verificar con EXPLAIN que ahora use index scan.
+\end{enumerate}
+
+\section{Ejercicio 6: Recursividad con CTE}
+\textbf{Enunciado:} Dada una tabla \texttt{empleados} con \texttt{id}, \textit{nombre}, \textit{jefe\_id}, obtener el organigrama completo con niveles.
+
+\textbf{Solución:}
+\begin{lstlisting}[language=SQL]
+WITH RECURSIVE organigrama AS (
+    SELECT id, nombre, jefe_id, 1 AS nivel
+    FROM empleados
+    WHERE jefe_id IS NULL
+    UNION ALL
+    SELECT e.id, e.nombre, e.jefe_id, o.nivel + 1
+    FROM empleados e
+    JOIN organigrama o ON e.jefe_id = o.id
+)
+SELECT * FROM organigrama ORDER BY nivel, nombre;
+\end{lstlisting}
+
+\chapter{Glosario de Términos}
+\begin{description}
+    \item[DML] Data Manipulation Language: sublenguaje de SQL para manipular datos (SELECT, INSERT, UPDATE, DELETE).
+    \item[JOIN] Operación que combina filas de dos o más tablas basándose en una condición relacionada.
+    \item[INNER JOIN] Devuelve solo las filas que tienen correspondencia en ambas tablas.
+    \item[LEFT JOIN] Devuelve todas las filas de la tabla izquierda, y las coincidentes de la derecha.
+    \item[FULL OUTER JOIN] Devuelve todas las filas de ambas tablas, rellenando con NULL donde no hay coincidencia.
+    \item[Subconsulta] Consulta anidada dentro de otra consulta.
+    \item[Subconsulta correlacionada] Subconsulta que hace referencia a columnas de la consulta exterior.
+    \item[CTE] Common Table Expression (WITH clause): consulta auxiliar que puede ser referenciada múltiples veces.
+    \item[Recursive CTE] CTE que se llama a sí misma, útil para jerarquías.
+    \item[EXPLAIN] Comando para mostrar el plan de ejecución de una consulta.
+    \item[Plan de ejecución] Secuencia de operaciones que el motor realizará para ejecutar una consulta.
+    \item[Buffer Pool] Área de memoria donde se cachean páginas de datos e índices.
+    \item[Index Scan] Acceso a tabla mediante un índice.
+    \item[Seq Scan] Escaneo secuencial de toda la tabla.
+\end{description}
+
+\chapter*{Referencias}
+\addcontentsline{toc}{chapter}{Referencias}
+\begin{itemize}
+    \item Elmasri, R., \& Navathe, S. B. (2016). \textit{Fundamentals of Database Systems}. 7th ed. Pearson.
+    \item Silberschatz, A., Korth, H. F., \& Sudarshan, S. (2020). \textit{Database System Concepts}. 7th ed. McGraw-Hill.
+    \item Documentación oficial de PostgreSQL: \url{https://www.postgresql.org/docs/}
+    \item Documentación de MySQL: \url{https://dev.mysql.com/doc/}
+    \item ``Use The Index, Luke'' – Guía de optimización de SQL: \url{https://use-the-index-luke.com/}
+\end{itemize}
+
+\end{document}

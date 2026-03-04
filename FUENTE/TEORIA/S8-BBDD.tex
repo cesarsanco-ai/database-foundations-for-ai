@@ -1,0 +1,530 @@
+\documentclass[12pt,a4paper,openany,oneside]{book}
+
+% --- Paquetes ---
+\usepackage[utf8]{inputenc}
+\usepackage[spanish, es-tabla]{babel}
+\usepackage{amsmath, amsfonts, amssymb}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{fancyhdr}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric, calc}
+
+\geometry{margin=2.5cm}
+
+% --- Colores y estilos para código ---
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinelanguage{SQL}{
+    keywords={SELECT, FROM, WHERE, INSERT, INTO, VALUES, UPDATE, SET, DELETE, CREATE, TABLE, INT, VARCHAR, DATE, PRIMARY, KEY, FOREIGN, REFERENCES, INDEX, VIEW, ALTER, DROP, AND, OR, NOT, NULL, CONSTRAINT, JOIN, INNER, LEFT, RIGHT, FULL, OUTER, ON, GROUP, BY, HAVING, ORDER, ASC, DESC, SERIAL, CHECK, UNIQUE, DEFAULT, CURRENT_DATE, CURRENT_TIMESTAMP, BEGIN, COMMIT, ROLLBACK, TRANSACTION, ISOLATION LEVEL, PROCEDURE, FUNCTION, TRIGGER, PLpgSQL, EXISTS, ANY, ALL, UNION, INTERSECT, EXCEPT, DISTINCT, AS, AVG, SUM, COUNT, MIN, MAX, WITH, RECURSIVE, CASE, COALESCE, NULLIF, GREATEST, LEAST, EXPLAIN, ANALYZE, BUFFERS, TIMING, COST, ROWS, WIDTH, FILTER, SCAN, INDEX, SEQUENTIAL, HASH, MERGE, NESTED, LOOP, CTE, MATERIALIZED, NOT MATERIALIZED, OVER, PARTITION, ROWS, RANGE, GROUPS, PRECEDING, FOLLOWING, UNBOUNDED, CURRENT, ROW, RANK, DENSE_RANK, ROW_NUMBER, NTILE, LAG, LEAD, FIRST_VALUE, LAST_VALUE, NTH_VALUE, CUME_DIST, PERCENT_RANK, SUBSTRING, CONCAT, TRIM, UPPER, LOWER, INITCAP, REPLACE, TRANSLATE, LPAD, RPAD, EXTRACT, DATE_PART, DATE_TRUNC, INTERVAL, CAST, CONVERT, TO_DATE, TO_CHAR, TO_NUMBER, REGEXP_MATCH, REGEXP_REPLACE, REGEXP_SPLIT, DECLARE, CURSOR, FETCH, OPEN, CLOSE, LOOP, WHILE, FOR, IF, ELSE, ELSIF, THEN, END, PERFORM, EXECUTE, RAISE, NOTICE, EXCEPTION, GET DIAGNOSTICS, RETURN, LANGUAGE, VOLATILE, STABLE, IMMUTABLE, SECURITY, INVOKER, DEFINER, CALL, GRANT, REVOKE, ROLE, USER, IDENTIFIED, PASSWORD, EXECUTE, PROCEDURE, FUNCTION, TRIGGER, VIEW, MATERIALIZED VIEW, REFRESH, CONCURRENTLY},
+    sensitive=false,
+    morecomment=[l]{--},
+    morecomment=[s]{/*}{*/},
+    morestring=[b]'
+}
+\lstset{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    showstringspaces=false,
+    language=SQL
+}
+
+% --- Estilo de Python ---
+\lstdefinelanguage{Python}{
+    keywords={import, from, as, def, return, class, if, elif, else, for, while, in, not, and, or, True, False, None, with, open, try, except, finally, raise, assert, lambda, yield, global, nonlocal, await, async},
+    morecomment=[l]{\#},
+    morestring=[b]',
+    morestring=[b]"
+}
+\lstset{language=Python}
+
+% --- Estilo de cabecera y pie ---
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\fancyhead[L]{\small Carlos César Sánchez Coronel}
+\fancyhead[R]{\small Sesión 8: Captura de Datos y Extracción Masiva}
+\fancyfoot[L]{\small Carlos César Sánchez Coronel}
+\fancyfoot[C]{\thepage}
+
+% --- Portada ---
+\title{
+    \Huge \textbf{Sesión 8: CAPTURA DE DATOS Y EXTRACCIÓN MASIVA} \\
+    \large Fuentes, técnicas y almacenamiento para Big Data e IA
+}
+\author{
+    \small Por \\ \vspace{0.2cm}
+    \Large \textsc{Carlos César Sánchez Coronel}
+}
+\date{2026}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\addcontentsline{toc}{chapter}{Índice general}
+
+\chapter{Introducción a la Captura de Datos}
+En la era de la inteligencia artificial y el big data, los datos son el nuevo petróleo. Pero antes de que puedan ser refinados (procesados, analizados, usados para entrenar modelos), deben ser \textbf{capturados} de sus fuentes originales. Esta sesión se centra en las técnicas y herramientas para extraer datos de diversas fuentes, tanto internas como externas, a pequeña y gran escala. Comprender estos mecanismos es fundamental para cualquier ingeniero de datos, ya que la calidad y la oportunidad de los datos capturados determinan el éxito de los proyectos posteriores.
+
+\section{Importancia de la Captura de Datos}
+\begin{itemize}
+    \item \textbf{Alimentación de modelos de IA}: Los modelos requieren grandes volúmenes de datos diversos (texto, imágenes, sensores) que deben ser extraídos de la web, APIs, bases de datos, etc.
+    \item \textbf{Toma de decisiones en tiempo real}: Aplicaciones como detección de fraude, recomendaciones personalizadas o monitoreo de infraestructura necesitan capturar datos en streaming.
+    \item \textbf{Análisis histórico}: Para estudios de tendencias, se necesitan datos pasados (ej. archivos web, logs).
+    \item \textbf{Integración de sistemas}: Las empresas modernas tienen decenas de fuentes de datos; capturarlos de forma unificada es un desafío.
+\end{itemize}
+
+\section{Clasificación de Fuentes de Datos}
+Podemos clasificar las fuentes según su origen y naturaleza:
+
+\begin{itemize}
+    \item \textbf{Internas}: Bases de datos transaccionales (SQL, NoSQL), logs de servidores, archivos corporativos (CSV, Excel), sensores IoT propios.
+    \item \textbf{Externas}: Web (páginas públicas), APIs de terceros (redes sociales, clima, finanzas), datos gubernamentales, redes sociales, repositorios públicos (Common Crawl, Wikipedia).
+\end{itemize}
+
+Y según su forma de entrega:
+\begin{itemize}
+    \item \textbf{Batch}: Los datos se obtienen en bloques periódicos (diario, semanal).
+    \item \textbf{Tiempo real (streaming)}: Los datos se generan y capturan continuamente (eventos, sensores).
+\end{itemize}
+
+\chapter{Fuentes de Datos Externas y Web Scraping}
+\section{Web Scraping}
+El web scraping es la técnica de extraer información de sitios web de forma automatizada. Es una de las formas más comunes de obtener datos públicos para análisis, investigación o entrenamiento de modelos.
+
+\subsection{Casos de Uso}
+\begin{itemize}
+    \item \textbf{Entrenamiento de LLMs}: Modelos como GPT fueron entrenados con grandes corpus extraídos de la web, como Common Crawl (miles de millones de páginas).
+    \item \textbf{Monitoreo de precios}: Empresas que rastrean precios de la competencia.
+    \item \textbf{Agregadores de noticias}: Recopilan artículos de múltiples fuentes.
+    \item \textbf{Investigación académica}: Análisis de redes sociales, tendencias.
+\end{itemize}
+
+\subsection{Técnicas y Herramientas}
+\begin{itemize}
+    \item \textbf{Peticiones HTTP}: Usar librerías como \texttt{requests} en Python para obtener el HTML.
+    \item \textbf{Parsing HTML}: BeautifulSoup, lxml para extraer datos estructurados.
+    \item \textbf{Navegación automatizada}: Selenium, Playwright para sitios con JavaScript dinámico.
+    \item \textbf{Frameworks de scraping}: Scrapy (Python) para proyectos a gran escala.
+    \item \textbf{Respeto de robots.txt y políticas}: Es ético y legal verificar las restricciones del sitio.
+\end{itemize}
+
+\subsection{Ejemplo Básico con Python}
+\begin{lstlisting}[language=Python]
+import requests
+from bs4 import BeautifulSoup
+
+url = 'https://quotes.toscrape.com/'
+response = requests.get(url)
+soup = BeautifulSoup(response.text, 'html.parser')
+
+for quote in soup.select('.quote'):
+    text = quote.select_one('.text').get_text()
+    author = quote.select_one('.author').get_text()
+    print(f'{author}: {text}')
+\end{lstlisting}
+
+\subsection{Consideraciones Legales y Éticas}
+\begin{itemize}
+    \item Respetar el archivo \texttt{robots.txt} del sitio.
+    \item No sobrecargar el servidor (usar delays, rate limiting).
+    \item Verificar los términos de servicio; algunos sitios prohíben el scraping.
+    \item Para uso comercial, consultar con un abogado.
+\end{itemize}
+
+\subsection{Common Crawl: El Tesoro de la Web}
+Common Crawl es una organización sin fines de lucro que realiza rastreos masivos de la web y pone los datos a disposición pública. Sus archivos (petabytes de datos) han sido la base para entrenar modelos de lenguaje como GPT, BERT y otros. Los datos están en formato WARC (Web ARChive) y se pueden procesar con herramientas como Apache Spark o Amazon Web Services (AWS) ofrecen estos conjuntos de datos directamente en S3.
+
+\section{APIs (Application Programming Interfaces)}
+Las APIs son la forma moderna y estructurada de intercambiar datos entre sistemas. Permiten acceder a datos de servicios como Twitter, Facebook, Google Maps, etc., de manera controlada.
+
+\subsection{Tipos de APIs}
+\begin{itemize}
+    \item \textbf{REST}: Basadas en HTTP, usan verbos (GET, POST, PUT, DELETE) y devuelven JSON/XML. Son las más comunes.
+    \item \textbf{GraphQL}: Permite al cliente especificar exactamente los campos que necesita.
+    \item \textbf{SOAP}: Protocolo más pesado, basado en XML, usado en entornos empresariales.
+\end{itemize}
+
+\subsection{Autenticación y Rate Limiting}
+La mayoría de las APIs requieren una clave de API (API key) o tokens OAuth. Además, imponen límites de tasa (rate limiting) para evitar abusos.
+
+\subsection{Ejemplo con Python (API REST)}
+\begin{lstlisting}[language=Python]
+import requests
+import json
+
+api_key = 'tu_api_key'
+url = f'https://api.themoviedb.org/3/movie/popular?api_key={api_key}&language=es-ES'
+response = requests.get(url)
+if response.status_code == 200:
+    data = response.json()
+    for movie in data['results']:
+        print(movie['title'])
+else:
+    print('Error:', response.status_code)
+\end{lstlisting}
+
+\subsection{APIs en Tiempo Real}
+Algunas APIs ofrecen streaming (WebSockets) para recibir datos en tiempo real, como la API de Twitter (ahora X) para tweets en vivo.
+
+\chapter{Captura de Datos en Tiempo Real y Streaming}
+\section{Concepto de Streaming}
+El procesamiento en streaming maneja datos que llegan continuamente, en lugar de lotes. Es esencial para aplicaciones que requieren latencias muy bajas (milisegundos).
+
+\subsection{Casos de Uso}
+\begin{itemize}
+    \item Detección de fraude en transacciones bancarias.
+    \item Monitoreo de sensores IoT (temperatura, presión).
+    \item Análisis de redes sociales en tiempo real.
+    \item Logs de servidores y aplicaciones.
+\end{itemize}
+
+\section{Change Data Capture (CDC)}
+CDC es una técnica para capturar cambios en bases de datos (inserciones, actualizaciones, eliminaciones) en tiempo real, sin afectar el rendimiento del sistema transaccional.
+
+\subsection{Métodos de CDC}
+\begin{itemize}
+    \item \textbf{Basado en logs}: El motor de BD escribe los cambios en un log transaccional (WAL en PostgreSQL, binlog en MySQL). Herramientas como Debezium leen esos logs y los publican en Kafka.
+    \item \textbf{Basado en triggers}: Se crean triggers que insertan los cambios en una tabla de auditoría, que luego es leída. Afecta más el rendimiento.
+    \item \textbf{Basado en consultas periódicas}: No es tiempo real, sino batch.
+\end{itemize}
+
+\subsection{Debezium y Kafka}
+Debezium es una plataforma de CDC que se integra con Apache Kafka. Conecta a bases de datos como PostgreSQL, MySQL, MongoDB, etc., y produce mensajes en Kafka por cada cambio. Luego, consumidores pueden procesar esos eventos.
+
+\begin{center}
+\begin{tikzpicture}
+    \node[draw, rectangle] (db) {Base de Datos};
+    \node[draw, rectangle, right=2cm of db] (debezium) {Debezium};
+    \node[draw, rectangle, right=2cm of debezium] (kafka) {Apache Kafka};
+    \draw[->, thick] (db) -- node[above] {log} (debezium);
+    \draw[->, thick] (debezium) -- node[above] {eventos} (kafka);
+\end{tikzpicture}
+\end{center}
+
+\section{Apache Kafka}
+Kafka es la plataforma de streaming más utilizada. Actúa como un sistema de mensajería distribuido, durable y de alta吞吐量.
+
+\begin{itemize}
+    \item \textbf{Tópicos}: Categorías de mensajes.
+    \item \textbf{Productores}: Aplicaciones que envían mensajes.
+    \item \textbf{Consumidores}: Aplicaciones que leen mensajes.
+    \item \textbf{Partitions}: Permiten paralelismo y orden dentro de una partición.
+\end{itemize}
+
+Ejemplo conceptual: Un productor envía tweets a un tópico "tweets", y varios consumidores (análisis de sentimiento, almacenamiento) leen de él.
+
+\section{Otras Plataformas de Streaming}
+\begin{itemize}
+    \item \textbf{AWS Kinesis}: Servicio gestionado de AWS para streaming.
+    \item \textbf{Google Pub/Sub}.
+    \item \textbf{Apache Pulsar}.
+    \item \textbf{RabbitMQ} (más orientado a colas).
+\end{itemize}
+
+\chapter{Formatos de Datos y Almacenamiento}
+Una vez capturados, los datos deben almacenarse de forma eficiente para su posterior procesamiento. La elección del formato y el sistema de almacenamiento es crucial.
+
+\section{Formatos de Archivo}
+\begin{itemize}
+    \item \textbf{CSV}: Simple, legible, pero ineficiente para grandes volúmenes (sin esquema, no comprimido).
+    \item \textbf{JSON}: Muy usado en APIs, flexible pero verboso.
+    \item \textbf{Avro}: Formato binario con esquema, ideal para serialización en streaming (Kafka).
+    \item \textbf{Parquet}: Formato columnar, altamente comprimido, óptimo para análisis (Spark, Hive).
+    \item \textbf{ORC}: Similar a Parquet, usado en Hive.
+    \item \textbf{WARC}: Formato de archivo web (Common Crawl).
+\end{itemize}
+
+\subsection{Comparativa}
+\begin{center}
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{Formato} & \textbf{Tipo} & \textbf{Compresión} & \textbf{Uso típico} \\ \hline
+CSV & Texto fila & Baja & Intercambio simple \\
+JSON & Texto semi-estructurado & Media & APIs, documentos \\
+Avro & Binario fila & Alta & Streaming, serialización \\
+Parquet & Columnar & Alta & Análisis, data lakes \\
+ORC & Columnar & Alta & Hive, Hadoop \\ \hline
+\end{tabular}
+\end{center}
+
+\section{Almacenamiento: Data Lakes y Data Warehouses}
+\begin{itemize}
+    \item \textbf{Data Lake}: Almacena datos en bruto en formatos nativos (archivos). Ej: Amazon S3, Azure Data Lake, HDFS. Se usa para capturar grandes volúmenes sin transformar.
+    \item \textbf{Data Warehouse}: Almacena datos estructurados y procesados (esquema estrella). Ej: Snowflake, BigQuery, Redshift.
+\end{itemize}
+En la captura, a menudo se guarda primero en un data lake (raw zone) y luego se transforma para análisis.
+
+\section{Particionamiento}
+Para facilitar consultas eficientes, los datos en data lakes se suelen particionar por fecha, región, etc.
+Ejemplo en S3: \texttt{s3://bucket/ventas/year=2025/month=03/day=15/ventas.parquet}
+
+\chapter{Procesamiento a Gran Escala}
+Una vez capturados, los datos masivos necesitan ser procesados para limpieza, transformación y preparación. Aquí entran frameworks de procesamiento distribuido.
+
+\section{Apache Spark}
+Spark es el motor más popular para procesamiento de grandes volúmenes (batch y streaming). Ofrece APIs en Python (PySpark), Scala, Java.
+
+\begin{itemize}
+    \item \textbf{RDD}: Resilient Distributed Dataset (bajo nivel).
+    \item \textbf{DataFrames}: Similar a tablas SQL, con optimizaciones.
+    \item \textbf{Spark SQL}: Consultas SQL sobre DataFrames.
+    \item \textbf{Structured Streaming}: Procesamiento en tiempo real.
+\end{itemize}
+
+Ejemplo de lectura de un archivo Parquet con PySpark:
+\begin{lstlisting}[language=Python]
+from pyspark.sql import SparkSession
+
+spark = SparkSession.builder.appName("lectura").getOrCreate()
+df = spark.read.parquet("s3://bucket/ventas/")
+df.filter(df.fecha >= "2025-01-01").groupBy("producto").sum("monto").show()
+\end{lstlisting}
+
+\section{Apache Flink}
+Alternativa a Spark especializada en streaming, con menor latencia.
+
+\section{Hadoop MapReduce}
+El precursor, pero hoy en día en desuso para nuevos proyectos debido a su complejidad.
+
+\section{Limpieza y Transformación}
+Los datos capturados suelen estar sucios: formatos inconsistentes, valores nulos, duplicados. En esta etapa se aplican técnicas como las vistas en la sesión 6 (limpieza con SQL o DataFrames). A gran escala, Spark permite hacerlo de manera distribuida.
+
+\chapter{Ejemplo Integrador: Pipeline de Captura de Tweets en Tiempo Real}
+Imaginemos un sistema que captura tweets sobre un tema, los procesa y los almacena para análisis posterior.
+
+\subsection{Arquitectura}
+\begin{enumerate}
+    \item \textbf{Fuente}: API de Twitter (streaming) envía tweets en tiempo real.
+    \item \textbf{Ingesta}: Un productor Kafka (escrito en Python) consume la API y publica en un tópico Kafka.
+    \item \textbf{Almacenamiento}: Un consumidor Spark Structured Streaming lee de Kafka, realiza limpieza (eliminar RT, extraer hashtags) y guarda en Parquet en S3 particionado por fecha.
+    \item \textbf{Análisis}: Otro proceso batch (Spark) lee los Parquet para análisis de sentimiento o tendencias.
+\end{enumerate}
+
+\subsection{Código Esquemático}
+\paragraph{Productor Kafka en Python}
+\begin{lstlisting}[language=Python]
+from kafka import KafkaProducer
+import tweepy
+import json
+
+producer = KafkaProducer(bootstrap_servers='localhost:9092',
+                         value_serializer=lambda v: json.dumps(v).encode('utf-8'))
+
+class MyStreamListener(tweepy.Stream):
+    def on_data(self, raw_data):
+        tweet = json.loads(raw_data)
+        # Extraer solo campos relevantes
+        data = {
+            'id': tweet['id'],
+            'text': tweet['text'],
+            'user': tweet['user']['screen_name'],
+            'created_at': tweet['created_at']
+        }
+        producer.send('tweets', value=data)
+        return True
+
+stream = MyStreamListener(consumer_key, consumer_secret, access_token, access_token_secret)
+stream.filter(track=['#datascience'])
+\end{lstlisting}
+
+\paragraph{Consumidor Spark Structured Streaming}
+\begin{lstlisting}[language=Python]
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import from_json, col, to_date
+
+spark = SparkSession.builder.appName("tweet_processor").getOrCreate()
+
+df = spark.readStream.format("kafka") \
+    .option("kafka.bootstrap.servers", "localhost:9092") \
+    .option("subscribe", "tweets") \
+    .load()
+
+# Definir esquema del JSON
+schema = "id LONG, text STRING, user STRING, created_at STRING"
+
+tweets = df.select(from_json(col("value").cast("string"), schema).alias("data")).select("data.*")
+
+# Limpieza: quitar RTs y extraer fecha
+tweets_clean = tweets.filter(~col("text").startswith("RT")) \
+    .withColumn("fecha", to_date("created_at", "EEE MMM dd HH:mm:ss Z yyyy"))
+
+# Guardar en Parquet particionado por fecha
+query = tweets_clean.writeStream \
+    .format("parquet") \
+    .partitionBy("fecha") \
+    .option("path", "s3a://bucket/tweets/") \
+    .option("checkpointLocation", "/tmp/checkpoint") \
+    .trigger(processingTime="5 minutes") \
+    .start()
+
+query.awaitTermination()
+\end{lstlisting}
+
+\chapter{Ejercicios Resueltos}
+\section{Ejercicio 1: Scraping de una Página Web}
+\textbf{Enunciado:} Extraer de la página de citas famosas \url{http://quotes.toscrape.com} todas las citas, autores y etiquetas, y guardarlas en un archivo CSV.
+
+\textbf{Solución:}
+\begin{lstlisting}[language=Python]
+import requests
+from bs4 import BeautifulSoup
+import csv
+
+url = 'http://quotes.toscrape.com'
+quotes = []
+while url:
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, 'html.parser')
+    for quote in soup.select('.quote'):
+        text = quote.select_one('.text').get_text()
+        author = quote.select_one('.author').get_text()
+        tags = [tag.get_text() for tag in quote.select('.tag')]
+        quotes.append([text, author, ', '.join(tags)])
+    next_btn = soup.select_one('.next a')
+    url = next_btn['href'] if next_btn else None
+
+with open('quotes.csv', 'w', newline='', encoding='utf-8') as f:
+    writer = csv.writer(f)
+    writer.writerow(['quote', 'author', 'tags'])
+    writer.writerows(quotes)
+\end{lstlisting}
+
+\section{Ejercicio 2: Consumo de API Pública}
+\textbf{Enunciado:} Obtener de la API de JSONPlaceholder (\url{https://jsonplaceholder.typicode.com/posts}) los posts y guardarlos en un archivo JSON.
+
+\textbf{Solución:}
+\begin{lstlisting}[language=Python]
+import requests
+import json
+
+response = requests.get('https://jsonplaceholder.typicode.com/posts')
+posts = response.json()
+
+with open('posts.json', 'w') as f:
+    json.dump(posts, f, indent=2)
+\end{lstlisting}
+
+\section{Ejercicio 3: Simulación de CDC con Triggers en PostgreSQL}
+\textbf{Enunciado:} Crear un trigger en PostgreSQL que, al insertar o actualizar la tabla \texttt{clientes}, registre los cambios en una tabla \texttt{clientes\_audit}. Luego, simular un proceso que lea esos cambios (por ejemplo, con un script Python) para enviarlos a Kafka.
+
+\textbf{Solución:}
+\begin{lstlisting}[language=SQL]
+-- Tabla de auditoría
+CREATE TABLE clientes_audit (
+    id SERIAL PRIMARY KEY,
+    cliente_id INT,
+    nombre_anterior VARCHAR,
+    nombre_nuevo VARCHAR,
+    email_anterior VARCHAR,
+    email_nuevo VARCHAR,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    operacion CHAR(1) -- I=insert, U=update, D=delete
+);
+
+-- Función trigger
+CREATE OR REPLACE FUNCTION audit_clientes()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        INSERT INTO clientes_audit (cliente_id, nombre_nuevo, email_nuevo, operacion)
+        VALUES (NEW.id, NEW.nombre, NEW.email, 'I');
+        RETURN NEW;
+    ELSIF TG_OP = 'UPDATE' THEN
+        INSERT INTO clientes_audit (cliente_id, nombre_anterior, nombre_nuevo, email_anterior, email_nuevo, operacion)
+        VALUES (OLD.id, OLD.nombre, NEW.nombre, OLD.email, NEW.email, 'U');
+        RETURN NEW;
+    ELSIF TG_OP = 'DELETE' THEN
+        INSERT INTO clientes_audit (cliente_id, nombre_anterior, email_anterior, operacion)
+        VALUES (OLD.id, OLD.nombre, OLD.email, 'D');
+        RETURN OLD;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trig_audit_clientes
+AFTER INSERT OR UPDATE OR DELETE ON clientes
+FOR EACH ROW EXECUTE FUNCTION audit_clientes();
+\end{lstlisting}
+
+Luego, un script Python puede leer la tabla de auditoría periódicamente y publicar en Kafka:
+\begin{lstlisting}[language=Python]
+import psycopg2
+from kafka import KafkaProducer
+import json
+
+conn = psycopg2.connect("dbname=test user=postgres")
+cur = conn.cursor()
+cur.execute("SELECT * FROM clientes_audit WHERE fecha > NOW() - INTERVAL '1 minute'")
+rows = cur.fetchall()
+
+producer = KafkaProducer(bootstrap_servers='localhost:9092',
+                         value_serializer=lambda v: json.dumps(v).encode('utf-8'))
+
+for row in rows:
+    data = {
+        'id': row[0],
+        'cliente_id': row[1],
+        'operacion': row[7],
+        'fecha': str(row[6])
+    }
+    producer.send('clientes_audit', value=data)
+\end{lstlisting}
+
+\section{Ejercicio 4: Procesamiento Batch con Spark}
+\textbf{Enunciado:} Dado un conjunto de archivos CSV de ventas, cargarlos con Spark, calcular el total de ventas por producto y guardar el resultado en Parquet.
+
+\textbf{Solución:}
+\begin{lstlisting}[language=Python]
+from pyspark.sql import SparkSession
+
+spark = SparkSession.builder.appName("ventas").getOrCreate()
+
+df = spark.read.option("header", "true").csv("ruta/ventas*.csv")
+df = df.withColumn("monto", df["cantidad"] * df["precio"])
+resultado = df.groupBy("producto").sum("monto").withColumnRenamed("sum(monto)", "total")
+resultado.write.parquet("resultado.parquet")
+\end{lstlisting}
+
+\chapter{Glosario de Términos}
+\begin{description}
+    \item[Web Scraping] Extracción automatizada de datos de sitios web.
+    \item[API] Interfaz de programación de aplicaciones, permite la comunicación entre sistemas.
+    \item[CDC (Change Data Capture)] Captura de cambios en bases de datos en tiempo real.
+    \item[Streaming] Procesamiento continuo de datos a medida que llegan.
+    \item[Kafka] Plataforma de streaming distribuida.
+    \item[Debezium] Herramienta de CDC que publica cambios en Kafka.
+    \item[Parquet] Formato columnar optimizado para análisis.
+    \item[Avro] Formato binario con esquema, usado en serialización.
+    \item[Data Lake] Repositorio que almacena datos en bruto en su formato original.
+    \item[Spark] Motor de procesamiento distribuido (batch y streaming).
+\end{description}
+
+\chapter*{Referencias}
+\addcontentsline{toc}{chapter}{Referencias}
+\begin{itemize}
+    \item Common Crawl: \url{https://commoncrawl.org/}
+    \item Documentación de Apache Kafka: \url{https://kafka.apache.org/documentation/}
+    \item Debezium: \url{https://debezium.io/}
+    \item Apache Spark: \url{https://spark.apache.org/docs/latest/}
+    \item "Designing Data-Intensive Applications" - Martin Kleppmann.
+    \item Curso de Web Scraping con Python (Real Python).
+\end{itemize}
+
+\end{document}

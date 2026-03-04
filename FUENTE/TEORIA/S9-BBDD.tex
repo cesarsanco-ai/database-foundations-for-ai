@@ -1,0 +1,542 @@
+\documentclass[12pt,a4paper,openany,oneside]{book}
+
+% --- Paquetes ---
+\usepackage[utf8]{inputenc}
+\usepackage[spanish, es-tabla]{babel}
+\usepackage{amsmath, amsfonts, amssymb}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{fancyhdr}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric, calc}
+
+\geometry{margin=2.5cm}
+
+% --- Colores y estilos para código ---
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinelanguage{SQL}{
+    keywords={SELECT, FROM, WHERE, INSERT, INTO, VALUES, UPDATE, SET, DELETE, CREATE, TABLE, INT, VARCHAR, DATE, PRIMARY, KEY, FOREIGN, REFERENCES, INDEX, VIEW, ALTER, DROP, AND, OR, NOT, NULL, CONSTRAINT, JOIN, INNER, LEFT, RIGHT, FULL, OUTER, ON, GROUP, BY, HAVING, ORDER, ASC, DESC, SERIAL, CHECK, UNIQUE, DEFAULT, CURRENT_DATE, CURRENT_TIMESTAMP, BEGIN, COMMIT, ROLLBACK, TRANSACTION, ISOLATION LEVEL, PROCEDURE, FUNCTION, TRIGGER, PLpgSQL, EXISTS, ANY, ALL, UNION, INTERSECT, EXCEPT, DISTINCT, AS, AVG, SUM, COUNT, MIN, MAX, WITH, RECURSIVE, CASE, COALESCE, NULLIF, GREATEST, LEAST, EXPLAIN, ANALYZE, BUFFERS, TIMING, COST, ROWS, WIDTH, FILTER, SCAN, INDEX, SEQUENTIAL, HASH, MERGE, NESTED, LOOP, CTE, MATERIALIZED, NOT MATERIALIZED, OVER, PARTITION, ROWS, RANGE, GROUPS, PRECEDING, FOLLOWING, UNBOUNDED, CURRENT, ROW, RANK, DENSE_RANK, ROW_NUMBER, NTILE, LAG, LEAD, FIRST_VALUE, LAST_VALUE, NTH_VALUE, CUME_DIST, PERCENT_RANK, SUBSTRING, CONCAT, TRIM, UPPER, LOWER, INITCAP, REPLACE, TRANSLATE, LPAD, RPAD, EXTRACT, DATE_PART, DATE_TRUNC, INTERVAL, CAST, CONVERT, TO_DATE, TO_CHAR, TO_NUMBER, REGEXP_MATCH, REGEXP_REPLACE, REGEXP_SPLIT, DECLARE, CURSOR, FETCH, OPEN, CLOSE, LOOP, WHILE, FOR, IF, ELSE, ELSIF, THEN, END, PERFORM, EXECUTE, RAISE, NOTICE, EXCEPTION, GET DIAGNOSTICS, RETURN, LANGUAGE, VOLATILE, STABLE, IMMUTABLE, SECURITY, INVOKER, DEFINER, CALL, GRANT, REVOKE, ROLE, USER, IDENTIFIED, PASSWORD, EXECUTE, PROCEDURE, FUNCTION, TRIGGER, VIEW, MATERIALIZED VIEW, REFRESH, CONCURRENTLY, MERGE, UPSERT},
+    sensitive=false,
+    morecomment=[l]{--},
+    morecomment=[s]{/*}{*/},
+    morestring=[b]'
+}
+\lstset{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    showstringspaces=false,
+    language=SQL
+}
+
+% --- Estilo de Python ---
+\lstdefinelanguage{Python}{
+    keywords={import, from, as, def, return, class, if, elif, else, for, while, in, not, and, or, True, False, None, with, open, try, except, finally, raise, assert, lambda, yield, global, nonlocal, await, async},
+    morecomment=[l]{\#},
+    morestring=[b]',
+    morestring=[b]"
+}
+\lstset{language=Python}
+
+% --- Estilo de cabecera y pie ---
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\fancyhead[L]{\small Carlos César Sánchez Coronel}
+\fancyhead[R]{\small Sesión 9: Data Warehousing, Pipelines y Procesamiento}
+\fancyfoot[L]{\small Carlos César Sánchez Coronel}
+\fancyfoot[C]{\thepage}
+
+% --- Portada ---
+\title{
+    \Huge \textbf{Sesión 9: DATA WAREHOUSING, PIPELINES Y PROCESAMIENTO} \\
+    \large Arquitecturas, capas, ETL/ELT, batch/streaming y gobernanza
+}
+\author{
+    \small Por \\ \vspace{0.2cm}
+    \Large \textsc{Carlos César Sánchez Coronel}
+}
+\date{2026}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\addcontentsline{toc}{chapter}{Índice general}
+
+\chapter{Introducción}
+En las sesiones anteriores hemos cubierto desde la captura de datos hasta los paradigmas de procesamiento. Ahora nos adentramos en el corazón de la arquitectura de datos moderna: el **data warehouse** y los **pipelines** que lo alimentan. Esta sesión integra conceptos de almacenamiento, procesamiento batch y streaming, y las diferentes capas que componen un ecosistema analítico. Comprender estas ideas es esencial para diseñar soluciones escalables y eficientes que soporten desde reportes empresariales hasta modelos de inteligencia artificial.
+
+\section{Objetivos de la sesión}
+\begin{itemize}
+    \item Definir y diferenciar Data Warehouse, Data Mart, Data Lake y Lakehouse.
+    \item Comprender los procesos ETL y ELT, sus diferencias y cuándo aplicarlos.
+    \item Distinguir entre procesamiento batch y streaming, con herramientas y casos de uso.
+    \item Conocer técnicas de carga incremental y actualización de datos.
+    \item Identificar las capas típicas en un data warehouse (raw, staging, integración, datamart).
+    \item Entender el papel de los metadatos y la gobernanza.
+    \item Explorar la integración con herramientas de visualización y costos asociados.
+    \item Dimensionar almacenamiento y servidores de forma aproximada.
+    \item Analizar arquitecturas híbridas (SQL + NoSQL) y la convivencia de múltiples motores.
+    \item Definir conceptos de pipelines, jobs, tareas y orquestación.
+\end{itemize}
+
+\chapter{Fundamentos de Almacenamiento Analítico}
+\section{Data Warehouse (DW)}
+Un data warehouse es un repositorio centralizado que almacena datos estructurados, provenientes de múltiples fuentes, optimizado para consultas analíticas (OLAP). Se caracteriza por:
+\begin{itemize}
+    \item \textbf{Orientado a temas}: Organizado por entidades de negocio (ventas, clientes, productos).
+    \item \textbf{Integrado}: Datos de diversas fuentes se limpian y unifican.
+    \item \textbf{No volátil}: Una vez cargados, los datos no se modifican (solo se añaden).
+    \item \textbf{Histórico}: Almacena series temporales para análisis de tendencias.
+\end{itemize}
+Ejemplos: Amazon Redshift, Google BigQuery, Snowflake, SQL Server Data Warehouse.
+
+\section{Data Mart}
+Un data mart es un subconjunto del data warehouse, orientado a un área de negocio específica (ventas, marketing). Puede ser dependiente (se alimenta del DW) o independiente (fuente propia).
+
+\section{Data Lake}
+Un data lake almacena datos en bruto en su formato original (estructurados, semiestructurados, no estructurados). Es un repositorio de bajo costo (generalmente en sistemas de archivos como S3, HDFS) que permite guardar grandes volúmenes sin transformar. Ideal para exploración y ciencia de datos.
+
+\section{Lakehouse}
+El concepto lakehouse fusiona lo mejor de ambos mundos: la flexibilidad y bajo costo del data lake con las capacidades de gestión y rendimiento del data warehouse. Plataformas como Databricks (sobre Delta Lake) o Apache Iceberg implementan esta arquitectura, permitiendo transacciones ACID, evolución de esquema y consultas eficientes sobre datos en formato abierto (Parquet).
+
+\begin{center}
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{Característica} & \textbf{Data Warehouse} & \textbf{Data Lake} & \textbf{Lakehouse} \\ \hline
+Formato de datos & Estructurado & Cualquier formato & Abierto (Parquet, etc.) \\
+Esquema & Fijo (schema-on-write) & Flexible (schema-on-read) & Evolutivo \\
+Transacciones ACID & Sí & Limitado & Sí \\
+Rendimiento analítico & Alto & Bajo/Medio & Alto \\
+Costo & Alto & Bajo & Medio \\ \hline
+\end{tabular}
+\end{center}
+
+\chapter{Procesos ETL vs ELT}
+\section{ETL (Extract, Transform, Load)}
+Es el enfoque tradicional: los datos se extraen de las fuentes, se transforman en un servidor intermedio (staging) y luego se cargan en el data warehouse.
+
+\begin{center}
+\begin{tikzpicture}
+    \node[draw, rectangle] (fuente) {Fuentes};
+    \node[draw, rectangle, right=2cm of fuente] (staging) {Staging (Transformación)};
+    \node[draw, rectangle, right=2cm of staging] (dw) {Data Warehouse};
+    \draw[->, thick] (fuente) -- node[above] {Extract} (staging);
+    \draw[->, thick] (staging) -- node[above] {Load} (dw);
+\end{tikzpicture}
+\end{center}
+
+\subsection{Ventajas}
+\begin{itemize}
+    \item Control total sobre la transformación.
+    \item Adecuado para datos estructurados y limpieza pesada.
+    \item Menor carga en el data warehouse.
+\end{itemize}
+\subsection{Desventajas}
+\begin{itemize}
+    \item Requiere infraestructura de transformación separada.
+    \item Mayor latencia (los datos no están disponibles hasta que termina la transformación).
+\end{itemize}
+
+\section{ELT (Extract, Load, Transform)}
+Con el poder de cómputo de los data warehouses modernos (Snowflake, BigQuery, Redshift), se popularizó ELT: los datos se cargan primero en el DW y luego se transforman dentro de él.
+
+\begin{center}
+\begin{tikzpicture}
+    \node[draw, rectangle] (fuente) {Fuentes};
+    \node[draw, rectangle, right=2cm of fuente] (dw) {Data Warehouse};
+    \node[draw, rectangle, below=1cm of dw] (transform) {Transformaciones (SQL)};
+    \draw[->, thick] (fuente) -- node[above] {Extract \& Load} (dw);
+    \draw[->, thick] (dw) -- (transform);
+    \draw[->, thick] (transform) -- (dw);
+\end{tikzpicture}
+\end{center}
+
+\subsection{Ventajas}
+\begin{itemize}
+    \item Simplicidad: menos herramientas, todo en el DW.
+    \item Aprovecha la escalabilidad del DW.
+    \item Mayor agilidad: los datos crudos están disponibles rápidamente.
+\end{itemize}
+\subsection{Desventajas}
+\begin{itemize}
+    \item Costo de almacenamiento y cómputo en el DW (puede ser alto).
+    \item No ideal para datos no estructurados (aunque algunos DW soportan JSON).
+\end{itemize}
+
+\section{Cuándo usar cada uno}
+\begin{itemize}
+    \item \textbf{ETL}: Cuando se necesita transformaciones muy complejas con datos sensibles, o se trabaja con fuentes que no soportan descarga masiva.
+    \item \textbf{ELT}: Cuando el DW es lo suficientemente potente, se busca agilidad y se trabaja con grandes volúmenes (cloud).
+\end{itemize}
+Hoy en día, la tendencia es ELT en la nube, pero ETL sigue vivo en entornos on-premise o con herramientas como Informatica, Talend.
+
+\chapter{Procesamiento Batch vs Streaming}
+\section{Batch (Lotes)}
+El procesamiento batch trabaja con datos acumulados durante un período (horas, días). Se ejecuta en intervalos programados. Es el enfoque tradicional para reportes diarios, facturación, etc.
+
+\subsection{Herramientas comunes}
+\begin{itemize}
+    \item Apache Spark (batch y streaming).
+    \item Hadoop MapReduce.
+    \item Scripts programados con cron, Airflow.
+\end{itemize}
+\subsection{Ejemplo}
+El cierre diario de un banco: todas las transacciones del día se procesan en la madrugada para actualizar saldos y generar reportes.
+
+\section{Streaming (Tiempo Real)}
+El procesamiento en streaming maneja eventos conforme ocurren, con latencias de milisegundos a segundos. Es crítico para detección de fraude, monitoreo, recomendaciones en tiempo real.
+
+\subsection{Herramientas clave}
+\begin{itemize}
+    \item Apache Kafka (plataforma de streaming).
+    \item Apache Flink (procesamiento con estado).
+    \item Spark Structured Streaming.
+    \item AWS Kinesis, Google Pub/Sub.
+\end{itemize}
+\subsection{Ejemplo}
+Detección de fraudes: cada transacción se analiza al instante comparando con patrones históricos.
+
+\section{Arquitecturas Lambda y Kappa}
+\begin{itemize}
+    \item \textbf{Lambda}: Combina batch y streaming; dos capas que procesan los mismos datos y se unen en la capa de servicio. Compleja de mantener.
+    \item \textbf{Kappa}: Todo se procesa como streaming; los datos batch se tratan como un caso particular de streaming (reprocesamiento). Más simple.
+\end{itemize}
+
+\begin{center}
+\begin{tikzpicture}
+    \node[draw, rectangle] (source) {Fuente de datos};
+    \node[draw, rectangle, below left=1.5cm and 1cm of source] (batch) {Capa batch (Spark)};
+    \node[draw, rectangle, below right=1.5cm and 1cm of source] (speed) {Capa speed (Flink)};
+    \node[draw, rectangle, below=3cm of source] (serving) {Capa de servicio (BD)};
+    \draw[->, thick] (source) -- (batch);
+    \draw[->, thick] (source) -- (speed);
+    \draw[->, thick] (batch) -- (serving);
+    \draw[->, thick] (speed) -- (serving);
+\end{tikzpicture}
+\caption{Arquitectura Lambda}
+\end{center}
+
+\chapter{Técnicas de Carga Incremental}
+En lugar de recargar todo el data warehouse cada vez, se utilizan cargas incrementales para actualizar solo los datos nuevos o modificados.
+
+\section{Marcas de agua (Watermarks)}
+Se guarda la fecha/hora de la última carga y se extraen registros posteriores.
+
+\section{CDC (Change Data Capture)}
+Como vimos en la sesión 8, CDC captura cambios en las fuentes y los aplica al DW. Herramientas como Debezium + Kafka permiten streaming de cambios.
+
+\section{MERGE (UPSERT)}
+En SQL, se puede usar \texttt{MERGE} o \texttt{INSERT ON CONFLICT} para actualizar filas existentes e insertar nuevas.
+\begin{lstlisting}[language=SQL]
+-- PostgreSQL
+INSERT INTO destino (id, valor, fecha_actualizacion)
+SELECT id, valor, now() FROM origen
+ON CONFLICT (id) DO UPDATE SET valor = EXCLUDED.valor, fecha_actualizacion = EXCLUDED.fecha_actualizacion;
+\end{lstlisting}
+
+\section{Ejemplo: Carga incremental diaria}
+\begin{enumerate}
+    \item Obtener la fecha máxima del DW: \texttt{SELECT MAX(fecha) FROM ventas\_dw;}
+    \item Extraer de la fuente: \texttt{SELECT * FROM ventas\_source WHERE fecha > :ultima\_fecha;}
+    \item Cargar en el DW.
+\end{enumerate}
+
+\chapter{Capas en un Data Warehouse}
+Un DW bien diseñado suele organizarse en capas (layers) que facilitan el mantenimiento y la comprensión.
+
+\section{Capa Raw (Bronze)}
+Almacena los datos tal como llegan de las fuentes, sin transformar. Puede estar en un data lake o en tablas staging. Sirve como respaldo y para reprocesamiento.
+
+\section{Capa Staging (Silver)}
+Datos limpios, validados y unificados. Se aplican transformaciones ligeras (tipos de datos, eliminación de duplicados). Aún no está modelado para análisis.
+
+\section{Capa de Integración / Core (Gold)}
+Datos modelados dimensionalmente (hechos y dimensiones) o en 3FN, listos para el negocio. Es la capa que consultan las herramientas de BI.
+
+\section{Capa de Data Marts}
+Subconjuntos de la capa Gold orientados a áreas específicas (ventas, marketing). Pueden ser vistas o tablas físicas.
+
+\begin{center}
+\begin{tikzpicture}
+    \node[draw, rectangle, fill=brown!20] (raw) {Raw (Bronze)};
+    \node[draw, rectangle, fill=gray!20, below=1cm of raw] (staging) {Staging (Silver)};
+    \node[draw, rectangle, fill=yellow!20, below=1cm of staging] (core) {Core (Gold)};
+    \node[draw, rectangle, fill=green!20, below left=1cm and -1cm of core] (dm1) {Data Mart Ventas};
+    \node[draw, rectangle, fill=green!20, below right=1cm and -1cm of core] (dm2) {Data Mart Marketing};
+    \draw[->, thick] (raw) -- (staging);
+    \draw[->, thick] (staging) -- (core);
+    \draw[->, thick] (core) -- (dm1);
+    \draw[->, thick] (core) -- (dm2);
+\end{tikzpicture}
+\end{center}
+
+\chapter{Metadatos y Gobernanza}
+Los metadatos son datos sobre los datos: origen, transformaciones, significados, calidad. Son esenciales para la gobernanza.
+
+\section{Tipos de metadatos}
+\begin{itemize}
+    \item \textbf{Técnicos}: esquemas, tipos de datos, particiones, estadísticas.
+    \item \textbf{De negocio}: definiciones, reglas de cálculo, propietarios.
+    \item \textbf{Operacionales}: logs de ejecución, tiempos de carga.
+\end{itemize}
+
+\section{Herramientas de catálogo}
+\begin{itemize}
+    \item Apache Atlas, Amundsen, DataHub.
+    \item Catálogos nativos de nube (AWS Glue, Google Data Catalog).
+\end{itemize}
+
+\section{Linaje de datos}
+El linaje (data lineage) muestra el flujo de los datos desde su origen hasta su consumo. Es clave para auditoría y solución de problemas. Se puede implementar con herramientas especializadas o mediante metadatos.
+
+\chapter{Integración con Herramientas de Visualización}
+Los datos del data warehouse se consumen a través de herramientas de Business Intelligence (BI).
+
+\section{Herramientas populares}
+\begin{itemize}
+    \item Power BI, Tableau, Looker, Qlik.
+    \item Conexiones nativas a los principales DW (BigQuery, Redshift, Snowflake).
+    \item Uso de conectores ODBC/JDBC.
+\end{itemize}
+
+\section{Rendimiento y costos}
+\begin{itemize}
+    \item Las consultas de BI pueden ser costosas si no están optimizadas.
+    \item Se recomienda usar agregaciones precalculadas, vistas materializadas.
+    \item Algunos DW ofrecen caché de resultados (BigQuery, Snowflake).
+\end{itemize}
+
+\section{Ejemplo: Power BI conectado a Snowflake}
+\begin{enumerate}
+    \item Configurar el conector de Snowflake en Power BI.
+    \item Importar o usar DirectQuery.
+    \item Crear dashboard con medidas DAX.
+\end{enumerate}
+Costos aproximados: Snowflake cobra por almacenamiento y cómputo (por segundo). Power BI tiene licencias por usuario.
+
+\chapter{Dimensionamiento de Almacenamiento y Servidores}
+Estimar el tamaño de un data warehouse es crucial para presupuestar y diseñar.
+
+\section{Factores a considerar}
+\begin{itemize}
+    \item Volumen diario de datos.
+    \item Retención histórica.
+    \item Compresión (Parquet, columnar).
+    \item Índices y particionamiento.
+    \item Replicación y backups.
+\end{itemize}
+
+\subsection{Ejemplo de cálculo}
+Una empresa genera 100 GB de datos al día. Se retienen 5 años.
+\begin{itemize}
+    \item Datos diarios: 100 GB.
+    \item Datos anuales: 100 GB * 365 = 36.5 TB.
+    \item 5 años: 182.5 TB.
+    \item Con compresión columnar (factor 5:1): \~36.5 TB.
+    \item Más espacio para índices, staging, etc.: 50 TB.
+\end{itemize}
+
+\section{Costos aproximados en la nube}
+\begin{itemize}
+    \item Almacenamiento en S3: ~\$0.023/GB-mes. 50 TB = \$1,150/mes.
+    \item Computo en Redshift: desde \$0.25/hora por nodo.
+    \item Snowflake: almacenamiento similar, cómputo por segundo (créditos).
+\end{itemize}
+Estos costos son orientativos y varían por región y tipo de instancia.
+
+\chapter{Arquitecturas Híbridas: SQL y NoSQL}
+En proyectos reales, conviven múltiples motores. Cada uno se usa para lo que mejor sabe hacer.
+
+\section{Casos de uso combinados}
+\begin{itemize}
+    \item \textbf{PostgreSQL (OLTP)} + \textbf{MongoDB} (catálogo de productos flexible) + \textbf{Elasticsearch} (búsqueda) + \textbf{Redshift} (análisis).
+    \item \textbf{Cassandra} (escritura masiva) + \textbf{Spark} (procesamiento) + \textbf{PostgreSQL} (reportes).
+\end{itemize}
+
+\section{Sincronización entre motores}
+\begin{itemize}
+    \item CDC desde la base transaccional a Kafka, luego a Elasticsearch y al DW.
+    \item Herramientas como Debezium, Kafka Connect.
+    \item Batch periódicos con scripts.
+\end{itemize}
+
+\section{Ejemplo: E-commerce}
+\begin{enumerate}
+    \item Pedidos en PostgreSQL.
+    \item Productos y reviews en MongoDB.
+    \item Búsqueda con Elasticsearch.
+    \item Análisis de ventas en Snowflake (carga diaria desde PostgreSQL).
+\end{enumerate}
+
+\chapter{Pipelines, Jobs y Orquestación}
+Un pipeline de datos es una serie de pasos que transforman y mueven datos. Los pipelines se ejecutan mediante jobs (tareas) y son orquestados por herramientas.
+
+\section{Definiciones}
+\begin{itemize}
+    \item \textbf{Pipeline}: Flujo completo de datos (extracción, transformación, carga).
+    \item \textbf{Job}: Unidad de trabajo dentro del pipeline (por ejemplo, una tarea de Spark).
+    \item \textbf{Task}: Paso individual (ejecutar un script, una consulta SQL).
+    \item \textbf{DAG}: Directed Acyclic Graph, la representación de dependencias entre tareas.
+\end{itemize}
+
+\section{Orquestadores populares}
+\begin{itemize}
+    \item \textbf{Apache Airflow}: El más usado. Define DAGs en Python.
+    \item \textbf{Prefect}, \textbf{Dagster}: Alternativas modernas.
+    \item \textbf{AWS Step Functions}, \textbf{Google Cloud Composer} (Airflow gestionado).
+    \item \textbf{Apache Oozie} (Hadoop, en desuso).
+\end{itemize}
+
+\subsection{Ejemplo de DAG en Airflow}
+\begin{lstlisting}[language=Python]
+from airflow import DAG
+from airflow.operators.python_operator import PythonOperator
+from datetime import datetime
+
+def extraer():
+    # código para extraer datos
+    pass
+
+def transformar():
+    # código para transformar
+    pass
+
+def cargar():
+    # código para cargar
+    pass
+
+with DAG('etl_diario', start_date=datetime(2025,1,1), schedule_interval='@daily') as dag:
+    t1 = PythonOperator(task_id='extraer', python_callable=extraer)
+    t2 = PythonOperator(task_id='transformar', python_callable=transformar)
+    t3 = PythonOperator(task_id='cargar', python_callable=cargar)
+    t1 >> t2 >> t3
+\end{lstlisting}
+
+\section{Dónde se ejecutan los pipelines}
+\begin{itemize}
+    \item En servidores virtuales (EC2, VMs).
+    \item En clústeres gestionados (EMR, Databricks).
+    \item En servicios serverless (AWS Glue, Google Dataflow).
+\end{itemize}
+
+\chapter{Ejercicios Resueltos}
+\section{Ejercicio 1: Diseño de capas para un DW de ventas}
+\textbf{Enunciado:} Una tienda online quiere construir un data warehouse. Proponga un diseño de capas (raw, staging, core) y las transformaciones típicas en cada una.
+
+\textbf{Solución:}
+\begin{itemize}
+    \item \textbf{Raw}: Se almacenan los archivos CSV/JSON de ventas, productos, clientes tal como llegan del sistema transaccional. Particionado por fecha.
+    \item \textbf{Staging}: Se leen los raw, se asignan tipos de datos correctos, se eliminan duplicados, se unifican formatos de fechas. Se guardan en tablas temporales o en Parquet.
+    \item \textbf{Core}: Se construyen tablas de hechos (ventas) y dimensiones (cliente, producto, tiempo) aplicando modelado dimensional. Se aplican SCD tipo 2 para dimensiones cambiantes.
+\end{itemize}
+
+\section{Ejercicio 2: Implementar carga incremental con SQL}
+\textbf{Enunciado:} Escribir una consulta SQL que actualice la tabla \texttt{dw\_ventas} con los datos de \texttt{stg\_ventas} del día, usando MERGE.
+
+\textbf{Solución:}
+\begin{lstlisting}[language=SQL]
+MERGE INTO dw_ventas AS target
+USING stg_ventas AS source
+ON target.id = source.id
+WHEN MATCHED THEN
+    UPDATE SET target.monto = source.monto, target.fecha_actualizacion = CURRENT_TIMESTAMP
+WHEN NOT MATCHED THEN
+    INSERT (id, fecha, monto, fecha_actualizacion)
+    VALUES (source.id, source.fecha, source.monto, CURRENT_TIMESTAMP);
+\end{lstlisting}
+
+\section{Ejercicio 3: Estimar costo de almacenamiento}
+\textbf{Enunciado:} Una empresa genera 500 GB de datos al día. Retiene 3 años. Estimar el almacenamiento necesario con compresión 4:1 y costo mensual en S3 (a \$0.023/GB).
+
+\textbf{Solución:}
+\begin{itemize}
+    \item Datos diarios: 500 GB.
+    \item Anual: 500 GB * 365 = 182.5 TB.
+    \item 3 años: 547.5 TB.
+    \item Con compresión 4:1: 136.9 TB.
+    \item Espacio adicional (10\%): 150.6 TB.
+    \item Costo mensual: 150.6 * 1024 GB/TB * 0.023 = 150.6 * 23.552 ≈ \$3,546/mes.
+\end{itemize}
+
+\section{Ejercicio 4: Definir un pipeline con Airflow}
+\textbf{Enunciado:} Crear un DAG de Airflow con tres tareas: extraer de API, transformar con Spark, cargar en Redshift.
+
+\textbf{Solución:}
+\begin{lstlisting}[language=Python]
+from airflow import DAG
+from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
+from airflow.providers.amazon.aws.operators.redshift import RedshiftSQLOperator
+from airflow.operators.python import PythonOperator
+from datetime import datetime
+import requests
+
+def extraer_api():
+    response = requests.get('https://api.ejemplo.com/data')
+    with open('/tmp/data.json', 'w') as f:
+        f.write(response.text)
+
+with DAG('pipeline_ventas', start_date=datetime(2025,1,1), schedule='@daily') as dag:
+    extraer = PythonOperator(task_id='extraer', python_callable=extraer_api)
+    transformar = SparkSubmitOperator(
+        task_id='transformar',
+        application='/path/to/spark_job.py',
+        conn_id='spark_default'
+    )
+    cargar = RedshiftSQLOperator(
+        task_id='cargar',
+        sql='CALL cargar_ventas();',
+        redshift_conn_id='redshift_default'
+    )
+    extraer >> transformar >> cargar
+\end{lstlisting}
+
+\chapter{Glosario de Términos}
+\begin{description}
+    \item[Batch] Procesamiento por lotes en intervalos programados.
+    \item[CDC] Change Data Capture, captura de cambios en tiempo real.
+    \item[Data Lake] Repositorio de datos en bruto.
+    \item[Data Mart] Subconjunto del DW para un área específica.
+    \item[Data Warehouse] Almacén de datos optimizado para análisis.
+    \item[DAG] Directed Acyclic Graph, representación de dependencias.
+    \item[ELT] Extract, Load, Transform (cargar primero, transformar después).
+    \item[ETL] Extract, Transform, Load (transformar antes de cargar).
+    \item[Job] Unidad de trabajo en un pipeline.
+    \item[Lakehouse] Fusión de data lake y data warehouse.
+    \item[Linaje] Trazabilidad del origen y transformaciones de los datos.
+    \item[Merge] Operación que inserta o actualiza según exista.
+    \item[Metadatos] Datos sobre los datos.
+    \item[Orquestación] Coordinación de tareas en un pipeline.
+    \item[Pipeline] Flujo completo de procesamiento de datos.
+    \item[Streaming] Procesamiento continuo en tiempo real.
+\end{description}
+
+\chapter*{Referencias}
+\addcontentsline{toc}{chapter}{Referencias}
+\begin{itemize}
+    \item Kimball, R., \& Ross, M. (2013). \textit{The Data Warehouse Toolkit}. 3rd ed. Wiley.
+    \item Inmon, W. H. (2005). \textit{Building the Data Warehouse}. 4th ed. Wiley.
+    \item Kleppmann, M. (2017). \textit{Designing Data-Intensive Applications}. O'Reilly.
+    \item Documentación de Apache Airflow: \url{https://airflow.apache.org/}
+    \item Documentación de Snowflake: \url{https://docs.snowflake.com/}
+    \item Documentación de AWS Redshift: \url{https://docs.aws.amazon.com/redshift/}
+    \item Databricks Lakehouse: \url{https://databricks.com/product/data-lakehouse}
+\end{itemize}
+
+\end{document}

@@ -1,0 +1,667 @@
+\documentclass[12pt,a4paper,openany,oneside]{book}
+
+% --- Paquetes ---
+\usepackage[utf8]{inputenc}
+\usepackage[spanish, es-tabla]{babel}
+\usepackage{amsmath, amsfonts, amssymb}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{fancyhdr}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric, calc}
+
+\geometry{margin=2.5cm}
+
+% --- Colores y estilos para código ---
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+% Configuración para SQL
+\lstdefinelanguage{SQL}{
+    keywords={SELECT, FROM, WHERE, INSERT, INTO, VALUES, UPDATE, SET, DELETE, CREATE, TABLE, INT, VARCHAR, DATE, PRIMARY, KEY, FOREIGN, REFERENCES, INDEX, VIEW, ALTER, DROP, AND, OR, NOT, NULL, CONSTRAINT, JOIN, INNER, LEFT, RIGHT, FULL, OUTER, ON, GROUP, BY, HAVING, ORDER, ASC, DESC, SERIAL, CHECK, UNIQUE, DEFAULT, CURRENT_DATE, CURRENT_TIMESTAMP, BEGIN, COMMIT, ROLLBACK, TRANSACTION, ISOLATION LEVEL, PROCEDURE, FUNCTION, TRIGGER, PLpgSQL, EXISTS, ANY, ALL, UNION, INTERSECT, EXCEPT, DISTINCT, AS, AVG, SUM, COUNT, MIN, MAX, WITH, RECURSIVE, CASE, COALESCE, NULLIF, GREATEST, LEAST, EXPLAIN, ANALYZE, BUFFERS, TIMING, COST, ROWS, WIDTH, FILTER, SCAN, INDEX, SEQUENTIAL, HASH, MERGE, NESTED, LOOP, CTE, MATERIALIZED, NOT MATERIALIZED, OVER, PARTITION, ROWS, RANGE, GROUPS, PRECEDING, FOLLOWING, UNBOUNDED, CURRENT, ROW, RANK, DENSE_RANK, ROW_NUMBER, NTILE, LAG, LEAD, FIRST_VALUE, LAST_VALUE, NTH_VALUE, CUME_DIST, PERCENT_RANK, SUBSTRING, CONCAT, TRIM, UPPER, LOWER, INITCAP, REPLACE, TRANSLATE, LPAD, RPAD, EXTRACT, DATE_PART, DATE_TRUNC, INTERVAL, CAST, CONVERT, TO_DATE, TO_CHAR, TO_NUMBER, REGEXP_MATCH, REGEXP_REPLACE, REGEXP_SPLIT, DECLARE, CURSOR, FETCH, OPEN, CLOSE, LOOP, WHILE, FOR, IF, ELSE, ELSIF, THEN, END, PERFORM, EXECUTE, RAISE, NOTICE, EXCEPTION, GET DIAGNOSTICS, RETURN, LANGUAGE, VOLATILE, STABLE, IMMUTABLE, SECURITY, INVOKER, DEFINER, CALL, GRANT, REVOKE, ROLE, USER, IDENTIFIED, PASSWORD, EXECUTE, PROCEDURE, FUNCTION, TRIGGER, VIEW, MATERIALIZED VIEW, REFRESH, CONCURRENTLY, MERGE, UPSERT},
+    sensitive=false,
+    morecomment=[l]{--},
+    morecomment=[s]{/*}{*/},
+    morestring=[b]'
+}
+\lstset{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    showstringspaces=false,
+    language=SQL
+}
+
+% Configuración para Python
+\lstdefinelanguage{Python}{
+    keywords={import, from, as, def, return, class, if, elif, else, for, while, in, not, and, or, True, False, None, with, open, try, except, finally, raise, assert, lambda, yield, global, nonlocal, await, async},
+    morecomment=[l]{\#},
+    morestring=[b]',
+    morestring=[b]"
+}
+\lstset{language=Python}
+
+% Configuración para Bash
+\lstdefinelanguage{Bash}{
+    keywords={if, then, else, fi, for, do, done, while, break, continue, function, echo, export, cd, mkdir, rm, cp, mv, docker, kubectl, psql, mysql, mysqldump},
+    morecomment=[l]{\#},
+    morestring=[b]",
+    morestring=[b]'
+}
+\lstset{language=Bash}
+
+% --- Estilo de cabecera y pie ---
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\fancyhead[L]{\small Carlos César Sánchez Coronel}
+\fancyhead[R]{\small Sesión 13: Despliegue y Alta Disponibilidad}
+\fancyfoot[L]{\small Carlos César Sánchez Coronel}
+\fancyfoot[C]{\thepage}
+
+% --- Portada ---
+\title{
+    \Huge \textbf{Sesión 13: DESPLIEGUE Y ALTA DISPONIBILIDAD} \\
+    \large Contenedores, orquestación, replicación, migración y estrategias HA
+}
+\author{
+    \small Por \\ \vspace{0.2cm}
+    \Large \textsc{Carlos César Sánchez Coronel}
+}
+\date{2026}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\addcontentsline{toc}{chapter}{Índice general}
+
+\chapter{Introducción}
+En las sesiones anteriores hemos cubierto desde los fundamentos del modelado hasta las bases de datos vectoriales. Ahora nos enfocamos en cómo llevar estos sistemas a producción: cómo desplegarlos de manera confiable, escalable y con alta disponibilidad. Esta sesión aborda el uso de contenedores (Docker) para estandarizar entornos, orquestación con Kubernetes para gestionar clústeres, estrategias de alta disponibilidad (réplicas, failover, clustering), y la migración de bases de datos entre sistemas y entornos (on-premise a nube). También veremos herramientas específicas de cada motor para replicación y alta disponibilidad, así como balanceadores de carga. Todo ello con ejemplos prácticos y ejercicios resueltos.
+
+\section{Objetivos de la sesión}
+\begin{itemize}
+    \item Comprender la importancia de la contenedorización para bases de datos.
+    \item Aprender a desplegar SGBD en Docker y configurar persistencia.
+    \item Conocer los conceptos básicos de Kubernetes aplicados a bases de datos.
+    \item Diferenciar estrategias de alta disponibilidad: réplicas de lectura, failover, clustering.
+    \item Configurar replicación en motores populares (PostgreSQL, MySQL).
+    \item Entender el balanceo de carga para bases de datos.
+    \item Analizar opciones en la nube (RDS, Cloud SQL) y comparar con on-premise.
+    \item Planificar y ejecutar migraciones de bases de datos entre distintos motores o entornos.
+    \item Realizar ejercicios prácticos paso a paso.
+\end{itemize}
+
+\chapter{Contenedores y Bases de Datos}
+\section{¿Por qué contenedores?}
+Los contenedores (Docker) permiten empaquetar una aplicación con todas sus dependencias, garantizando que se ejecute de la misma manera en cualquier entorno. Para bases de datos, los contenedores facilitan:
+\begin{itemize}
+    \item Entornos de desarrollo y prueba idénticos a producción.
+    \item Rápido aprovisionamiento y desmontaje.
+    \item Aislamiento de recursos.
+    \item Integración con pipelines CI/CD.
+\end{itemize}
+
+\section{Dockerizando una Base de Datos}
+\subsection{Ejemplo: PostgreSQL en Docker}
+\begin{lstlisting}[language=Bash]
+# Descargar imagen oficial
+docker pull postgres:15
+
+# Ejecutar contenedor con variables de entorno y volumen persistente
+docker run -d \
+  --name mi-postgres \
+  -e POSTGRES_PASSWORD=mi_password \
+  -e POSTGRES_USER=usuario \
+  -e POSTGRES_DB=mi_db \
+  -v pgdata:/var/lib/postgresql/data \
+  -p 5432:5432 \
+  postgres:15
+\end{lstlisting}
+Explicación:
+\begin{itemize}
+    \item \texttt{-d}: modo detached (fondo).
+    \item \texttt{--name}: nombre del contenedor.
+    \item \texttt{-e}: variables de entorno para configurar usuario, contraseña y base de datos inicial.
+    \item \texttt{-v pgdata:/var/lib/postgresql/data}: volumen persistente (en este caso, un volumen nombrado) para que los datos sobrevivan al contenedor.
+    \item \texttt{-p 5432:5432}: mapea el puerto del contenedor al host.
+\end{itemize}
+
+\subsection{Volúmenes en Docker}
+Es crucial usar volúmenes para persistir datos. Tipos:
+\begin{itemize}
+    \item \textbf{Volúmenes nombrados}: gestionados por Docker, ubicados en \texttt{/var/lib/docker/volumes/}. Ejemplo: \texttt{-v pgdata:/var/lib/postgresql/data}.
+    \item \textbf{Bind mounts}: mapean un directorio del host. Ejemplo: \texttt{-v /ruta/en/host:/var/lib/postgresql/data}.
+\end{itemize}
+Recomendación: usar volúmenes nombrados para producción, ya que Docker los gestiona mejor.
+
+\subsection{Redes en Docker}
+Para que múltiples contenedores se comuniquen, se crean redes personalizadas.
+\begin{lstlisting}[language=Bash]
+# Crear red
+docker network create mi-red
+
+# Ejecutar contenedor en esa red
+docker run -d --name postgres --network mi-red -e POSTGRES_PASSWORD=... postgres
+
+# Otro contenedor (ej. aplicación) en la misma red puede acceder usando el nombre del contenedor como hostname
+\end{lstlisting}
+
+\subsection{Consideraciones de Rendimiento}
+Ejecutar bases de datos en contenedores tiene overhead mínimo si se configuran correctamente. Sin embargo, en producción se recomienda:
+\begin{itemize}
+    \item Usar volúmenes rápidos (SSD).
+    \item Limitar recursos con flags como \texttt{--memory} y \texttt{--cpus}.
+    \item Ajustar parámetros del kernel según necesidades (ej. \texttt{shared\_buffers} en PostgreSQL).
+\end{itemize}
+
+\section{Orquestación con Kubernetes}
+Kubernetes (K8s) es el estándar para orquestar contenedores. Para bases de datos, Kubernetes ofrece:
+\begin{itemize}
+    \item Despliegues declarativos (Deployments, StatefulSets).
+    \item Auto-escalado.
+    \item Balanceo de carga interno (Services).
+    \item Auto-reparación (reinicio de contenedores fallidos).
+\end{itemize}
+
+\subsection{StatefulSets para Bases de Datos}
+A diferencia de Deployments, StatefulSet garantiza identidades estables (nombres de host persistentes) y orden en el despliegue/escalado. Es la opción recomendada para bases de datos.
+
+\subsection{Ejemplo: PostgreSQL en Kubernetes}
+Archivo YAML para un StatefulSet:
+\begin{lstlisting}[language=Bash, basicstyle=\ttfamily\small]
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15
+        env:
+        - name: POSTGRES_PASSWORD
+          value: "mi_password"
+        - name: POSTGRES_USER
+          value: "usuario"
+        - name: POSTGRES_DB
+          value: "mi_db"
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: pgdata
+          mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+  - metadata:
+      name: pgdata
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
+\end{lstlisting}
+Este YAML define un StatefulSet que crea un PersistentVolumeClaim por cada réplica, asegurando almacenamiento persistente. Luego se necesita un Service para acceder:
+\begin{lstlisting}[language=Bash, basicstyle=\ttfamily\small]
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  selector:
+    app: postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+\end{lstlisting}
+
+\subsection{Operadores para Bases de Datos en Kubernetes}
+Para gestionar bases de datos de manera más avanzada (backups, replicación automática), existen operadores como:
+\begin{itemize}
+    \item \textbf{PostgreSQL Operator} (Crunchy Data, Zalando).
+    \item \textbf{MySQL Operator} (Oracle).
+    \item \textbf{Cassandra Operator} (DataStax).
+\end{itemize}
+Estos operadores extienden Kubernetes para manejar tareas complejas.
+
+\chapter{Estrategias de Alta Disponibilidad (HA)}
+La alta disponibilidad busca minimizar el tiempo de inactividad de un sistema. En bases de datos, las estrategias comunes son:
+
+\section{Réplicas de Lectura}
+Consisten en tener una o más copias (réplicas) de la base de datos principal que reciben los cambios en tiempo real (o casi). Las consultas de solo lectura pueden dirigirse a las réplicas, descargando al nodo principal.
+
+\subsection{Beneficios}
+\begin{itemize}
+    \item Escalabilidad horizontal de lecturas.
+    \item Aislamiento de cargas: consultas analíticas pesadas no afectan al transaccional.
+    \item Mayor disponibilidad: si el principal falla, una réplica puede promoverse.
+\end{itemize}
+
+\subsection{Implementaciones comunes}
+\begin{itemize}
+    \item \textbf{PostgreSQL}: Replicación física (streaming replication) o lógica.
+    \item \textbf{MySQL}: Replicación asíncrona (binlog) o semisíncrona.
+    \item \textbf{MongoDB}: Réplicas (replica sets).
+\end{itemize}
+
+\section{Failover}
+El failover es el proceso de conmutar automáticamente a un nodo secundario cuando el principal falla. Puede ser:
+\begin{itemize}
+    \item \textbf{Manual}: Un administrador promueve la réplica.
+    \item \textbf{Automático}: Un sistema de monitoreo detecta la falla y ejecuta la promoción (ej. Patroni, Orchestrator, MHA).
+\end{itemize}
+
+\subsection{Consideraciones}
+\begin{itemize}
+    \item Tiempo de detección y promoción (RTO).
+    \item Posible pérdida de datos (RPO) si la replicación es asíncrona.
+    \item Split-brain: evitar que dos nodos se consideren principales simultáneamente.
+\end{itemize}
+
+\section{Clustering}
+Un cluster de bases de datos puede ser:
+\begin{itemize}
+    \item \textbf{Activo-Pasivo}: Un nodo activo, otro(s) pasivo(s) que toman el control si falla el activo. Ejemplo: PostgreSQL con Patroni + etcd.
+    \item \textbf{Activo-Activo}: Todos los nodos aceptan escrituras, con mecanismos de resolución de conflictos. Ejemplo: MySQL Cluster (NDB), Oracle RAC.
+\end{itemize}
+
+\section{Balanceo de Carga}
+Para distribuir el tráfico entre réplicas o nodos, se utilizan balanceadores:
+\begin{itemize}
+    \item \textbf{ProxySQL}: balanceo para MySQL, con enrutamiento basado en consultas.
+    \item \textbf{HAProxy}: balanceo TCP genérico, puede usarse para PostgreSQL o MySQL.
+    \item \textbf{pgpool-II}: balanceo y pooling para PostgreSQL.
+\end{itemize}
+
+\chapter{Replicación en Motores Específicos}
+\section{PostgreSQL: Streaming Replication}
+Configuración básica (asíncrona):
+\begin{enumerate}
+    \item En el primario, crear usuario de replicación: 
+\begin{lstlisting}[language=SQL]
+CREATE USER replicator WITH REPLICATION ENCRYPTED PASSWORD 'password';
+\end{lstlisting}
+    \item Editar \texttt{postgresql.conf}:
+\begin{lstlisting}[language=Bash]
+wal_level = replica
+max_wal_senders = 5
+wal_keep_size = 1GB
+\end{lstlisting}
+    \item En \texttt{pg\_hba.conf} permitir conexiones de replicación:
+\begin{lstlisting}[language=Bash]
+host replication replicator 192.168.1.0/24 md5
+\end{lstlisting}
+    \item Reiniciar PostgreSQL.
+    \item En el secundario, realizar un backup base:
+\begin{lstlisting}[language=Bash]
+pg_basebackup -h primario -D /var/lib/postgresql/data -U replicator -v -P --wal-method=stream
+\end{lstlisting}
+    \item Crear archivo \texttt{standby.signal} y configurar \texttt{postgresql.auto.conf} con la conexión al primario:
+\begin{lstlisting}[language=Bash]
+primary_conninfo = 'host=primario port=5432 user=replicator password=password'
+\end{lstlisting}
+    \item Iniciar el secundario.
+\end{enumerate}
+Para failover automático se puede usar Patroni o repmgr.
+
+\section{MySQL: Group Replication}
+Group Replication proporciona replicación multi-maestro con detección automática de fallos. Ejemplo de configuración (InnoDB Cluster):
+\begin{enumerate}
+    \item Configurar cada nodo con un server\_id único y habilitar GTID.
+    \item Instalar plugin:
+\begin{lstlisting}[language=SQL]
+INSTALL PLUGIN group_replication SONAME 'group_replication.so';
+\end{lstlisting}
+    \item Configurar variables (seed, credenciales, etc.).
+    \item Iniciar Group Replication en cada nodo.
+\end{enumerate}
+Para simplificar, se puede usar MySQL InnoDB Cluster con MySQL Shell.
+
+\section{MongoDB: Replica Sets}
+Un replica set es un grupo de servidores mongod con un primario y varios secundarios. Configuración básica:
+\begin{enumerate}
+    \item Iniciar cada mongod con la opción \texttt{--replSet "miSet"}.
+    \item Conectarse a uno y ejecutar:
+\begin{lstlisting}[language=JavaScript]
+rs.initiate()
+rs.add("host2:27017")
+rs.add("host3:27017")
+\end{lstlisting}
+\end{enumerate}
+El failover es automático: si el primario cae, los secundarios eligen uno nuevo.
+
+\section{Oracle: Data Guard}
+Oracle Data Guard mantiene una base de datos standby (física o lógica). Puede ser síncrona (protección máxima) o asíncrona. La conmutación puede ser manual o automática con Fast-Start Failover.
+
+\section{SQL Server: Always On Availability Groups}
+Always On permite grupos de disponibilidad con réplicas síncronas o asíncronas, con failover automático si se usa un cluster de Windows.
+
+\chapter{Balanceo de Carga Práctico}
+\subsection{Ejemplo con HAProxy para PostgreSQL}
+Configuración de HAProxy (archivo \texttt{/etc/haproxy/haproxy.cfg}):
+\begin{lstlisting}[language=Bash]
+frontend pgsql
+    bind *:5432
+    default_backend pgsql_backend
+
+backend pgsql_backend
+    balance roundrobin
+    option pgsql-check user haproxy
+    server pg1 192.168.1.10:5432 check
+    server pg2 192.168.1.11:5432 check
+    server pg3 192.168.1.12:5432 check
+\end{lstlisting}
+Se necesita un usuario \texttt{haproxy} en PostgreSQL para las comprobaciones de salud.
+
+\subsection{ProxySQL para MySQL}
+ProxySQL permite enrutamiento basado en consultas y pooling de conexiones. Configuración básica:
+\begin{lstlisting}[language=SQL]
+INSERT INTO mysql_servers (hostgroup_id, hostname, port) VALUES (10, '192.168.1.10', 3306);
+INSERT INTO mysql_servers (hostgroup_id, hostname, port) VALUES (10, '192.168.1.11', 3306);
+INSERT INTO mysql_users (username, password, default_hostgroup) VALUES ('app', 'pass', 10);
+LOAD MYSQL SERVERS TO RUNTIME;
+SAVE MYSQL SERVERS TO DISK;
+\end{lstlisting}
+
+\chapter{Despliegue en la Nube vs On-Premise}
+\section{Servicios Gestionados (PaaS)}
+\begin{itemize}
+    \item \textbf{AWS RDS}: Soporta múltiples motores, replicación, backups automáticos, failover multi-AZ.
+    \item \textbf{Google Cloud SQL}: PostgreSQL, MySQL, SQL Server con alta disponibilidad.
+    \item \textbf{Azure SQL Database}: Base de datos como servicio, escalable.
+\end{itemize}
+Ventajas: menor overhead administrativo, escalado sencillo, alta disponibilidad integrada.
+Desventajas: menos control, posible vendor lock-in, costos.
+
+\section{On-Premise}
+La empresa gestiona su propio hardware y software. Ventajas: control total, cumplimiento de normativas estrictas. Desventajas: inversión inicial, mantenimiento.
+
+\section{Modelo Híbrido}
+Combinar recursos on-premise con nube, por ejemplo, para disaster recovery (DR) o picos de carga.
+
+\section{Migración a la Nube}
+Pasos típicos:
+\begin{enumerate}
+    \item Evaluación de la base de datos (tamaño, complejidad, dependencias).
+    \item Elección del servicio objetivo (RDS, Cloud SQL, etc.).
+    \item Migración de datos: herramientas como AWS DMS (Database Migration Service), mysqldump + import, pg\_dump + pg\_restore.
+    \item Pruebas de rendimiento y funcionalidad.
+    \item Corte de producción.
+\end{enumerate}
+
+\subsection{Ejemplo: Migrar PostgreSQL local a AWS RDS}
+\begin{lstlisting}[language=Bash]
+# Dump de la base local
+pg_dump -U usuario -h localhost mi_db > mi_db.sql
+
+# Restaurar en RDS (previamente crear instancia)
+psql -U usuario -h mi-instance.rds.amazonaws.com -d mi_db < mi_db.sql
+\end{lstlisting}
+Para migraciones sin downtime, se puede usar AWS DMS con replicación continua.
+
+\chapter{Ejercicios Resueltos}
+\section{Ejercicio 1: Desplegar PostgreSQL con Docker y configurar persistencia}
+\textbf{Enunciado:} Crear un contenedor PostgreSQL con un volumen persistente, crear una base de datos y una tabla, insertar datos, detener el contenedor, volver a iniciarlo y comprobar que los datos persisten.
+
+\textbf{Solución:}
+\begin{lstlisting}[language=Bash]
+# 1. Crear volumen
+docker volume create pgdata
+
+# 2. Ejecutar contenedor
+docker run -d --name postgres1 \
+  -e POSTGRES_PASSWORD=admin \
+  -e POSTGRES_USER=admin \
+  -e POSTGRES_DB=testdb \
+  -v pgdata:/var/lib/postgresql/data \
+  -p 5432:5432 \
+  postgres:15
+
+# 3. Conectar y crear tabla
+docker exec -it postgres1 psql -U admin -d testdb
+# Dentro de psql:
+CREATE TABLE personas (id SERIAL, nombre TEXT);
+INSERT INTO personas (nombre) VALUES ('Ana'), ('Luis');
+SELECT * FROM personas;
+\q
+
+# 4. Detener y eliminar contenedor
+docker stop postgres1
+docker rm postgres1
+
+# 5. Crear nuevo contenedor con el mismo volumen
+docker run -d --name postgres2 \
+  -e POSTGRES_PASSWORD=admin \
+  -e POSTGRES_USER=admin \
+  -e POSTGRES_DB=testdb \
+  -v pgdata:/var/lib/postgresql/data \
+  -p 5432:5432 \
+  postgres:15
+
+# 6. Verificar datos
+docker exec -it postgres2 psql -U admin -d testdb -c "SELECT * FROM personas;"
+# Deberían aparecer Ana y Luis
+\end{lstlisting}
+
+\section{Ejercicio 2: Configurar replicación PostgreSQL con dos contenedores Docker}
+\textbf{Enunciado:} En una misma máquina, levantar dos contenedores PostgreSQL (primario y réplica) y configurar streaming replication asíncrona.
+
+\textbf{Solución:}
+\begin{lstlisting}[language=Bash]
+# Red común
+docker network create pg-net
+
+# Primario
+docker run -d --name pg-primary \
+  --network pg-net \
+  -e POSTGRES_PASSWORD=admin \
+  -e POSTGRES_USER=admin \
+  -e POSTGRES_DB=testdb \
+  -v pg-primary-data:/var/lib/postgresql/data \
+  postgres:15
+
+# Configurar primario
+docker exec -it pg-primary bash
+# Editar postgresql.conf (usar echo o sed)
+echo "wal_level = replica" >> /var/lib/postgresql/data/postgresql.conf
+echo "max_wal_senders = 5" >> /var/lib/postgresql/data/postgresql.conf
+echo "wal_keep_size = 1GB" >> /var/lib/postgresql/data/postgresql.conf
+# En pg_hba.conf permitir replicación desde la red
+echo "host replication all 172.16.0.0/12 md5" >> /var/lib/postgresql/data/pg_hba.conf
+exit
+docker restart pg-primary
+
+# Crear usuario replicador
+docker exec -it pg-primary psql -U admin -c "CREATE USER replicator WITH REPLICATION ENCRYPTED PASSWORD 'replica';"
+
+# En la réplica, hacer basebackup
+docker run -d --name pg-replica \
+  --network pg-net \
+  -v pg-replica-data:/var/lib/postgresql/data \
+  postgres:15 echo "Esperando"
+docker exec -it pg-replica bash
+# Limpiar datos por defecto
+rm -rf /var/lib/postgresql/data/*
+# Realizar backup
+pg_basebackup -h pg-primary -U replicator -D /var/lib/postgresql/data -v -P --wal-method=stream
+# Crear archivo standby.signal
+touch /var/lib/postgresql/data/standby.signal
+# Configurar primary_conninfo
+echo "primary_conninfo = 'host=pg-primary user=replicator password=replica'" >> /var/lib/postgresql/data/postgresql.auto.conf
+exit
+# Iniciar réplica (reiniciar contenedor)
+docker stop pg-replica
+docker start pg-replica
+
+# Verificar en primario:
+docker exec -it pg-primary psql -U admin -c "SELECT * FROM pg_stat_replication;"
+# Debería mostrar la réplica
+\end{lstlisting}
+
+\section{Ejercicio 3: Failover manual en PostgreSQL con réplica}
+\textbf{Enunciado:} Simular la caída del primario y promover la réplica a nuevo primario.
+
+\textbf{Solución:}
+Continuando del ejercicio anterior:
+\begin{lstlisting}[language=Bash]
+# Detener primario
+docker stop pg-primary
+
+# En la réplica, promover
+docker exec -it pg-replica bash
+# Crear archivo de trigger (si se usa trigger_file) o simplemente eliminar standby.signal
+rm /var/lib/postgresql/data/standby.signal
+# También se puede usar pg_ctl promote (pero dentro del contenedor no está el comando fácilmente). Alternativa: reiniciar sin standby.
+# Para PostgreSQL 12+, con promote:
+# En el contenedor, ejecutar:
+pg_ctl promote -D /var/lib/postgresql/data
+# Pero requiere que el proceso esté corriendo. Normalmente se usa:
+docker exec -it pg-replica pg_ctl promote -D /var/lib/postgresql/data
+# (si pg_ctl está en PATH, lo está)
+# Ahora pg-replica es primario
+
+# Verificar que acepta escrituras
+docker exec -it pg-replica psql -U admin -d testdb -c "INSERT INTO personas (nombre) VALUES ('Nuevo');"
+\end{lstlisting}
+Para failover automático, se usarían herramientas como Patroni o repmgr.
+
+\section{Ejercicio 4: Migrar base de datos MySQL local a AWS RDS}
+\textbf{Enunciado:} Simular la migración de una base de datos MySQL desde un contenedor local a una instancia RDS (usar MySQL local como si fuera RDS).
+
+\textbf{Solución:}
+\begin{lstlisting}[language=Bash]
+# Levantar MySQL local (simula origen)
+docker run -d --name mysql-origen \
+  -e MYSQL_ROOT_PASSWORD=root \
+  -e MYSQL_DATABASE=ventas \
+  -p 3306:3306 \
+  mysql:8
+
+# Crear datos de ejemplo
+docker exec -it mysql-origen mysql -uroot -proot -e "USE ventas; CREATE TABLE productos (id INT AUTO_INCREMENT PRIMARY KEY, nombre VARCHAR(100)); INSERT INTO productos (nombre) VALUES ('Laptop'), ('Mouse');"
+
+# Levantar otro MySQL local como destino (simula RDS)
+docker run -d --name mysql-destino \
+  -e MYSQL_ROOT_PASSWORD=root \
+  -e MYSQL_DATABASE=ventas \
+  -p 3307:3306 \
+  mysql:8
+
+# Migración con mysqldump
+mysqldump -h127.0.0.1 -P3306 -uroot -proot ventas > ventas.sql
+mysql -h127.0.0.1 -P3307 -uroot -proot ventas < ventas.sql
+
+# Verificar
+mysql -h127.0.0.1 -P3307 -uroot -proot -e "SELECT * FROM ventas.productos;"
+\end{lstlisting}
+Para una migración real a RDS, se usarían los endpoints de AWS y las credenciales correspondientes.
+
+\section{Ejercicio 5: Configurar HAProxy para balancear entre dos réplicas de PostgreSQL}
+\textbf{Enunciado:} Tener dos contenedores PostgreSQL (réplicas) y un HAProxy que balancee las conexiones de solo lectura entre ellas.
+
+\textbf{Solución:}
+\begin{lstlisting}[language=Bash]
+# Asumimos que ya hay dos réplicas (pg-replica1, pg-replica2) funcionando, y un primario aparte.
+# Crear red
+docker network create ha-net
+# Conectar los contenedores a la red (si no lo están)
+docker network connect ha-net pg-replica1
+docker network connect ha-net pg-replica2
+
+# Ejecutar HAProxy
+docker run -d --name haproxy \
+  --network ha-net \
+  -p 5432:5432 \
+  -v $(pwd)/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro \
+  haproxy:latest
+
+# Archivo haproxy.cfg:
+cat > haproxy.cfg <<EOF
+global
+    log stdout format raw local0
+
+defaults
+    log global
+    option tcplog
+    timeout connect 5s
+    timeout client 1m
+    timeout server 1m
+
+frontend pgsql
+    bind *:5432
+    default_backend pgsql_backend
+
+backend pgsql_backend
+    balance roundrobin
+    option pgsql-check user haproxy
+    server pg1 pg-replica1:5432 check
+    server pg2 pg-replica2:5432 check
+EOF
+
+# En cada réplica, crear usuario haproxy
+docker exec -it pg-replica1 psql -U admin -c "CREATE USER haproxy;"
+docker exec -it pg-replica2 psql -U admin -c "CREATE USER haproxy;"
+
+# Probar conexión a HAProxy
+psql -h127.0.0.1 -p5432 -U admin -d testdb -c "SELECT inet_server_addr();"
+# Debería alternar entre las IPs de las réplicas
+\end{lstlisting}
+
+\chapter{Glosario de Términos}
+\begin{description}
+    \item[Contenedor] Entorno aislado que ejecuta una aplicación con sus dependencias.
+    \item[Docker] Plataforma de contenedores.
+    \item[Volumen] Mecanismo para persistir datos en Docker.
+    \item[Kubernetes] Orquestador de contenedores.
+    \item[StatefulSet] Recurso de Kubernetes para aplicaciones con estado.
+    \item[Replicación] Copia de datos de un servidor a otro.
+    \item[Réplica de lectura] Copia de la base de datos que acepta consultas de solo lectura.
+    \item[Failover] Conmutación automática a un nodo secundario ante fallo del primario.
+    \item[Cluster] Conjunto de servidores que trabajan juntos.
+    \item[Balanceo de carga] Distribución del tráfico entre varios servidores.
+    \item[ProxySQL] Balanceador y proxy para MySQL.
+    \item[HAProxy] Balanceador TCP/HTTP de alto rendimiento.
+    \item[pgpool-II] Middleware para PostgreSQL con balanceo y pooling.
+    \item[Patroni] Herramienta para alta disponibilidad de PostgreSQL.
+    \item[AWS RDS] Servicio de base de datos relacional gestionado de Amazon.
+    \item[Migración] Proceso de trasladar datos de un sistema a otro.
+    \item[RTO] Recovery Time Objective, tiempo máximo permitido para recuperar el servicio.
+    \item[RPO] Recovery Point Objective, pérdida máxima de datos aceptable.
+\end{description}
+
+\chapter*{Referencias}
+\addcontentsline{toc}{chapter}{Referencias}
+\begin{itemize}
+    \item Documentación de Docker: \url{https://docs.docker.com/}
+    \item Documentación de Kubernetes: \url{https://kubernetes.io/docs/}
+    \item PostgreSQL Streaming Replication: \url{https://www.postgresql.org/docs/current/warm-standby.html}
+    \item MySQL Group Replication: \url{https://dev.mysql.com/doc/refman/8.0/en/group-replication.html}
+    \itme MongoDB Replica Sets: \url{https://docs.mongodb.com/manual/replication/}
+    \item AWS Database Migration Service: \url{https://aws.amazon.com/dms/}
+    \item Patroni: \url{https://patroni.readthedocs.io/}
+    \item ProxySQL: \url{https://proxysql.com/}
+    \item HAProxy: \url{https://www.haproxy.org/}
+\end{itemize}
+
+\end{document}

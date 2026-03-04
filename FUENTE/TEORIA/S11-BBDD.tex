@@ -1,0 +1,595 @@
+\documentclass[12pt,a4paper,openany,oneside]{book}
+
+% --- Paquetes ---
+\usepackage[utf8]{inputenc}
+\usepackage[spanish, es-tabla]{babel}
+\usepackage{amsmath, amsfonts, amssymb}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{fancyhdr}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric, calc}
+
+\geometry{margin=2.5cm}
+
+% --- Colores y estilos para código ---
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+% Configuración para SQL (por si acaso)
+\lstdefinelanguage{SQL}{
+    keywords={SELECT, FROM, WHERE, INSERT, INTO, VALUES, UPDATE, SET, DELETE, CREATE, TABLE, INT, VARCHAR, DATE, PRIMARY, KEY, FOREIGN, REFERENCES, INDEX, VIEW, ALTER, DROP, AND, OR, NOT, NULL, CONSTRAINT, JOIN, INNER, LEFT, RIGHT, FULL, OUTER, ON, GROUP, BY, HAVING, ORDER, ASC, DESC, SERIAL, CHECK, UNIQUE, DEFAULT, CURRENT_DATE, CURRENT_TIMESTAMP, BEGIN, COMMIT, ROLLBACK, TRANSACTION, ISOLATION LEVEL, PROCEDURE, FUNCTION, TRIGGER, PLpgSQL, EXISTS, ANY, ALL, UNION, INTERSECT, EXCEPT, DISTINCT, AS, AVG, SUM, COUNT, MIN, MAX, WITH, RECURSIVE, CASE, COALESCE, NULLIF, GREATEST, LEAST, EXPLAIN, ANALYZE, BUFFERS, TIMING, COST, ROWS, WIDTH, FILTER, SCAN, INDEX, SEQUENTIAL, HASH, MERGE, NESTED, LOOP, CTE, MATERIALIZED, NOT MATERIALIZED, OVER, PARTITION, ROWS, RANGE, GROUPS, PRECEDING, FOLLOWING, UNBOUNDED, CURRENT, ROW, RANK, DENSE_RANK, ROW_NUMBER, NTILE, LAG, LEAD, FIRST_VALUE, LAST_VALUE, NTH_VALUE, CUME_DIST, PERCENT_RANK, SUBSTRING, CONCAT, TRIM, UPPER, LOWER, INITCAP, REPLACE, TRANSLATE, LPAD, RPAD, EXTRACT, DATE_PART, DATE_TRUNC, INTERVAL, CAST, CONVERT, TO_DATE, TO_CHAR, TO_NUMBER, REGEXP_MATCH, REGEXP_REPLACE, REGEXP_SPLIT, DECLARE, CURSOR, FETCH, OPEN, CLOSE, LOOP, WHILE, FOR, IF, ELSE, ELSIF, THEN, END, PERFORM, EXECUTE, RAISE, NOTICE, EXCEPTION, GET DIAGNOSTICS, RETURN, LANGUAGE, VOLATILE, STABLE, IMMUTABLE, SECURITY, INVOKER, DEFINER, CALL, GRANT, REVOKE, ROLE, USER, IDENTIFIED, PASSWORD, EXECUTE, PROCEDURE, FUNCTION, TRIGGER, VIEW, MATERIALIZED VIEW, REFRESH, CONCURRENTLY, MERGE, UPSERT},
+    sensitive=false,
+    morecomment=[l]{--},
+    morecomment=[s]{/*}{*/},
+    morestring=[b]'
+}
+\lstset{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    showstringspaces=false,
+    language=SQL
+}
+
+% Configuración para Python
+\lstdefinelanguage{Python}{
+    keywords={import, from, as, def, return, class, if, elif, else, for, while, in, not, and, or, True, False, None, with, open, try, except, finally, raise, assert, lambda, yield, global, nonlocal, await, async},
+    morecomment=[l]{\#},
+    morestring=[b]',
+    morestring=[b]"
+}
+\lstset{language=Python}
+
+% Configuración para JSON
+\lstdefinelanguage{JSON}{
+    keywords={},
+    morecomment=[s]{/*}{*/},
+    morestring=[b]",
+    morestring=[b]'
+}
+\lstset{language=JSON}
+
+% Configuración para Cypher (Neo4j)
+\lstdefinelanguage{Cypher}{
+    keywords={MATCH, RETURN, WHERE, CREATE, DELETE, SET, MERGE, WITH, UNWIND, ORDER, BY, SKIP, LIMIT, DISTINCT, AS, CASE, WHEN, THEN, ELSE, END, EXISTS, IN, IS, NULL, NOT, AND, OR, XOR, TRUE, FALSE},
+    sensitive=false,
+    morecomment=[l]//,
+    morecomment=[s]{/*}{*/},
+    morestring=[b]',
+    morestring=[b]"
+}
+\lstset{language=Cypher}
+
+% --- Estilo de cabecera y pie ---
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\fancyhead[L]{\small Carlos César Sánchez Coronel}
+\fancyhead[R]{\small Sesión 11: NoSQL y Ecosistema Cloud}
+\fancyfoot[L]{\small Carlos César Sánchez Coronel}
+\fancyfoot[C]{\thepage}
+
+% --- Portada ---
+\title{
+    \Huge \textbf{Sesión 11: NoSQL Y ECOSISTEMA CLOUD} \\
+    \large Tipos, casos de uso, integración con IA y despliegue en la nube
+}
+\author{
+    \small Por \\ \vspace{0.2cm}
+    \Large \textsc{Carlos César Sánchez Coronel}
+}
+\date{2026}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\addcontentsline{toc}{chapter}{Índice general}
+
+\chapter{Introducción a NoSQL}
+Las bases de datos relacionales (SQL) han dominado el mundo de los datos durante décadas. Sin embargo, con la llegada de aplicaciones web a gran escala, big data y la necesidad de flexibilidad, surgieron las bases de datos NoSQL (Not Only SQL). Estas bases de datos están diseñadas para escalar horizontalmente, manejar datos no estructurados o semiestructurados y ofrecer alta disponibilidad.
+
+\section{¿Por qué NoSQL?}
+Las limitaciones de SQL en ciertos escenarios:
+\begin{itemize}
+    \item Escalabilidad vertical costosa (más CPU/RAM en un solo servidor).
+    \item Esquema rígido (schema-on-write) dificulta cambios frecuentes.
+    \item Dificultad para manejar grandes volúmenes de datos no estructurados.
+    \item Rendimiento limitado en operaciones de lectura/escritura masivas.
+\end{itemize}
+
+\section{Teorema CAP}
+En sistemas distribuidos, es imposible garantizar simultáneamente:
+\begin{itemize}
+    \item \textbf{Consistencia (C)}: Todos los nodos ven los mismos datos al mismo tiempo.
+    \item \textbf{Disponibilidad (A)}: Cada petición recibe una respuesta (aunque no sea la más reciente).
+    \item \textbf{Tolerancia a Particiones (P)}: El sistema sigue funcionando aunque se pierda la comunicación entre nodos.
+\end{itemize}
+Los sistemas NoSQL eligen dos de tres:
+\begin{itemize}
+    \item \textbf{CP}: Consistencia y tolerancia a particiones (ej. HBase, MongoDB con configuración).
+    \item \textbf{AP}: Disponibilidad y tolerancia a particiones (ej. Cassandra, CouchDB).
+    \item \textbf{CA}: Consistencia y disponibilidad (sistemas tradicionales, no toleran particiones).
+\end{itemize}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.5]
+    \draw[thick] (0,0) -- (2,0) -- (1,1.732) -- cycle;
+    \node at (0,0) [below] {Consistencia};
+    \node at (2,0) [below] {Disponibilidad};
+    \node at (1,1.732) [above] {Tolerancia a Particiones};
+    \node at (0.5,0.3) [rotate=60] {CA};
+    \node at (1.5,0.3) [rotate=-60] {AP};
+    \node at (1,0.8) {CP};
+\end{tikzpicture}
+\end{center}
+
+\section{Tipos de Bases de Datos NoSQL}
+\begin{itemize}
+    \item \textbf{Documentales}: Almacenan documentos (JSON, BSON). Ej: MongoDB, Couchbase.
+    \item \textbf{Clave-Valor}: Estructura simple de pares clave-valor. Ej: Redis, DynamoDB.
+    \item \textbf{Grafos}: Nodos y relaciones. Ej: Neo4j, Amazon Neptune.
+    \item \textbf{Columnares}: Almacenan datos en columnas. Ej: Cassandra, HBase.
+    \item \textbf{Motores de Búsqueda}: Indexación y búsqueda de texto completo. Ej: Elasticsearch, Solr.
+\end{itemize}
+
+\chapter{Bases de Datos Documentales: MongoDB}
+MongoDB es la base de datos documental más popular. Almacena documentos en formato BSON (binario JSON), con esquema flexible.
+
+\section{Modelo de Datos}
+Los documentos son estructuras jerárquicas con campos y valores. Pueden contener arrays y subdocumentos.
+\begin{lstlisting}[language=JSON]
+{
+  "_id": ObjectId("507f1f77bcf86cd799439011"),
+  "nombre": "Ana Pérez",
+  "email": "ana@mail.com",
+  "direccion": {
+    "calle": "Av. Siempre Viva",
+    "ciudad": "Madrid"
+  },
+  "pedidos": [
+    { "fecha": "2025-01-10", "total": 150 },
+    { "fecha": "2025-02-15", "total": 200 }
+  ]
+}
+\end{lstlisting}
+
+\section{Consultas}
+MongoDB usa un lenguaje de consultas basado en JSON.
+\begin{lstlisting}[language=Python]
+from pymongo import MongoClient
+client = MongoClient('localhost', 27017)
+db = client['tienda']
+coleccion = db['clientes']
+# Insertar
+coleccion.insert_one({ "nombre": "Luis", "email": "luis@mail.com" })
+# Buscar
+result = coleccion.find({ "ciudad": "Madrid" })
+for doc in result:
+    print(doc)
+# Actualizar
+coleccion.update_one({ "nombre": "Luis" }, { "$set": { "ciudad": "Barcelona" } })
+# Eliminar
+coleccion.delete_one({ "nombre": "Luis" })
+\end{lstlisting}
+
+\section{Índices}
+MongoDB soporta índices para acelerar consultas. Pueden ser simples, compuestos, geoespaciales, texto.
+\begin{lstlisting}[language=Python]
+coleccion.create_index([("ciudad", 1), ("nombre", -1)])
+\end{lstlisting}
+
+\section{Casos de Uso}
+\begin{itemize}
+    \item Catálogos de productos (esquema variable).
+    \item Gestión de contenido (blogs, CMS).
+    \item Datos de sesiones de usuarios.
+    \item Integración con IA: almacenar resultados de modelos, datos de entrenamiento.
+\end{itemize}
+
+\section{Escalabilidad}
+MongoDB escala horizontalmente mediante \textbf{sharding}: los datos se particionan por una clave (shard key) y se distribuyen en varios servidores. También soporta réplicas para alta disponibilidad.
+
+\chapter{Bases de Datos Clave-Valor: Redis}
+Redis es una base de datos en memoria, extremadamente rápida, que soporta diversas estructuras de datos: strings, hashes, listas, sets, sorted sets, etc.
+
+\section{Características}
+\begin{itemize}
+    \item \textbf{In-memory}: los datos residen en RAM, con persistencia opcional (snapshots, AOF).
+    \item \textbf{Baja latencia}: microsegundos.
+    \item \textbf{Estructuras ricas}: más allá de simple clave-valor.
+    \item \textbf{Operaciones atómicas}: INCR, LPUSH, etc.
+\end{itemize}
+
+\section{Conexión desde Python}
+\begin{lstlisting}[language=Python]
+import redis
+r = redis.Redis(host='localhost', port=6379, decode_responses=True)
+r.set('clave', 'valor')
+print(r.get('clave'))
+r.incr('contador')
+r.lpush('lista', 'elemento')
+\end{lstlisting}
+
+\section{Casos de Uso}
+\begin{itemize}
+    \item \textbf{Caché}: almacenar resultados de consultas costosas.
+    \item \textbf{Sesiones de usuario}: en aplicaciones web.
+    \item \textbf{Rate limiting}: control de peticiones por IP.
+    \item \textbf{Colas de tareas} (con listas).
+    \item \textbf{Leaderboards} (con sorted sets).
+    \item \textbf{IA}: almacenar embeddings, caché de inferencia.
+\end{itemize}
+
+\section{Persistencia}
+Redis puede configurarse para persistir:
+\begin{itemize}
+    \item \textbf{RDB (snapshots)}: volcados periódicos.
+    \item \textbf{AOF (Append Only File)}: registro de cada operación.
+\end{itemize}
+
+\section{Escalabilidad}
+Redis admite replicación (maestro-esclavo) y clustering (distribución de datos). Redis Cluster particiona automáticamente.
+
+\chapter{Bases de Datos de Grafos: Neo4j}
+Neo4j es la base de datos de grafos líder. Modela datos como nodos, relaciones y propiedades.
+
+\section{Modelo de Datos}
+\begin{itemize}
+    \item \textbf{Nodos}: entidades (personas, empresas).
+    \item \textbf{Relaciones}: conexiones entre nodos (etiquetadas, con dirección).
+    \item \textbf{Propiedades}: atributos de nodos y relaciones.
+\end{itemize}
+Ejemplo: red social de personas y amistades.
+
+\section{Consultas con Cypher}
+Cypher es el lenguaje de consulta de Neo4j, similar a SQL pero orientado a grafos.
+\begin{lstlisting}[language=Cypher]
+-- Crear nodos y relaciones
+CREATE (p:Persona {nombre: 'Ana', edad: 30})
+CREATE (q:Persona {nombre: 'Luis', edad: 32})
+CREATE (p)-[:AMIGO_DE]->(q)
+
+-- Consultar amigos de Ana
+MATCH (p:Persona {nombre: 'Ana'})-[:AMIGO_DE]->(amigo)
+RETURN amigo.nombre
+\end{lstlisting}
+
+\section{Casos de Uso}
+\begin{itemize}
+    \item \textbf{Sistemas de recomendación} (productos, películas basados en gustos similares).
+    \item \textbf{Detección de fraude} (identificar redes de transacciones sospechosas).
+    \item \textbf{Redes sociales y análisis de influencia}.
+    \item \textbf{Gestión de identidades y accesos}.
+\end{itemize}
+
+\section{Integración con Python}
+\begin{lstlisting}[language=Python]
+from neo4j import GraphDatabase
+driver = GraphDatabase.driver("bolt://localhost:7687", auth=("neo4j", "password"))
+with driver.session() as session:
+    result = session.run("MATCH (p:Persona) RETURN p.nombre")
+    for record in result:
+        print(record["p.nombre"])
+\end{lstlisting}
+
+\chapter{Bases de Datos Columnares: Apache Cassandra}
+Cassandra es una base de datos distribuida diseñada para alta disponibilidad y escalabilidad lineal. Almacena datos en columnas, con un modelo orientado a filas pero con particionamiento.
+
+\section{Modelo de Datos}
+En Cassandra, la clave primaria se compone de:
+\begin{itemize}
+    \item \textbf{Clave de partición}: determina el nodo donde se almacena la fila.
+    \item \textbf{Clustering columns}: ordenan las filas dentro de la partición.
+\end{itemize}
+Ejemplo de tabla para mensajes:
+\begin{lstlisting}[language=SQL]
+CREATE TABLE mensajes (
+    usuario_id UUID,
+    timestamp TIMESTAMP,
+    mensaje TEXT,
+    PRIMARY KEY ((usuario_id), timestamp)
+) WITH CLUSTERING ORDER BY (timestamp DESC);
+\end{lstlisting}
+Las consultas deben incluir la clave de partición para ser eficientes.
+
+\section{Características}
+\begin{itemize}
+    \item \textbf{Arquitectura peer-to-peer}: sin maestro, todos los nodos iguales.
+    \item \textbf{Alta disponibilidad}: sin punto único de fallo.
+    \item \textbf{Escalabilidad lineal}: añadir nodos aumenta capacidad.
+    \item \textbf{Consistencia eventual} (configurable).
+\end{itemize}
+
+\section{Conexión desde Python}
+\begin{lstlisting}[language=Python]
+from cassandra.cluster import Cluster
+cluster = Cluster(['localhost'])
+session = cluster.connect('mi_keyspace')
+rows = session.execute("SELECT * FROM mensajes WHERE usuario_id = %s", [uuid])
+for row in rows:
+    print(row.timestamp, row.mensaje)
+\end{lstlisting}
+
+\section{Casos de Uso}
+\begin{itemize}
+    \item \textbf{IoT y series temporales}: ingesta masiva de datos de sensores.
+    \item \textbf{Mensajería y chat} (aplicaciones como WhatsApp).
+    \item \textbf{Recomendaciones en tiempo real}.
+    \item \textbf{Big Data transaccional}.
+\end{itemize}
+
+\chapter{Motores de Búsqueda: Elasticsearch}
+Elasticsearch es un motor de búsqueda y analítica distribuido, basado en Lucene. Indexa documentos JSON y permite búsquedas de texto completo, agregaciones y análisis en tiempo real.
+
+\section{Conceptos Clave}
+\begin{itemize}
+    \item \textbf{Índice}: colección de documentos.
+    \item \textbf{Documento}: unidad de información (JSON).
+    \item \textbf{Shard}: partición del índice.
+    \item \textbf{Inverted index}: estructura para búsqueda rápida de términos.
+\end{itemize}
+
+\section{Consultas}
+Elasticsearch ofrece una API RESTful. Ejemplo con Python:
+\begin{lstlisting}[language=Python]
+from elasticsearch import Elasticsearch
+es = Elasticsearch(['localhost:9200'])
+# Indexar documento
+doc = {'autor': 'Cervantes', 'titulo': 'Don Quijote', 'anio': 1605}
+es.index(index='libros', body=doc)
+# Buscar
+resp = es.search(index='libros', body={'query': {'match': {'titulo': 'Quijote'}}})
+for hit in resp['hits']['hits']:
+    print(hit['_source'])
+\end{lstlisting}
+
+\section{Casos de Uso}
+\begin{itemize}
+    \item \textbf{Búsqueda en sitios web} (e-commerce, contenido).
+    \item \textbf{Análisis de logs} (ELK Stack: Elasticsearch, Logstash, Kibana).
+    \item \textbf{Métricas y monitoreo}.
+    \item \textbf{Búsqueda semántica} con vectores (plugin de vector).
+\end{itemize}
+
+\chapter{Comparativa entre NoSQL y SQL}
+\begin{center}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Característica} & \textbf{SQL} & \textbf{NoSQL} \\ \hline
+Esquema & Fijo (schema-on-write) & Flexible (schema-on-read) \\
+Transacciones & ACID & BASE (eventual consistency) \\
+Escalabilidad & Vertical & Horizontal \\
+Consultas & Estructuradas (JOINs) & Según tipo (no joins en general) \\
+Casos de uso & Aplicaciones transaccionales & Big Data, tiempo real, datos no estructurados \\ \hline
+\end{tabular}
+\end{center}
+
+\subsection*{Comparativa entre tipos NoSQL}
+\begin{center}
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{Tipo} & \textbf{Ventajas} & \textbf{Desventajas} & \textbf{Casos típicos} \\ \hline
+Documental & Flexible, fácil de usar & Consultas limitadas & Catálogos, CMS \\
+Clave-Valor & Ultra rápido & Solo acceso por clave & Caché, sesiones \\
+Grafos & Relaciones complejas & Escalabilidad compleja & Recomendación, fraude \\
+Columnar & Alta escalabilidad & Modelado complejo & IoT, series temporales \\
+Búsqueda & Búsqueda texto completo & Consistencia eventual & Logs, búsqueda web \\ \hline
+\end{tabular}
+\end{center}
+
+\chapter{Integración con Inteligencia Artificial}
+Las bases de datos NoSQL son fundamentales en pipelines de IA/ML.
+
+\section{Almacenamiento de Embeddings}
+Los embeddings (vectores) se pueden almacenar en MongoDB, PostgreSQL con pgvector, o Elasticsearch (plugin de vector). Ejemplo con MongoDB:
+\begin{lstlisting}[language=Python]
+from pymongo import MongoClient
+import numpy as np
+client = MongoClient()
+db = client['ia']
+coleccion = db['documentos']
+embedding = np.random.rand(300).tolist()
+coleccion.insert_one({ 'texto': 'ejemplo', 'embedding': embedding })
+\end{lstlisting}
+Luego se pueden hacer búsquedas de similitud (coseno) con agregaciones.
+
+\section{Caché de Modelos y Resultados}
+Redis se usa para cachear predicciones de modelos, reduciendo latencia.
+\begin{lstlisting}[language=Python]
+import redis
+import pickle
+r = redis.Redis()
+modelo = pickle.loads(r.get('modelo_regresion'))
+# O cachear resultado de una inferencia
+r.setex('user_123_pred', 3600, pickle.dumps(prediccion))
+\end{lstlisting}
+
+\section{Sesiones de Usuario en IA Conversacional}
+En chatbots, Redis guarda el estado de la conversación (contexto) para mantener la coherencia.
+
+\section{Recomendaciones con Grafos}
+Neo4j puede alimentar modelos de recomendación basados en caminos de usuarios y productos.
+
+\chapter{Infraestructura en la Nube para NoSQL}
+Los principales proveedores cloud ofrecen servicios gestionados de bases de datos NoSQL.
+
+\section{Amazon Web Services (AWS)}
+\begin{itemize}
+    \item \textbf{DynamoDB}: base de datos clave-valor y documental, totalmente gestionada, escalable, con rendimiento predecible.
+    \item \textbf{DocumentDB}: compatible con MongoDB.
+    \item \textbf{ElastiCache}: Redis y Memcached gestionados.
+    \item \textbf{Neptune}: base de datos de grafos.
+    \item \textbf{OpenSearch}: sucesor de Elasticsearch.
+\end{itemize}
+
+\section{Microsoft Azure}
+\begin{itemize}
+    \item \textbf{Cosmos DB}: base de datos multimodelo (documental, clave-valor, columna, grafos) con distribución global.
+    \item \textbf{Redis Cache}.
+    \item \textbf{Table Storage} (clave-valor).
+\end{itemize}
+
+\section{Google Cloud Platform (GCP)}
+\begin{itemize}
+    \item \textbf{Firestore}: documental.
+    \item \textbf{Bigtable}: columna ancha (similar a HBase).
+    \item \textbf{Memorystore}: Redis.
+\end{itemize}
+
+\section{Estrategias de Despliegue}
+\begin{itemize}
+    \item \textbf{Serverless}: sin gestión de servidores (DynamoDB, Cosmos DB). Ideal para aplicaciones variables.
+    \item \textbf{Instancias gestionadas}: control sobre la configuración (ElastiCache, DocumentDB).
+    \item \textbf{On-premise vs Cloud}: decisión basada en costo, latencia, cumplimiento.
+\end{itemize}
+
+\section{Dimensionamiento y Costos}
+Ejemplo: DynamoDB cobra por capacidad de lectura/escritura (RCU/WCU) y almacenamiento. Para una aplicación de 1000 lecturas/segundo, se necesitan 1000 RCU (aprox. \$0.065 por hora). Costos aproximados:
+\begin{itemize}
+    \item DynamoDB: \$1.25 por millón de escrituras, \$0.25 por millón de lecturas.
+    \item Redis en AWS ElastiCache: desde \$0.016/hora (tipo pequeño).
+    \item Cosmos DB: aprox. \$0.008/hora por cada 100 RU/s.
+\end{itemize}
+
+\chapter{Ejercicios Resueltos}
+\section{Ejercicio 1: Modelar un catálogo de productos en MongoDB}
+\textbf{Enunciado:} Diseñar un documento para un catálogo de productos que incluya nombre, precio, categoría, etiquetas y especificaciones variables. Insertar un par de ejemplos y consultar productos de una categoría con precio > 100.
+
+\textbf{Solución:}
+\begin{lstlisting}[language=Python]
+from pymongo import MongoClient
+client = MongoClient()
+db = client['tienda']
+productos = db['productos']
+producto1 = {
+    'nombre': 'Laptop Gamer',
+    'precio': 1200,
+    'categoria': 'Electrónica',
+    'etiquetas': ['laptop', 'gaming'],
+    'especificaciones': {'ram': '16GB', 'procesador': 'i7'}
+}
+producto2 = {
+    'nombre': 'Mouse',
+    'precio': 25,
+    'categoria': 'Electrónica',
+    'etiquetas': ['mouse', 'inalámbrico'],
+    'especificaciones': {'tipo': 'óptico'}
+}
+productos.insert_many([producto1, producto2])
+result = productos.find({'categoria': 'Electrónica', 'precio': {'$gt': 100}})
+for p in result:
+    print(p['nombre'])
+\end{lstlisting}
+
+\section{Ejercicio 2: Sistema de votación con Redis}
+\textbf{Enunciado:} Usar Redis para llevar un contador de votos por candidato y mostrar el ranking.
+
+\textbf{Solución:}
+\begin{lstlisting}[language=Python]
+import redis
+r = redis.Redis()
+# Votar
+r.incr('votos:candidato:A')
+r.incr('votos:candidato:B')
+r.incr('votos:candidato:A')
+# Obtener votos
+print(r.get('votos:candidato:A'))
+# Ranking (sorted set)
+r.zincrby('ranking', 1, 'A')
+r.zincrby('ranking', 2, 'B')
+r.zincrby('ranking', 1, 'A')
+print(r.zrevrange('ranking', 0, -1, withscores=True))
+\end{lstlisting}
+
+\section{Ejercicio 3: Detección de fraude con grafos}
+\textbf{Enunciado:} En Neo4j, crear un grafo de transacciones entre cuentas. Detectar posibles ciclos de transferencias rápidas (lavado de dinero).
+
+\textbf{Solución:}
+\begin{lstlisting}[language=Cypher]
+-- Crear cuentas
+CREATE (a:Cuenta {id: 'A'}), (b:Cuenta {id: 'B'}), (c:Cuenta {id: 'C'})
+CREATE (a)-[:TRANSFIERE {monto: 1000, fecha: '2025-03-01'}]->(b)
+CREATE (b)-[:TRANSFIERE {monto: 900, fecha: '2025-03-02'}]->(c)
+CREATE (c)-[:TRANSFIERE {monto: 800, fecha: '2025-03-03'}]->(a)
+-- Buscar ciclos de longitud 3
+MATCH p = (a)-[:TRANSFIERE*3]-(a)
+RETURN p
+\end{lstlisting}
+
+\section{Ejercicio 4: Almacenar logs en Elasticsearch}
+\textbf{Enunciado:} Indexar logs de servidor en Elasticsearch y luego buscar los errores de los últimos 5 minutos.
+
+\textbf{Solución:}
+\begin{lstlisting}[language=Python]
+from elasticsearch import Elasticsearch
+from datetime import datetime, timedelta
+es = Elasticsearch()
+doc = {
+    'timestamp': datetime.now(),
+    'nivel': 'ERROR',
+    'mensaje': 'Timeout en conexión'
+}
+es.index(index='logs', body=doc)
+# Buscar errores últimos 5 min
+hace_5min = datetime.now() - timedelta(minutes=5)
+query = {
+    'query': {
+        'bool': {
+            'must': [
+                {'match': {'nivel': 'ERROR'}},
+                {'range': {'timestamp': {'gte': hace_5min}}}
+            ]
+        }
+    }
+}
+resp = es.search(index='logs', body=query)
+for hit in resp['hits']['hits']:
+    print(hit['_source'])
+\end{lstlisting}
+
+\chapter{Glosario de Términos}
+\begin{description}
+    \item[NoSQL] Not Only SQL, bases de datos no relacionales.
+    \item[Teorema CAP] Consistencia, Disponibilidad, Tolerancia a Particiones.
+    \item[MongoDB] Base de datos documental.
+    \item[Redis] Base de datos en memoria clave-valor.
+    \item[Neo4j] Base de datos de grafos.
+    \item[Cassandra] Base de datos columnar distribuida.
+    \item[Elasticsearch] Motor de búsqueda y analítica.
+    \item[DynamoDB] Base de datos NoSQL gestionada de AWS.
+    \item[Cosmos DB] Base de datos multimodelo de Azure.
+    \item[Sharding] Particionamiento horizontal de datos.
+    \item[Replicación] Copia de datos en varios nodos.
+    \item[Embedding] Representación vectorial de datos para IA.
+    \item[Latencia] Tiempo de respuesta.
+\end{description}
+
+\chapter*{Referencias}
+\addcontentsline{toc}{chapter}{Referencias}
+\begin{itemize}
+    \item Sadalage, P. \& Fowler, M. (2012). \textit{NoSQL Distilled}. Addison-Wesley.
+    \item Documentación oficial de MongoDB: \url{https://docs.mongodb.com/}
+    \item Documentación de Redis: \url{https://redis.io/documentation}
+    \item Documentación de Neo4j: \url{https://neo4j.com/docs/}
+    \item Documentación de Cassandra: \url{https://cassandra.apache.org/doc/}
+    \item Documentación de Elasticsearch: \url{https://www.elastic.co/guide/}
+    \item Amazon DynamoDB: \url{https://aws.amazon.com/dynamodb/}
+    \item Microsoft Azure Cosmos DB: \url{https://docs.microsoft.com/azure/cosmos-db/}
+\end{itemize}
+
+\end{document}

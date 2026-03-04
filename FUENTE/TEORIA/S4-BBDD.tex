@@ -1,0 +1,628 @@
+\documentclass[12pt,a4paper,openany,oneside]{book}
+
+% --- Paquetes ---
+\usepackage[utf8]{inputenc}
+\usepackage[spanish, es-tabla]{babel}
+\usepackage{amsmath, amsfonts, amssymb}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{fancyhdr}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric, calc}
+
+\geometry{margin=2.5cm}
+
+% --- Colores y estilos para código ---
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=Python,
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    showstringspaces=false
+}
+
+\lstdefinelanguage{SQL}{
+    keywords={SELECT, FROM, WHERE, INSERT, INTO, VALUES, UPDATE, SET, DELETE, CREATE, TABLE, INT, VARCHAR, DATE, PRIMARY, KEY, FOREIGN, REFERENCES, INDEX, VIEW, ALTER, DROP, AND, OR, NOT, NULL, CONSTRAINT, JOIN, INNER, LEFT, RIGHT, ON, GROUP, BY, HAVING, ORDER, ASC, DESC, SERIAL, CHECK, UNIQUE, DEFAULT, CURRENT_DATE, CURRENT_TIMESTAMP, BEGIN, COMMIT, ROLLBACK, TRANSACTION, ISOLATION LEVEL, PROCEDURE, FUNCTION, TRIGGER, PLpgSQL},
+    sensitive=false,
+    morecomment=[l]{--},
+    morecomment=[s]{/*}{*/},
+    morestring=[b]'
+}
+\lstset{language=SQL}
+
+% --- Estilo de cabecera y pie ---
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\fancyhead[L]{\small Carlos César Sánchez Coronel}
+\fancyhead[R]{\small Sesión 4: Arquitectura, Optimización y Modelamiento Avanzado}
+\fancyfoot[L]{\small Carlos César Sánchez Coronel}
+\fancyfoot[C]{\thepage}
+
+% --- Portada ---
+\title{
+    \Huge \textbf{Sesión 4: ARQUITECTURA, OPTIMIZACIÓN Y MODELAMIENTO AVANZADO DE BASES DE DATOS} \\
+    \Large Del diseño a la implementación en entornos reales
+}
+\author{
+    \small Por \\ \vspace{0.2cm}
+    \Large \textsc{Carlos César Sánchez Coronel}
+}
+\date{2026}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\addcontentsline{toc}{chapter}{Índice general}
+
+\chapter{Introducción}
+En la Sesión 3 abordamos los fundamentos del modelamiento de datos, desde el nivel conceptual hasta el físico, incluyendo normalización e índices. En esta Sesión 4, daremos un paso adelante para explorar aspectos avanzados que son cruciales en entornos profesionales: arquitecturas de bases de datos, optimización de consultas, manejo de transacciones y concurrencia, integridad avanzada mediante programación en la base de datos, modelamiento dimensional para data warehousing, y una introducción a las bases de datos NoSQL. Cada capítulo incluye ejemplos prácticos y ejercicios resueltos que te ayudarán a consolidar los conceptos y a prepararte para enfrentar desafíos reales, así como preguntas técnicas en entrevistas nacionales e internacionales.
+
+\chapter{Arquitecturas de Bases de Datos}
+La arquitectura de una base de datos define cómo se organizan los componentes de software y hardware para almacenar, procesar y acceder a los datos. La elección de la arquitectura impacta directamente en la escalabilidad, disponibilidad y rendimiento.
+
+\section{Modelo Centralizado vs. Cliente-Servidor}
+En el modelo \textbf{centralizado}, todos los datos residen en un único servidor y los usuarios se conectan a través de terminales. Es simple pero poco escalable y vulnerable a fallos.
+
+El modelo \textbf{cliente-servidor} separa la lógica de presentación (cliente) de la gestión de datos (servidor). Los clientes envían solicitudes SQL al servidor, que procesa y devuelve resultados. Este modelo es la base de la mayoría de los SGBD actuales (PostgreSQL, MySQL, Oracle).
+
+\section{Bases de Datos Distribuidas}
+Una base de datos distribuida almacena datos en múltiples nodos interconectados, ofreciendo transparencia al usuario. Puede ser homogénea (todos los nodos usan el mismo SGBD) o heterogénea.
+
+\subsection{Fragmentación}
+La fragmentación divide una tabla en fragmentos (particiones) que se almacenan en diferentes nodos. Tipos:
+\begin{itemize}
+    \item \textbf{Horizontal:} Filas completas se distribuyen según un criterio (ej. clientes por región). Cada fragmento tiene las mismas columnas.
+    \item \textbf{Vertical:} Columnas se distribuyen en diferentes fragmentos, manteniendo la clave primaria en todos.
+    \item \textbf{Híbrida:} Combinación de ambas.
+\end{itemize}
+
+\begin{center}
+\begin{tikzpicture}[node distance=1.5cm]
+    \node (tabla) [draw, rectangle, minimum width=4cm, minimum height=2cm] {Tabla original};
+    \node (frag1) [draw, rectangle, below left of=tabla, xshift=-2cm, yshift=-1cm, minimum width=3cm, minimum height=1.5cm] {Fragmento 1 (Clientes Europa)};
+    \node (frag2) [draw, rectangle, below right of=tabla, xshift=2cm, yshift=-1cm, minimum width=3cm, minimum height=1.5cm] {Fragmento 2 (Clientes América)};
+    \draw[->, thick] (tabla) -- (frag1) node[midway, above left] {fragmentación horizontal};
+    \draw[->, thick] (tabla) -- (frag2) node[midway, above right] {};
+\end{tikzpicture}
+\end{center}
+
+\subsection{Replicación}
+La replicación mantiene copias idénticas de los datos en varios servidores. Puede ser:
+\begin{itemize}
+    \item \textbf{Síncrona:} Todas las copias se actualizan en la misma transacción. Alta consistencia, pero mayor latencia.
+    \item \textbf{Asíncrona:} La actualización se propaga después de confirmar la transacción. Menor consistencia, pero mejor rendimiento.
+\end{itemize}
+La replicación mejora la disponibilidad y permite balanceo de carga de lecturas.
+
+\subsection{Transparencia}
+En un sistema distribuido ideal, el usuario no percibe la distribución. Existen varios niveles de transparencia: de localización, de fragmentación, de replicación, etc.
+
+\section{Clustering y Alta Disponibilidad}
+Un \textbf{cluster} es un grupo de servidores que trabajan juntos para ofrecer alta disponibilidad y escalabilidad. Configuraciones típicas:
+\begin{itemize}
+    \item \textbf{Active-Passive:} Un nodo activo procesa solicitudes; el pasivo está en espera para tomar el control si el activo falla.
+    \item \textbf{Active-Active:} Todos los nodos procesan solicitudes simultáneamente, requiriendo mecanismos de coordinación (ej. bloqueos distribuidos).
+\end{itemize}
+
+\section{Sharding}
+El \textbf{sharding} es una técnica de particionamiento horizontal a gran escala, donde cada fragmento (shard) es una base de datos independiente. Los shards se distribuyen en múltiples servidores. La clave de partición determina en qué shard se almacena cada fila. Es común en aplicaciones web masivas (ej. redes sociales, juegos en línea).
+
+\begin{center}
+\begin{tikzpicture}
+    \node[draw, rectangle, minimum width=6cm, minimum height=1cm] (app) {Aplicación};
+    \node[draw, rectangle, below left of=app, xshift=-2cm, yshift=-1cm] (shard1) {Shard 1 (usuarios id 1-1000)};
+    \node[draw, rectangle, below of=app, yshift=-1cm] (shard2) {Shard 2 (usuarios id 1001-2000)};
+    \node[draw, rectangle, below right of=app, xshift=2cm, yshift=-1cm] (shard3) {Shard 3 (usuarios id 2001-3000)};
+    \draw[->, thick] (app) -- (shard1);
+    \draw[->, thick] (app) -- (shard2);
+    \draw[->, thick] (app) -- (shard3);
+\end{tikzpicture}
+\end{center}
+
+\section{Bases de Datos en la Nube (DBaaS)}
+Las plataformas como servicio de bases de datos (DBaaS) ofrecen bases de datos gestionadas en la nube (Amazon RDS, Google Cloud SQL, Azure SQL Database). Ventajas: escalabilidad automática, backups gestionados, alta disponibilidad integrada, pago por uso.
+
+\chapter{Optimización de Consultas y Uso de Índices}
+La optimización es clave para garantizar un rendimiento aceptable, especialmente con grandes volúmenes de datos.
+
+\section{El Optimizador de Consultas}
+El SGBD incluye un optimizador que decide el plan de ejecución más eficiente para una consulta SQL. Puede ser:
+\begin{itemize}
+    \item \textbf{Basado en reglas:} Usa heurísticas (ej. siempre usar índices si existen).
+    \item \textbf{Basado en costos:} Estima el costo de diferentes planes (E/S, CPU, memoria) y elige el de menor costo. Es el más común (PostgreSQL, Oracle, SQL Server).
+\end{itemize}
+
+\section{Planes de Ejecución}
+El plan de ejecución muestra las operaciones que realizará el motor. Operadores comunes:
+\begin{itemize}
+    \item \textbf{Table Scan (Seq Scan):} Recorre toda la tabla. Costo $O(n)$.
+    \item \textbf{Index Scan:} Usa un índice para localizar filas rápidamente.
+    \item \textbf{Index Only Scan:} Si el índice contiene todas las columnas necesarias, no accede a la tabla.
+    \item \textbf{Nested Loop:} Para cada fila de una tabla, busca coincidencias en la otra usando un índice. Eficiente para conjuntos pequeños.
+    \item \textbf{Hash Join:} Construye una tabla hash en memoria con una de las tablas y luego la recorre con la otra. Bueno para tablas sin índices.
+    \item \textbf{Merge Join:} Ordena ambas tablas y luego las fusiona. Útil si ya están ordenadas.
+\end{itemize}
+
+\begin{lstlisting}[language=SQL]
+-- Ver el plan de ejecución en PostgreSQL
+EXPLAIN (ANALYZE, BUFFERS) SELECT * FROM clientes WHERE apellido = 'García';
+\end{lstlisting}
+
+\section{Estadísticas}
+El optimizador usa estadísticas sobre las tablas (número de filas, distribución de valores, histogramas) para estimar la selectividad de las condiciones. Es crucial mantener las estadísticas actualizadas (\texttt{ANALYZE} en PostgreSQL).
+
+\section{Tipos de Índices Avanzados}
+Además de los índices B-Tree, existen otros tipos útiles:
+\begin{itemize}
+    \item \textbf{Índice cubriente:} Incluye todas las columnas necesarias para una consulta, evitando acceder a la tabla. En PostgreSQL se logra con índices que incluyen columnas adicionales (\texttt{INCLUDE}).
+    \item \textbf{Índice funcional:} Indexa el resultado de una función, ej. \texttt{INDEX ON (LOWER(email))}.
+    \item \textbf{Índice parcial:} Solo indexa un subconjunto de filas que cumplen una condición, ahorrando espacio. Ej. \texttt{WHERE activo = true}.
+    \item \textbf{Índice con columnas incluidas:} En SQL Server, se pueden incluir columnas no clave en el índice para hacerlo cubriente.
+\end{itemize}
+
+\section{Estrategias de Indexación}
+No existe una fórmula única; hay que analizar las consultas más frecuentes y críticas. Reglas generales:
+\begin{itemize}
+    \item Indexar columnas usadas en \texttt{WHERE}, \texttt{JOIN}, \texttt{ORDER BY}.
+    \item Para consultas con múltiples condiciones, considerar índices compuestos con el orden adecuado (primero las columnas más selectivas).
+    \item Evitar índices en columnas con pocos valores distintos (baja cardinalidad) a menos que se usen combinados.
+    \item Monitorizar índices no utilizados y eliminarlos.
+\end{itemize}
+
+\section{Ejercicio Resuelto: Optimización de una Consulta Lenta}
+\textbf{Problema:} La consulta \texttt{SELECT * FROM ventas WHERE fecha BETWEEN '2025-01-01' AND '2025-01-31' ORDER BY total DESC} tarda varios segundos en una tabla de 10 millones de filas. No hay índices.
+
+\textbf{Solución paso a paso:}
+\begin{enumerate}
+    \item Analizamos el plan: seguramente es un Seq Scan y luego un Sort.
+    \item Creamos un índice compuesto por (fecha, total) para cubrir el filtro y el orden:
+        \begin{lstlisting}[language=SQL]
+CREATE INDEX idx_ventas_fecha_total ON ventas(fecha, total DESC);
+        \end{lstlisting}
+    \item El índice permite un Index Scan que devuelve las filas ya ordenadas, evitando el Sort.
+    \item Si la consulta solo necesita algunas columnas, podríamos crear un índice cubriente incluyendo esas columnas.
+\end{enumerate}
+
+\chapter{Transacciones y Concurrencia}
+Las transacciones garantizan que las operaciones se ejecuten de manera fiable y aislada.
+
+\section{Propiedades ACID}
+\begin{itemize}
+    \item \textbf{Atomicidad:} La transacción se ejecuta completamente o no se ejecuta. Se implementa con logs de undo/redo.
+    \item \textbf{Consistencia:} Las restricciones de integridad se mantienen antes y después.
+    \item \textbf{Aislamiento:} Las transacciones concurrentes no interfieren. Se logra mediante bloqueos o MVCC.
+    \item \textbf{Durabilidad:} Una vez confirmada, la transacción persiste incluso ante fallos. Se usa write-ahead logging (WAL).
+\end{itemize}
+
+\section{Niveles de Aislamiento}
+El estándar SQL define cuatro niveles, de menor a mayor aislamiento:
+
+\begin{enumerate}
+    \item \textbf{Read Uncommitted:} Permite leer datos no confirmados (dirty reads). Prácticamente no se usa.
+    \item \textbf{Read Committed:} Solo lee datos confirmados. Evita dirty reads, pero pueden ocurrir non-repeatable reads (una fila leída dos veces puede cambiar si otra transacción la modifica y confirma).
+    \item \textbf{Repeatable Read:} Asegura que si se lee una fila dos veces, su valor no cambia (evita non-repeatable reads). Puede haber phantom reads (aparición de nuevas filas que cumplen la condición).
+    \item \textbf{Serializable:} Máximo aislamiento, las transacciones se ejecutan como si fueran secuenciales. Evita todos los fenómenos.
+\end{enumerate}
+
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textbf{Nivel} & \textbf{Dirty Read} & \textbf{Non-repeatable Read} & \textbf{Phantom Read} & \textbf{Serialization Anomaly} \\ \hline
+Read Uncommitted & Posible & Posible & Posible & Posible \\
+Read Committed & No & Posible & Posible & Posible \\
+Repeatable Read & No & No & Posible & Posible \\
+Serializable & No & No & No & No \\ \hline
+\end{tabular}
+\end{center}
+
+\section{Implementación de Concurrencia}
+\subsection{Bloqueos (Locks)}
+Los SGBD usan bloqueos para controlar el acceso concurrente:
+\begin{itemize}
+    \item \textbf{Compartidos (Shared):} Para lectura. Varias transacciones pueden tener bloqueos compartidos sobre el mismo recurso.
+    \item \textbf{Exclusivos (Exclusive):} Para escritura. Solo una transacción puede tenerlo.
+    \item \textbf{Intencionales:} Indican la intención de adquirir bloqueos a nivel más fino (ej. bloqueo intencional compartido a nivel de tabla antes de bloquear filas).
+\end{itemize}
+
+\subsection{MVCC (Multi-Version Concurrency Control)}
+MVCC es una técnica utilizada por PostgreSQL, Oracle, etc. Cada transacción ve una instantánea (snapshot) de los datos en un momento dado. Las modificaciones crean nuevas versiones de las filas, sin bloquear lecturas. Así se logra un alto grado de concurrencia.
+
+\subsection{Deadlocks}
+Un deadlock ocurre cuando dos o más transacciones se bloquean mutuamente. Ejemplo: T1 bloquea A y espera B; T2 bloquea B y espera A. El SGBD detecta deadlocks y mata una de las transacciones (rollback) para resolverlo.
+
+\section{Ejercicio Resuelto: Simulación de Concurrencia}
+\textbf{Problema:} En PostgreSQL, dos transacciones intentan actualizar la misma fila simultáneamente. ¿Qué ocurre según el nivel de aislamiento?
+
+\textbf{Solución:}
+\begin{enumerate}
+    \item En \texttt{READ COMMITTED} (por defecto en PostgreSQL), la segunda transacción que intenta actualizar espera hasta que la primera confirme o cancele. Si la primera confirma, la segunda ve el nuevo valor y procede.
+    \item En \texttt{REPEATABLE READ}, si la primera confirma, la segunda obtendrá un error de serialización (no puede actualizar porque su snapshot no coincide). Debe reintentar.
+\end{enumerate}
+Código de ejemplo:
+\begin{lstlisting}[language=SQL]
+-- Sesión 1
+BEGIN;
+UPDATE cuenta SET saldo = saldo - 100 WHERE id = 1;
+-- (no commit aún)
+
+-- Sesión 2
+BEGIN;
+UPDATE cuenta SET saldo = saldo + 100 WHERE id = 1; -- Esto se bloquea hasta que Sesión 1 haga commit o rollback.
+\end{lstlisting}
+
+\chapter{Integridad Avanzada y Programación en Base de Datos}
+Más allá de las restricciones básicas, los SGBD ofrecen mecanismos para implementar lógica de negocio directamente en la base de datos.
+
+\section{Restricciones Avanzadas}
+\begin{itemize}
+    \item \textbf{CHECK con subconsultas:} En algunos SGBD se pueden incluir subconsultas, aunque no siempre es recomendable por rendimiento.
+    \item \textbf{Acciones referenciales:} ON DELETE CASCADE, ON UPDATE SET NULL, etc., mantienen la integridad referencial automáticamente.
+\end{itemize}
+
+\section{Triggers}
+Un trigger es un procedimiento que se ejecuta automáticamente ante un evento (INSERT, UPDATE, DELETE) sobre una tabla. Puede ser BEFORE, AFTER o INSTEAD OF.
+
+\textbf{Ejemplo:} Crear un trigger que audite los cambios de salario en una tabla empleados.
+\begin{lstlisting}[language=SQL]
+CREATE TABLE audit_salario (
+    id_empleado INT,
+    salario_anterior DECIMAL,
+    salario_nuevo DECIMAL,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    usuario TEXT DEFAULT current_user
+);
+
+CREATE OR REPLACE FUNCTION audit_salario_func()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF OLD.salario IS DISTINCT FROM NEW.salario THEN
+        INSERT INTO audit_salario (id_empleado, salario_anterior, salario_nuevo)
+        VALUES (OLD.id, OLD.salario, NEW.salario);
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trig_audit_salario
+AFTER UPDATE OF salario ON empleados
+FOR EACH ROW EXECUTE FUNCTION audit_salario_func();
+\end{lstlisting}
+
+\section{Procedimientos Almacenados y Funciones}
+Permiten encapsular lógica compleja en la base de datos, reduciendo el tráfico de red y centralizando reglas de negocio. Se escriben en PL/pgSQL (PostgreSQL), T-SQL (SQL Server), etc.
+
+\textbf{Ejemplo:} Función que devuelve los empleados de un departamento.
+\begin{lstlisting}[language=SQL]
+CREATE FUNCTION empleados_por_depto(depto_id INT)
+RETURNS TABLE(id INT, nombre TEXT) AS $$
+BEGIN
+    RETURN QUERY SELECT id, nombre FROM empleados WHERE departamento_id = depto_id;
+END;
+$$ LANGUAGE plpgsql;
+\end{lstlisting}
+
+\section{Vistas Materializadas}
+Una vista materializada almacena físicamente el resultado de una consulta, a diferencia de una vista normal que es solo una definición. Útil para reportes que no requieren datos en tiempo real. Se pueden refrescar periódicamente.
+
+\begin{lstlisting}[language=SQL]
+CREATE MATERIALIZED VIEW resumen_ventas AS
+SELECT producto_id, SUM(cantidad) as total_vendido
+FROM ventas
+GROUP BY producto_id;
+
+-- Refrescar
+REFRESH MATERIALIZED VIEW resumen_ventas;
+\end{lstlisting}
+
+\section{Ejercicio Resuelto: Auditoría con Trigger}
+\textbf{Problema:} Implementar un trigger que registre en una tabla \texttt{log_eliminaciones} cada vez que se borre un cliente, guardando sus datos antes de eliminar.
+
+\textbf{Solución:}
+\begin{lstlisting}[language=SQL]
+CREATE TABLE log_eliminaciones (
+    id_cliente INT,
+    nombre VARCHAR(100),
+    email VARCHAR(100),
+    fecha_eliminacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    usuario TEXT DEFAULT current_user
+);
+
+CREATE OR REPLACE FUNCTION log_eliminar_cliente()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO log_eliminaciones (id_cliente, nombre, email)
+    VALUES (OLD.id, OLD.nombre, OLD.email);
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trig_log_eliminar
+BEFORE DELETE ON clientes
+FOR EACH ROW EXECUTE FUNCTION log_eliminar_cliente();
+\end{lstlisting}
+
+\chapter{Data Warehousing y Modelamiento Dimensional}
+El data warehousing se centra en el análisis de grandes volúmenes de datos históricos, a diferencia de los sistemas OLTP (transaccionales).
+
+\section{OLTP vs OLAP}
+\begin{itemize}
+    \item \textbf{OLTP (On-Line Transaction Processing):} Muchas transacciones cortas, consultas simples, datos normalizados.
+    \item \textbf{OLAP (On-Line Analytical Processing):} Consultas complejas de agregación, datos desnormalizados (esquema estrella), históricos.
+\end{itemize}
+
+\section{Esquema Estrella (Star Schema)}
+Consta de una \textbf{tabla de hechos} rodeada de \textbf{tablas de dimensiones}. La tabla de hechos contiene medidas numéricas y claves foráneas a las dimensiones. Las dimensiones describen los ejes de análisis (tiempo, producto, cliente, etc.).
+
+\begin{center}
+\begin{tikzpicture}[node distance=2.5cm]
+    \node[draw, rectangle, fill=blue!20, minimum width=3cm, minimum height=1.5cm] (hechos) {Tabla de Hechos\\ (ventas)};
+    \node[draw, rectangle, above left of=hechos, xshift=-2cm, yshift=1cm] (dim_tiempo) {Dimensión Tiempo};
+    \node[draw, rectangle, below left of=hechos, xshift=-2cm, yshift=-1cm] (dim_producto) {Dimensión Producto};
+    \node[draw, rectangle, above right of=hechos, xshift=2cm, yshift=1cm] (dim_cliente) {Dimensión Cliente};
+    \node[draw, rectangle, below right of=hechos, xshift=2cm, yshift=-1cm] (dim_sucursal) {Dimensión Sucursal};
+    \draw[->] (dim_tiempo) -- (hechos);
+    \draw[->] (dim_producto) -- (hechos);
+    \draw[->] (dim_cliente) -- (hechos);
+    \draw[->] (dim_sucursal) -- (hechos);
+\end{tikzpicture}
+\end{center}
+
+\section{Esquema Copo de Nieve (Snowflake)}
+Las dimensiones se normalizan en múltiples tablas (ej. dimensión producto se divide en producto, categoría, proveedor). Ahorra espacio pero complica las consultas.
+
+\section{Tipos de Tablas de Hechos}
+\begin{itemize}
+    \item \textbf{Transaccionales:} Cada fila representa una transacción (ej. venta individual).
+    \item \textbf{Periódicas:} Resumen de un período (ej. ventas diarias por producto).
+    \item \textbf{Acumulativas:} Para procesos de flujo (ej. pedido desde que se crea hasta que se entrega).
+\end{itemize}
+
+\section{Dimensiones Lentamente Cambiantes (SCD)}
+Las dimensiones pueden cambiar con el tiempo. Se definen tipos:
+\begin{itemize}
+    \item \textbf{Tipo 1:} Sobrescribir el valor anterior (no hay histórico).
+    \item \textbf{Tipo 2:} Crear una nueva fila con nuevo rango de vigencia (se mantiene histórico).
+    \item \textbf{Tipo 3:} Agregar columnas para valores anteriores y actuales (limitado).
+\end{itemize}
+
+\section{Procesos ETL/ELT}
+Extraer, Transformar y Cargar (ETL) o Extraer, Cargar y Transformar (ELT) son procesos que mueven datos desde fuentes operacionales al data warehouse. Herramientas comunes: Apache Spark, Talend, Pentaho, Informatica.
+
+\section{Ejercicio Resuelto: Diseño de un Data Warehouse de Ventas}
+\textbf{Problema:} Diseñar un data warehouse para analizar ventas de una tienda online. Se requiere conocer las ventas por producto, cliente, fecha y sucursal.
+
+\textbf{Solución:}
+\begin{enumerate}
+    \item Identificamos las dimensiones: Tiempo, Producto, Cliente, Sucursal.
+    \item Tabla de hechos: Ventas con medidas: cantidad, precio, importe total.
+    \item Granularidad: cada fila corresponde a una línea de pedido.
+    \item Esquema estrella:
+        \begin{itemize}
+            \item dim\_tiempo (id\_tiempo, fecha, dia, mes, año, trimestre)
+            \item dim\_producto (id\_producto, nombre, categoria, precio\_actual)
+            \item dim\_cliente (id\_cliente, nombre, ciudad, segmento)
+            \item dim\_sucursal (id\_sucursal, nombre, ciudad)
+            \item hechos\_ventas (id\_venta, id\_tiempo, id\_producto, id\_cliente, id\_sucursal, cantidad, precio, importe)
+        \end{itemize}
+    \item Si queremos histórico de precios, podríamos incluir precio en hechos (ya que puede cambiar).
+\end{enumerate}
+
+\chapter{Introducción a NoSQL}
+Las bases de datos NoSQL surgieron para manejar grandes volúmenes de datos no estructurados o semiestructurados, con esquemas flexibles y escalabilidad horizontal.
+
+\section{Motivación}
+\begin{itemize}
+    \item Escalabilidad horizontal (sharding nativo).
+    \item Modelos de datos flexibles (sin esquema fijo).
+    \item Alto rendimiento para ciertos patrones de acceso.
+    \item Disponibilidad y tolerancia a particiones (teorema CAP).
+\end{itemize}
+
+\section{Clasificación}
+\begin{itemize}
+    \item \textbf{Clave-Valor:} Redis, DynamoDB. Almacenan pares clave-valor, acceso por clave.
+    \item \textbf{Documentales:} MongoDB, Couchbase. Almacenan documentos JSON, permiten consultas por atributos.
+    \item \textbf{Columnares:} Cassandra, HBase. Organizan datos en columnas, optimizadas para consultas de agregación.
+    \item \textbf{Grafos:} Neo4j, Amazon Neptune. Nodos y relaciones con propiedades, ideales para redes sociales, recomendaciones.
+\end{itemize}
+
+\section{Teorema CAP}
+En sistemas distribuidos, no se pueden garantizar simultáneamente Consistencia, Disponibilidad y Tolerancia a Particiones. Los sistemas NoSQL eligen dos:
+\begin{itemize}
+    \item \textbf{CP:} Consistencia y tolerancia a particiones (ej. HBase). Pueden sacrificar disponibilidad.
+    \item \textbf{AP:} Disponibilidad y tolerancia a particiones (ej. Cassandra, DynamoDB). Pueden ser eventualmente consistentes.
+    \item \textbf{CA:} Consistencia y disponibilidad, pero no toleran particiones (sistemas tradicionales).
+\end{itemize}
+
+\section{Modelamiento en MongoDB}
+MongoDB almacena documentos BSON (JSON binario). El modelamiento se basa en las consultas: se desnormaliza para evitar joins (que no existen). Patrones comunes:
+\begin{itemize}
+    \item \textbf{Documentos anidados:} Si la relación es uno a pocos y los datos se consultan juntos (ej. direcciones de un cliente).
+    \item \textbf{Referencias:} Si los datos son compartidos o muy grandes, se guarda el ID de otro documento (como una FK, pero sin integridad automática).
+\end{itemize}
+
+\textbf{Ejemplo:} Blog con posts y comentarios. En SQL serían dos tablas. En MongoDB:
+\begin{lstlisting}
+{
+  _id: 1,
+  titulo: "Mi post",
+  contenido: "...",
+  comentarios: [
+    { autor: "Juan", texto: "Genial", fecha: "2025-03-01" },
+    { autor: "Ana", texto: "Gracias", fecha: "2025-03-02" }
+  ]
+}
+\end{lstlisting}
+
+\section{Modelamiento en Cassandra}
+Cassandra usa un modelo de tablas pero con un diseño orientado a consultas. La clave primaria se compone de:
+\begin{itemize}
+    \item \textbf{Clave de partición:} determina el nodo donde se almacena la fila.
+    \item \textbf{Clustering columns:} ordenan las filas dentro de la partición.
+\end{itemize}
+Las consultas deben incluir la clave de partición; de lo contrario, son ineficientes (scans). Se desnormaliza para evitar joins.
+
+\textbf{Ejemplo:} Aplicación de mensajería. Consulta: obtener los mensajes de un usuario ordenados por fecha.
+\begin{lstlisting}
+CREATE TABLE mensajes (
+    usuario_id UUID,
+    fecha TIMESTAMP,
+    mensaje TEXT,
+    PRIMARY KEY ((usuario_id), fecha)
+) WITH CLUSTERING ORDER BY (fecha DESC);
+\end{lstlisting}
+
+\section{Cuándo usar NoSQL y cuándo SQL}
+\begin{itemize}
+    \item \textbf{SQL:} Cuando se requieren transacciones ACID, consultas complejas con joins, integridad referencial, esquema estable.
+    \item \textbf{NoSQL:} Cuando se necesita escalabilidad horizontal masiva, esquema flexible, alta disponibilidad, y se puede tolerar consistencia eventual.
+\end{itemize}
+
+\section{Ejercicio Resuelto: Comparación de Modelamiento}
+\textbf{Problema:} Modelar un sistema de e-commerce con productos, clientes, pedidos y líneas de pedido en SQL y MongoDB.
+
+\textbf{Solución SQL:} Tablas normalizadas (producto, cliente, pedido, detalle\_pedido).
+
+\textbf{Solución MongoDB:} Podemos tener una colección \texttt{pedidos} que contenga un documento con datos del cliente (embebidos o referenciados) y un array de productos con cantidad y precio. Si el cliente puede cambiar su dirección, conviene referenciarlo. Ejemplo:
+\begin{lstlisting}
+{
+  _id: 1001,
+  fecha: "2025-03-15",
+  cliente: { id: 1, nombre: "Juan", direccion: "..." }, // embebido si no cambia frecuentemente
+  lineas: [
+    { producto_id: 10, nombre: "Laptop", cantidad: 1, precio: 1200 },
+    { producto_id: 20, nombre: "Mouse", cantidad: 2, precio: 25 }
+  ]
+}
+\end{lstlisting}
+
+\chapter{Casos Prácticos Integradores (Ejercicios Resueltos)}
+En este capítulo se presentan ejercicios que combinan varios conceptos de la sesión.
+
+\section{Ejercicio 1: Banca en Línea}
+\textbf{Requisitos:} Diseñar una base de datos para un sistema bancario con cuentas, clientes, transacciones (depósitos, retiros, transferencias) y sucursales. Considerar concurrencia, particionamiento y posibles cuellos de botella.
+
+\textbf{Solución paso a paso:}
+\begin{enumerate}
+    \item Modelo conceptual: Entidades Cliente, Cuenta, Transaccion, Sucursal.
+    \item Modelo lógico:
+        \begin{itemize}
+            \item Cliente (id\_cliente, nombre, direccion, telefono)
+            \item Sucursal (id\_sucursal, nombre, ciudad)
+            \item Cuenta (id\_cuenta, id\_cliente, id\_sucursal, tipo, saldo, fecha\_apertura)
+            \item Transaccion (id\_trans, id\_cuenta, tipo, monto, fecha, id\_cuenta\_destino nullable)
+        \end{itemize}
+    \item Consideraciones de concurrencia: Al actualizar saldos, usar transacciones y niveles de aislamiento adecuados (READ COMMITTED). Para evitar actualizaciones perdidas, se puede usar SELECT FOR UPDATE.
+    \item Particionamiento: Por ejemplo, particionar Transaccion por fecha (rango mensual) para mejorar rendimiento de consultas históricas.
+    \item Índices: índice en Transaccion(id\_cuenta, fecha) para consultas de movimientos.
+    \item Implementación de transferencia: Usar una transacción que reste de una cuenta y sume a otra, con comprobación de saldo.
+\end{enumerate}
+
+\section{Ejercicio 2: Data Warehouse de Ventas}
+\textbf{Problema:} Diseñar un data warehouse para una cadena de supermercados. Se desea analizar ventas por producto, tienda, tiempo y promoción. Incluir dimensiones lentamente cambiantes (SCD tipo 2 para precios de productos).
+
+\textbf{Solución:}
+\begin{enumerate}
+    \item Dimensiones: Tiempo, Producto (SCD tipo 2), Tienda, Promoción.
+    \item Tabla de hechos: Ventas (id\_tiempo, id\_producto, id\_tienda, id\_promocion, cantidad, importe).
+    \item Para SCD tipo 2 en Producto, la tabla producto tendrá: id\_producto, nombre, categoria, precio, fecha\_inicio, fecha\_fin, activo. Cada vez que cambia el precio, se inserta una nueva fila.
+    \item ETL: Extraer de sistemas transaccionales, transformar (calcular importe, asignar claves de dimensión) y cargar.
+\end{enumerate}
+
+\section{Ejercicio 3: Trigger de Histórico}
+\textbf{Problema:} Crear un trigger que mantenga un histórico de cambios en la tabla \texttt{empleados} (salario y departamento) en una tabla \texttt{historial\_empleado}.
+
+\textbf{Solución:}
+\begin{lstlisting}[language=SQL]
+CREATE TABLE historial_empleado (
+    id_empleado INT,
+    salario_anterior DECIMAL,
+    salario_nuevo DECIMAL,
+    depto_anterior INT,
+    depto_nuevo INT,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    usuario TEXT DEFAULT current_user
+);
+
+CREATE OR REPLACE FUNCTION historial_empleado_func()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO historial_empleado (id_empleado, salario_anterior, salario_nuevo, depto_anterior, depto_nuevo)
+    VALUES (OLD.id, OLD.salario, NEW.salario, OLD.departamento_id, NEW.departamento_id);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trig_historial_empleado
+AFTER UPDATE OF salario, departamento_id ON empleados
+FOR EACH ROW EXECUTE FUNCTION historial_empleado_func();
+\end{lstlisting}
+
+\section{Ejercicio 4: Comparación SQL vs MongoDB}
+\textbf{Problema:} Para un blog con posts, comentarios y likes, modelar en SQL y MongoDB. Discutir ventajas y desventajas.
+
+\textbf{Solución SQL:}
+\begin{itemize}
+    \item Tablas: Post, Comentario, Like (con FK a post y usuario).
+    \item Consultas: Para mostrar un post con sus comentarios y número de likes, se requieren joins.
+\end{itemize}
+\textbf{Solución MongoDB:}
+\begin{itemize}
+    \item Colección posts: cada documento contiene array de comentarios (embebidos) y un contador de likes.
+    \item Si los likes son muchos, podrían ir en una colección separada.
+    \item Ventaja: una sola consulta devuelve todo el post con comentarios.
+    \item Desventaja: si los comentarios son muy numerosos, puede exceder el tamaño máximo del documento (16MB en MongoDB). En ese caso, conviene referenciar.
+\end{itemize}
+
+\chapter*{Glosario}
+\addcontentsline{toc}{chapter}{Glosario}
+\begin{description}
+    \item[ACID] Conjunto de propiedades (Atomicidad, Consistencia, Aislamiento, Durabilidad) que garantizan transacciones confiables.
+    \item[Clave de partición] En bases de datos distribuidas, determina el nodo donde se almacena una fila.
+    \item[Clustering] Grupo de servidores que trabajan juntos para alta disponibilidad y escalabilidad.
+    \item[Data Warehouse] Almacén de datos orientado a análisis, con datos históricos y modelado dimensional.
+    \item[Deadlock] Situación donde dos o más transacciones se bloquean mutuamente.
+    \item[ETL] Proceso de Extracción, Transformación y Carga de datos.
+    \item[Fragmentación] División de una tabla en partes almacenadas en diferentes nodos.
+    \item[Índice cubriente] Índice que contiene todas las columnas necesarias para una consulta, evitando acceder a la tabla.
+    \item[MVCC] Multi-Version Concurrency Control, técnica que permite alta concurrencia sin bloqueos de lectura.
+    \item[OLAP] Procesamiento analítico en línea, orientado a consultas complejas.
+    \item[OLTP] Procesamiento transaccional en línea, orientado a muchas transacciones cortas.
+    \item[Replicación] Copia de datos en múltiples servidores para disponibilidad o balanceo.
+    \item[SCD] Slowly Changing Dimension, dimensión que cambia lentamente con el tiempo.
+    \item[Sharding] Técnica de particionamiento horizontal a gran escala.
+    \item[Trigger] Procedimiento que se ejecuta automáticamente ante un evento en una tabla.
+    \item[Vista materializada] Vista que almacena físicamente el resultado de una consulta.
+\end{description}
+
+\chapter*{Referencias}
+\addcontentsline{toc}{chapter}{Referencias}
+\begin{itemize}
+    \item Elmasri, R., \& Navathe, S. B. (2016). \textit{Fundamentals of Database Systems}. 7th ed. Pearson.
+    \item Silberschatz, A., Korth, H. F., \& Sudarshan, S. (2020). \textit{Database System Concepts}. 7th ed. McGraw-Hill.
+    \item Kimball, R., \& Ross, M. (2013). \textit{The Data Warehouse Toolkit}. 3rd ed. Wiley.
+    \item Kleppmann, M. (2017). \textit{Designing Data-Intensive Applications}. O'Reilly.
+    \item Documentación oficial de PostgreSQL: \url{https://www.postgresql.org/docs/}
+    \item Documentación de MongoDB: \url{https://docs.mongodb.com/}
+    \item Documentación de Apache Cassandra: \url{https://cassandra.apache.org/doc/}
+\end{itemize}
+
+\end{document}

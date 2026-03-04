@@ -1,0 +1,667 @@
+\documentclass[12pt,a4paper,openany,oneside]{book}
+
+% --- Paquetes ---
+\usepackage[utf8]{inputenc}
+\usepackage[spanish, es-tabla]{babel}
+\usepackage{amsmath, amsfonts, amssymb}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{fancyhdr}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric, calc}
+
+\geometry{margin=2.5cm}
+
+% --- Colores y estilos para código ---
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstset{
+    language=Python,
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    showstringspaces=false
+}
+
+\lstdefinelanguage{SQL}{
+    keywords={SELECT, FROM, WHERE, INSERT, INTO, VALUES, UPDATE, SET, DELETE, CREATE, TABLE, INT, VARCHAR, DATE, PRIMARY, KEY, FOREIGN, REFERENCES, INDEX, VIEW, ALTER, DROP, AND, OR, NOT, NULL, CONSTRAINT, JOIN, INNER, LEFT, RIGHT, ON, GROUP, BY, HAVING, ORDER, ASC, DESC, SERIAL, CHECK, UNIQUE, DEFAULT, CURRENT_DATE, CURRENT_TIMESTAMP},
+    sensitive=false,
+    morecomment=[l]{--},
+    morecomment=[s]{/*}{*/},
+    morestring=[b]'
+}
+\lstset{language=SQL}
+
+% --- Estilo de cabecera y pie ---
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\fancyhead[L]{\small Carlos César Sánchez Coronel}
+\fancyhead[R]{\small Modelamiento de Datos}
+\fancyfoot[L]{\small Carlos César Sánchez Coronel}
+\fancyfoot[C]{\thepage}
+
+% --- Portada ---
+
+
+
+
+
+% --- Portada ---
+\title{
+    \textbf{Sesión 3} \\ 
+    \Huge \textbf{MODELAMIENTO DE DATOS} \\
+        \Large De la realidad del negocio al esquema físico
+    
+}
+\author{
+    \small Por \\ \vspace{0.2cm}
+    \Large \textsc{Carlos César Sánchez Coronel}
+}
+\date{2026}
+\begin{document}
+
+
+
+
+\maketitle
+
+\tableofcontents
+\addcontentsline{toc}{chapter}{Índice general}
+
+\chapter{Introducción al Modelamiento de Datos}
+El modelamiento de datos es el proceso de diseñar la estructura que almacenará la información de manera eficiente, sin redundancias y reflejando fielmente las reglas del negocio. Es la fase más creativa y abstracta, pero también la que determina el éxito o fracaso de un sistema de información. En esta sesión, exploraremos desde los conceptos fundamentales hasta las técnicas avanzadas, pasando por ejemplos prácticos y ejercicios resueltos que te ayudarán a dominar esta disciplina esencial.
+
+\section{¿Por qué es importante modelar?}
+Imagina construir un edificio sin planos arquitectónicos. El resultado sería caótico, inseguro e imposible de mantener. Lo mismo ocurre con las bases de datos: sin un buen modelo, los datos se corrompen, las consultas son lentas y el sistema se vuelve inmanejable.
+
+El modelamiento de datos nos permite:
+\begin{itemize}
+    \item \textbf{Comunicar} las necesidades de información entre usuarios de negocio y técnicos.
+    \item \textbf{Documentar} la estructura de los datos para futuros mantenimientos.
+    \item \textbf{Optimizar} el rendimiento mediante un diseño adecuado.
+    \item \textbf{Garantizar} la integridad y consistencia de los datos.
+\end{itemize}
+
+\chapter{El Ciclo de Modelamiento: Del Concepto al Disco}
+El diseño de una base de datos sigue un proceso de abstracción en tres niveles, cada uno con un propósito y un público diferente. Este enfoque garantiza que la estructura final soporte las reglas de negocio y sea implementable en el SGBD elegido.
+
+\begin{center}
+\begin{tikzpicture}[node distance=2.5cm, auto, every node/.style={align=center}]
+    \node (conceptual) [draw, rectangle, rounded corners, fill=blue!20, text width=3.5cm] {Modelo Conceptual\\ (Entidad-Relación)};
+    \node (logico) [draw, rectangle, rounded corners, fill=green!20, text width=3.5cm, below of=conceptual] {Modelo Lógico\\ (Tablas, PK, FK)};
+    \node (fisico) [draw, rectangle, rounded corners, fill=red!20, text width=3.5cm, below of=logico] {Modelo Físico\\ (Tipos, Índices, Disco)};
+    \draw[->, thick] (conceptual) -- node[right] {Traducción} (logico);
+    \draw[->, thick] (logico) -- node[right] {Implementación} (fisico);
+\end{tikzpicture}
+\end{center}
+
+\section{Modelo Entidad-Relación (E-R) - Nivel Conceptual}
+Es un modelo de alto nivel, independiente del software de base de datos, que representa la realidad del negocio mediante \textbf{entidades}, \textbf{atributos} y \textbf{relaciones}.
+
+\subsection{Entidades}
+Una entidad es un objeto del mundo real distinguible de otros por sus características. Se representa con un rectángulo y su nombre en singular.
+\begin{itemize}
+    \item \textbf{Entidad fuerte}: existe por sí misma (ej. \texttt{Cliente}).
+    \item \textbf{Entidad débil}: depende de otra entidad para existir (ej. \texttt{Pago} depende de \texttt{Factura}). Se representa con rectángulo de doble línea.
+\end{itemize}
+
+\subsection{Atributos}
+Los atributos son las propiedades que describen a las entidades. Se clasifican en:
+\begin{itemize}
+    \item \textbf{Simples} (atómicos): no se pueden dividir (ej. \texttt{edad}).
+    \item \textbf{Compuestos}: se pueden dividir en subpartes (ej. \texttt{dirección} $\rightarrow$ \texttt{calle, ciudad, CP}).
+    \item \textbf{Multivalorados}: pueden tener varios valores (ej. \texttt{teléfonos} de un cliente). Se representan con doble óvalo.
+    \item \textbf{Derivados}: se calculan a partir de otros (ej. \texttt{edad} a partir de \texttt{fecha\_nacimiento}). Se representan con óvalo punteado.
+    \item \textbf{Clave}: atributo o conjunto de atributos que identifica de forma única a cada instancia de la entidad. Se subraya.
+\end{itemize}
+
+\subsection{Relaciones}
+Una relación asocia dos o más entidades. Se representa con un rombo y un verbo. La \textbf{cardinalidad} indica el número de instancias de una entidad que pueden relacionarse con otra. Las cardinalidades más comunes son:
+\begin{itemize}
+    \item \textbf{1:1} (uno a uno): Un empleado tiene un único carné de estacionamiento, y viceversa.
+    \item \textbf{1:N} (uno a muchos): Un cliente puede realizar muchos pedidos, pero un pedido pertenece a un solo cliente.
+    \item \textbf{N:M} (muchos a muchos): Un estudiante puede cursar muchas asignaturas, y una asignatura puede ser cursada por muchos estudiantes.
+\end{itemize}
+Además, la \textbf{participación} puede ser:
+\begin{itemize}
+    \item \textbf{Total} (obligatoria): toda instancia de la entidad debe participar en la relación (línea continua).
+    \item \textbf{Parcial} (opcional): no todas las instancias participan (línea discontinua).
+\end{itemize}
+
+\subsection{Ejemplo gráfico}
+\begin{center}
+\begin{tikzpicture}[node distance=2cm, every node/.style={draw, minimum width=2cm, minimum height=1cm}]
+    \node[rectangle] (cliente) {Cliente};
+    \node[rectangle, right of=cliente, xshift=3cm] (pedido) {Pedido};
+    \node[diamond, below of=cliente, yshift=-1cm, xshift=1.5cm, draw] (realiza) {Realiza};
+    \draw (cliente) -- (realiza) node[midway, above, draw=none] {1};
+    \draw (realiza) -- (pedido) node[midway, above, draw=none] {N};
+\end{tikzpicture}
+\end{center}
+
+\section{Modelo Lógico - Nivel de Implementación Independiente}
+En este nivel, el modelo E-R se traduce a un esquema de tablas, columnas y restricciones, sin detalles específicos del SGBD.
+
+\subsection{Reglas de transformación}
+\begin{enumerate}
+    \item Cada entidad fuerte se convierte en una tabla. Sus atributos simples se convierten en columnas. Los atributos compuestos se descomponen en columnas simples. Los atributos multivalorados requieren una tabla aparte.
+    \item La clave primaria (PK) de la tabla es el atributo clave de la entidad.
+    \item Para relaciones 1:N, se añade la PK de la entidad del lado ``1'' como clave foránea (FK) en la tabla de la entidad del lado ``N''.
+    \item Para relaciones N:M, se crea una tabla intermedia que contiene las PK de ambas entidades como FK, formando una clave primaria compuesta (o una nueva clave simple).
+    \item Las entidades débiles se convierten en tablas con una FK hacia la entidad fuerte, y su clave incluye la FK más un discriminador.
+\end{enumerate}
+
+\subsection{Normalización}
+La normalización es un proceso que aplica reglas para eliminar redundancias y evitar anomalías en las inserciones, actualizaciones y eliminaciones.
+
+\begin{itemize}
+    \item \textbf{Primera Forma Normal (1FN):} Los atributos deben ser atómicos (no repetir grupos). Por ejemplo, en lugar de una columna ``teléfonos'' con varios números, crear una tabla separada \texttt{TelefonosCliente}.
+    \item \textbf{Segunda Forma Normal (2FN):} Cumplir 1FN y todo atributo no clave debe depender completamente de la clave primaria (aplicable en tablas con claves compuestas). Por ejemplo, en una tabla \texttt{DetallePedido} con PK (id\_pedido, id\_producto), el atributo ``precio'' depende del producto, no del pedido; debe separarse.
+    \item \textbf{Tercera Forma Normal (3FN):} Cumplir 2FN y ningún atributo no clave debe depender transitivamente de otro atributo no clave. Por ejemplo, en una tabla \texttt{Empleado} con columnas (id\_empleado, nombre, id\_departamento, nombre\_departamento), ``nombre\_departamento'' depende de ``id\_departamento'', no directamente de la clave. Debe separarse en tabla \texttt{Departamento}.
+    \item \textbf{Forma Normal de Boyce-Codd (BCNF):} Una versión más estricta de 3FN donde toda dependencia funcional no trivial es una superclave.
+    \item \textbf{Cuarta Forma Normal (4FN):} Trata dependencias multivaluadas. Por ejemplo, si un empleado tiene varios títulos y varios idiomas, se crean tablas separadas para evitar redundancia.
+    \item \textbf{Quinta Forma Normal (5FN):} Relacionada con dependencias de proyección-join. En la práctica, hasta 3FN/BCNF es suficiente para la mayoría de los sistemas.
+\end{itemize}
+
+\section{Modelo Físico - Nivel de Implementación Real}
+Es la implementación concreta en el SGBD elegido. Se definen tipos de datos específicos, índices, particionamiento y otros detalles.
+
+\subsection{Tipos de datos comunes}
+\begin{itemize}
+    \item \texttt{INT}, \texttt{BIGINT}, \texttt{SMALLINT} para enteros.
+    \item \texttt{VARCHAR(n)} para cadenas de longitud variable.
+    \item \texttt{CHAR(n)} para cadenas fijas.
+    \item \texttt{TEXT} para textos largos.
+    \item \texttt{DATE}, \texttt{TIME}, \texttt{TIMESTAMP} para fechas y horas.
+    \item \texttt{DECIMAL(p,s)} o \texttt{NUMERIC(p,s)} para valores exactos con decimales (moneda).
+    \item \texttt{FLOAT}, \texttt{DOUBLE} para aproximaciones.
+    \item \texttt{BOOLEAN} para verdadero/falso.
+    \item \texttt{BLOB} para datos binarios (imágenes, archivos).
+    \item Tipos especiales: \texttt{JSON}, \texttt{JSONB} (PostgreSQL), \texttt{GEOMETRY} (espacial).
+\end{itemize}
+
+\subsection{Índices avanzados}
+Los índices son estructuras de acceso rápido que aceleran las consultas.
+
+\begin{itemize}
+    \item \textbf{B-Tree:} El más común. Equilibrado, ordenado. Soporta búsquedas por igualdad y rango ($<$, $>$, BETWEEN). Ideal para columnas con muchos valores distintos.
+    \item \textbf{Hash:} Solo para igualdad (=). Muy rápido pero no soporta rangos. Útil en tablas en memoria o para claves de caché.
+    \item \textbf{Bitmap:} Usado en columnas con pocos valores distintos (baja cardinalidad). Cada valor tiene un mapa de bits. Eficiente para combinaciones de condiciones en data warehousing.
+    \item \textbf{GiST (Generalized Search Tree):} Soporta tipos de datos complejos como geometría (GIS), búsqueda por proximidad, texto completo. PostgreSQL.
+    \item \textbf{GIN (Generalized Inverted Index):} Ideal para índices invertidos, como búsqueda de texto completo, arrays, JSONB. Permite buscar elementos dentro de un documento.
+    \item \textbf{BRIN (Block Range Index):} Para tablas muy grandes donde los datos están ordenados físicamente (ej. series temporales). Almacena resúmenes por bloques, ocupa poco espacio.
+    \item \textbf{Índices compuestos:} Sobre varias columnas. El orden importa: se pueden usar para búsquedas por la primera columna, pero no eficientemente por las siguientes si la primera no está filtrada.
+    \item \textbf{Índices funcionales:} Sobre el resultado de una función (ej. \texttt{LOWER(email)}). Útil para búsquedas case-insensitive.
+\end{itemize}
+\begin{lstlisting}[language=SQL]
+-- Ejemplo de índice compuesto en PostgreSQL
+CREATE INDEX idx_apellido_nombre ON clientes(apellido, nombre);
+-- Ejemplo de índice GIN sobre JSONB
+CREATE INDEX idx_datos ON tabla USING gin (datos_jsonb);
+\end{lstlisting}
+
+\subsection{Particionamiento}
+Dividir una tabla grande en fragmentos más pequeños según una clave. Mejora el rendimiento y facilita la gestión.
+\begin{itemize}
+    \item \textbf{Por rango:} Ej. ventas por mes.
+    \item \textbf{Por lista:} Ej. región geográfica.
+    \item \textbf{Por hash:} Distribución uniforme.
+\end{itemize}
+
+\chapter{Ejemplos Prácticos y Ejercicios Resueltos}
+
+\section{Caso 1: Sistema Universitario}
+\textbf{Requisitos:} Se necesita almacenar información de estudiantes, profesores, asignaturas y las matrículas (estudiantes se matriculan de asignaturas, con nota y fecha). Los profesores imparten asignaturas. Cada asignatura pertenece a un departamento.
+
+\subsection{Modelo Conceptual}
+Entidades: Estudiante, Profesor, Asignatura, Departamento.
+Relaciones: 
+\begin{itemize}
+    \item Matricula (N:M entre Estudiante y Asignatura, con atributos nota y fecha).
+    \item Imparte (N:M entre Profesor y Asignatura, con atributo semestre).
+    \item Pertenece (N:1 entre Asignatura y Departamento).
+\end{itemize}
+
+\subsection{Modelo Lógico}
+\begin{itemize}
+    \item Estudiante (\underline{id\_est}: INT, nombre: VARCHAR, email: VARCHAR, fecha\_nac: DATE)
+    \item Profesor (\underline{id\_prof}: INT, nombre: VARCHAR, email: VARCHAR, id\_depto: INT) -- FK a Departamento
+    \item Departamento (\underline{id\_depto}: INT, nombre: VARCHAR)
+    \item Asignatura (\underline{id\_asig}: INT, nombre: VARCHAR, creditos: INT, id\_depto: INT FK)
+    \item Matricula (\underline{id\_est}, \underline{id\_asig}, semestre: VARCHAR, nota: DECIMAL, fecha\_mat: DATE)
+    \item Imparte (\underline{id\_prof}, \underline{id\_asig}, semestre: VARCHAR)
+\end{itemize}
+
+\subsection{Modelo Físico en PostgreSQL}
+\begin{lstlisting}[language=SQL]
+CREATE TABLE departamento (
+    id_depto SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE estudiante (
+    id_est SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    fecha_nac DATE
+);
+
+CREATE TABLE profesor (
+    id_prof SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    id_depto INT REFERENCES departamento(id_depto)
+);
+
+CREATE TABLE asignatura (
+    id_asig SERIAL PRIMARY KEY,
+    nombre VARCHAR(200) NOT NULL,
+    creditos INT CHECK (creditos > 0),
+    id_depto INT NOT NULL REFERENCES departamento(id_depto)
+);
+
+CREATE TABLE matricula (
+    id_est INT REFERENCES estudiante(id_est),
+    id_asig INT REFERENCES asignatura(id_asig),
+    semestre VARCHAR(10) NOT NULL,
+    nota DECIMAL(3,1) CHECK (nota BETWEEN 0 AND 10),
+    fecha_mat DATE DEFAULT CURRENT_DATE,
+    PRIMARY KEY (id_est, id_asig, semestre)
+);
+
+CREATE TABLE imparte (
+    id_prof INT REFERENCES profesor(id_prof),
+    id_asig INT REFERENCES asignatura(id_asig),
+    semestre VARCHAR(10) NOT NULL,
+    PRIMARY KEY (id_prof, id_asig, semestre)
+);
+
+CREATE INDEX idx_matricula_est ON matricula(id_est);
+CREATE INDEX idx_imparte_asig ON imparte(id_asig);
+\end{lstlisting}
+
+\section{Caso 2: Sistema Hospitalario}
+\textbf{Requisitos:} Registrar pacientes, médicos, ingresos, diagnósticos y tratamientos. Un paciente puede tener varios ingresos. Cada ingreso tiene un diagnóstico principal y varios tratamientos. Los médicos atienden ingresos.
+
+\subsection{Modelo Conceptual}
+Entidades: Paciente, Medico, Ingreso, Diagnostico, Tratamiento.
+Relaciones:
+\begin{itemize}
+    \item Tiene (1:N Paciente-Ingreso)
+    \item Atiende (N:M Medico-Ingreso, con atributo rol)
+    \item Asigna (N:1 Ingreso-Diagnostico)
+    \item Recibe (N:M Ingreso-Tratamiento, con fecha y dosis)
+\end{itemize}
+
+\subsection{Modelo Lógico}
+\begin{itemize}
+    \item Paciente (\underline{id\_pac}: INT, nombre, fecha\_nac, nss)
+    \item Medico (\underline{id\_med}: INT, nombre, especialidad)
+    \item Diagnostico (\underline{id\_diag}: INT, descripcion, cie10)
+    \item Tratamiento (\underline{id\_trat}: INT, nombre, descripcion)
+    \item Ingreso (\underline{id\_ingreso}: INT, fecha\_ing, fecha\_alta, id\_pac FK, id\_diag FK)
+    \item Atiende (\underline{id\_ingreso}, \underline{id\_med}, rol: VARCHAR)
+    \item Recibe (\underline{id\_ingreso}, \underline{id\_trat}, fecha: DATE, dosis: VARCHAR)
+\end{itemize}
+
+\subsection{Modelo Físico en PostgreSQL}
+\begin{lstlisting}[language=SQL]
+CREATE TABLE paciente (
+    id_pac SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    fecha_nac DATE,
+    nss VARCHAR(20) UNIQUE
+);
+
+CREATE TABLE medico (
+    id_med SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    especialidad VARCHAR(100)
+);
+
+CREATE TABLE diagnostico (
+    id_diag SERIAL PRIMARY KEY,
+    descripcion TEXT,
+    cie10 VARCHAR(10) UNIQUE
+);
+
+CREATE TABLE tratamiento (
+    id_trat SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    descripcion TEXT
+);
+
+CREATE TABLE ingreso (
+    id_ingreso SERIAL PRIMARY KEY,
+    fecha_ing DATE NOT NULL,
+    fecha_alta DATE,
+    id_pac INT NOT NULL REFERENCES paciente(id_pac),
+    id_diag INT REFERENCES diagnostico(id_diag)
+);
+
+CREATE TABLE atiende (
+    id_ingreso INT REFERENCES ingreso(id_ingreso),
+    id_med INT REFERENCES medico(id_med),
+    rol VARCHAR(50),
+    PRIMARY KEY (id_ingreso, id_med)
+);
+
+CREATE TABLE recibe (
+    id_ingreso INT REFERENCES ingreso(id_ingreso),
+    id_trat INT REFERENCES tratamiento(id_trat),
+    fecha DATE NOT NULL,
+    dosis VARCHAR(50),
+    PRIMARY KEY (id_ingreso, id_trat, fecha)
+);
+\end{lstlisting}
+
+\chapter{Ejercicios Propuestos con Solución Paso a Paso}
+
+\section{Ejercicio 1: Biblioteca}
+\textbf{Enunciado:} Diseñar el modelo conceptual, lógico y físico para una biblioteca que gestiona libros, autores, socios y préstamos. Un libro puede tener varios autores. Un socio puede tomar prestados varios libros, y un libro puede ser prestado varias veces a lo largo del tiempo (registrar fecha de préstamo y devolución).
+
+\subsection{Paso 1: Modelo Conceptual}
+Identificamos las entidades:
+\begin{itemize}
+    \item \textbf{Libro}: atributos: ISBN, título, año, editorial.
+    \item \textbf{Autor}: atributos: id\_autor, nombre, nacionalidad.
+    \item \textbf{Socio}: atributos: id\_socio, nombre, dirección, teléfono.
+    \item \textbf{Préstamo}: atributos: fecha\_préstamo, fecha\_devolución (puede ser nula si aún no se ha devuelto).
+\end{itemize}
+Relaciones:
+\begin{itemize}
+    \item \textbf{Escribe} (N:M entre Autor y Libro). No tiene atributos.
+    \item \textbf{Realiza} (1:N entre Socio y Préstamo). Un socio puede tener varios préstamos, pero un préstamo pertenece a un solo socio.
+    \item \textbf{Incluye} (N:M entre Préstamo y Libro). Un préstamo puede incluir varios libros, y un libro puede estar en varios préstamos a lo largo del tiempo. Esta relación tiene atributo fecha\_devolucion\_real (si se quiere llevar control por libro dentro del préstamo). Pero lo más simple es que un préstamo tenga una fecha de devolución global; si se permite devolución parcial, habría que modelar una entidad intermedia.
+\end{itemize}
+Para simplificar, asumiremos que un préstamo puede contener varios libros y la devolución es global. Entonces la relación \texttt{Incluye} es N:M entre Préstamo y Libro, con el atributo \texttt{fecha\_devolucion} (si se quiere registrar la fecha en que se devolvió cada ejemplar, pero eso complica). Otra opción es que cada préstamo sea por un solo libro (1:N entre Préstamo y Libro). Optaremos por la versión simple: un préstamo es de un solo libro (así el modelo es más sencillo). Pero el enunciado dice "varios libros", así que haremos la versión N:M.
+
+\subsection{Paso 2: Modelo Lógico (con N:M)}
+\begin{itemize}
+    \item Autor (\underline{id\_autor}: INT, nombre: VARCHAR, nacionalidad: VARCHAR)
+    \item Libro (\underline{isbn}: VARCHAR(20), titulo: VARCHAR(200), anio: INT, editorial: VARCHAR(100))
+    \item Socio (\underline{id\_socio}: INT, nombre: VARCHAR(100), direccion: VARCHAR(200), telefono: VARCHAR(20))
+    \item Prestamo (\underline{id\_prestamo}: INT, fecha\_prestamo: DATE, fecha\_devolucion: DATE, id\_socio: INT FK)
+    \item LibroAutor (\underline{id\_autor}, \underline{isbn}) -- tabla intermedia para N:M
+    \item PrestamoLibro (\underline{id\_prestamo}, \underline{isbn}) -- tabla intermedia para N:M, podría tener fecha\_devolucion\_individual si se requiere.
+\end{itemize}
+
+\subsection{Paso 3: Modelo Físico en PostgreSQL}
+\begin{lstlisting}[language=SQL]
+CREATE TABLE autor (
+    id_autor SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    nacionalidad VARCHAR(50)
+);
+
+CREATE TABLE libro (
+    isbn VARCHAR(20) PRIMARY KEY,
+    titulo VARCHAR(200) NOT NULL,
+    anio INT,
+    editorial VARCHAR(100)
+);
+
+CREATE TABLE socio (
+    id_socio SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    direccion VARCHAR(200),
+    telefono VARCHAR(20)
+);
+
+CREATE TABLE prestamo (
+    id_prestamo SERIAL PRIMARY KEY,
+    fecha_prestamo DATE NOT NULL DEFAULT CURRENT_DATE,
+    fecha_devolucion DATE,
+    id_socio INT NOT NULL REFERENCES socio(id_socio)
+);
+
+CREATE TABLE libro_autor (
+    id_autor INT REFERENCES autor(id_autor),
+    isbn VARCHAR(20) REFERENCES libro(isbn),
+    PRIMARY KEY (id_autor, isbn)
+);
+
+CREATE TABLE prestamo_libro (
+    id_prestamo INT REFERENCES prestamo(id_prestamo),
+    isbn VARCHAR(20) REFERENCES libro(isbn),
+    PRIMARY KEY (id_prestamo, isbn)
+);
+
+-- Índices para rendimiento
+CREATE INDEX idx_prestamo_socio ON prestamo(id_socio);
+CREATE INDEX idx_libro_autor_isbn ON libro_autor(isbn);
+\end{lstlisting}
+
+\section{Ejercicio 2: Red Social}
+\textbf{Enunciado:} Modelar una red social donde hay usuarios, publicaciones, comentarios y likes. Los usuarios pueden seguir a otros usuarios. Las publicaciones pueden tener múltiples comentarios y likes. Los comentarios también pueden tener likes.
+
+\subsection{Paso 1: Modelo Conceptual}
+Entidades:
+\begin{itemize}
+    \item Usuario: id, nombre, email, fecha\_registro.
+    \item Publicacion: id, contenido, fecha, id\_usuario (autor).
+    \item Comentario: id, contenido, fecha, id\_usuario (autor), id\_publicacion (a la que pertenece).
+    \item Like: puede ser a publicación o a comentario. Decidimos modelar dos entidades de like separadas o una generalización. Optaremos por dos tablas: LikePublicacion y LikeComentario.
+\end{itemize}
+Relaciones:
+\begin{itemize}
+    \item Sigue (N:M entre Usuario y Usuario): un usuario puede seguir a muchos y ser seguido por muchos.
+    \item Publica (1:N Usuario-Publicacion).
+    \item Comenta (1:N Usuario-Comentario; 1:N Publicacion-Comentario).
+    \item LikePublicacion (N:M entre Usuario y Publicacion).
+    \item LikeComentario (N:M entre Usuario y Comentario).
+\end{itemize}
+
+\subsection{Paso 2: Modelo Lógico}
+\begin{itemize}
+    \item Usuario (\underline{id\_usuario}, nombre, email, fecha\_reg)
+    \item Publicacion (\underline{id\_pub}, contenido, fecha, id\_usuario FK)
+    \item Comentario (\underline{id\_com}, contenido, fecha, id\_usuario FK, id\_pub FK)
+    \item Sigue (\underline{id\_seguidor}, \underline{id\_seguido}) -- ambos FK a Usuario
+    \item LikePublicacion (\underline{id\_usuario}, \underline{id\_pub}, fecha\_like)
+    \item LikeComentario (\underline{id\_usuario}, \underline{id\_com}, fecha\_like)
+\end{itemize}
+
+\subsection{Paso 3: Modelo Físico en PostgreSQL}
+\begin{lstlisting}[language=SQL]
+CREATE TABLE usuario (
+    id_usuario SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    fecha_reg DATE DEFAULT CURRENT_DATE
+);
+
+CREATE TABLE publicacion (
+    id_pub SERIAL PRIMARY KEY,
+    contenido TEXT NOT NULL,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    id_usuario INT NOT NULL REFERENCES usuario(id_usuario)
+);
+
+CREATE TABLE comentario (
+    id_com SERIAL PRIMARY KEY,
+    contenido TEXT NOT NULL,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    id_usuario INT NOT NULL REFERENCES usuario(id_usuario),
+    id_pub INT NOT NULL REFERENCES publicacion(id_pub)
+);
+
+CREATE TABLE sigue (
+    id_seguidor INT REFERENCES usuario(id_usuario),
+    id_seguido INT REFERENCES usuario(id_usuario),
+    PRIMARY KEY (id_seguidor, id_seguido)
+);
+
+CREATE TABLE like_publicacion (
+    id_usuario INT REFERENCES usuario(id_usuario),
+    id_pub INT REFERENCES publicacion(id_pub),
+    fecha_like TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id_usuario, id_pub)
+);
+
+CREATE TABLE like_comentario (
+    id_usuario INT REFERENCES usuario(id_usuario),
+    id_com INT REFERENCES comentario(id_com),
+    fecha_like TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id_usuario, id_com)
+);
+
+-- Índices para búsquedas comunes
+CREATE INDEX idx_publicacion_usuario ON publicacion(id_usuario);
+CREATE INDEX idx_comentario_publicacion ON comentario(id_pub);
+\end{lstlisting}
+
+\section{Ejercicio 3: Normalización}
+\textbf{Enunciado:} Dada la siguiente tabla no normalizada, aplícale 1FN, 2FN y 3FN.
+
+\begin{verbatim}
+Pedido(id_pedido, fecha, cliente, telefono_cliente, direccion_cliente,
+       (id_producto, nombre_producto, cantidad, precio_unitario))
+\end{verbatim}
+Donde la parte entre paréntesis representa una repetición de grupos (varios productos por pedido).
+
+\subsection{Paso 1: Primera Forma Normal (1FN)}
+Eliminar grupos repetidos creando una tabla separada para los detalles del pedido.
+
+Tabla \texttt{Pedido} original:
+\begin{itemize}
+    \item id\_pedido (PK)
+    \item fecha
+    \item cliente
+    \item telefono\_cliente
+    \item direccion\_cliente
+\end{itemize}
+
+Tabla \texttt{DetallePedido}:
+\begin{itemize}
+    \item id\_pedido (FK)
+    \item id\_producto
+    \item nombre\_producto
+    \item cantidad
+    \item precio\_unitario
+    \item PK: (id\_pedido, id\_producto)
+\end{itemize}
+
+\subsection{Paso 2: Segunda Forma Normal (2FN)}
+Analizamos dependencias funcionales en \texttt{DetallePedido}. La clave es (id\_pedido, id\_producto). Los atributos no clave son: nombre\_producto, cantidad, precio\_unitario.
+\begin{itemize}
+    \item cantidad depende de la clave completa (id\_pedido, id\_producto): OK.
+    \item precio\_unitario podría depender solo de id\_producto (el precio de un producto no varía por pedido). Esto viola 2FN.
+    \item nombre\_producto también depende solo de id\_producto.
+\end{itemize}
+Para 2FN, creamos una tabla \texttt{Producto}:
+\begin{itemize}
+    \item Producto (\underline{id\_producto}, nombre\_producto, precio\_unitario)
+\end{itemize}
+Y en \texttt{DetallePedido} dejamos solo id\_producto (FK), cantidad, y el precio podría ser el del momento (si se quiere histórico, se mantiene precio\_unitario en detalle, pero entonces dependería de la clave y no de producto solo, porque puede cambiar el precio; en ese caso, 2FN se cumple si el precio es el de la transacción). Asumiremos que el precio es el del producto en el momento, y no depende solo del producto (porque puede cambiar). Pero si el precio es fijo, entonces sí viola. Para el ejercicio, supongamos que precio\_unitario es el del momento, por lo que depende de la clave (id\_pedido, id\_producto) porque puede variar entre pedidos. Entonces 2FN se cumple. Sin embargo, nombre\_producto sí depende solo de id\_producto, así que debemos separarlo.
+Por tanto, creamos tabla \texttt{Producto} con id\_producto y nombre\_producto. El precio lo dejamos en detalle si es histórico.
+
+Tablas resultantes:
+\begin{itemize}
+    \item Pedido (id\_pedido, fecha, cliente, telefono\_cliente, direccion\_cliente)
+    \item Producto (id\_producto, nombre\_producto)
+    \item DetallePedido (id\_pedido, id\_producto, cantidad, precio\_unitario)
+\end{itemize}
+
+\subsection{Paso 3: Tercera Forma Normal (3FN)}
+En la tabla \texttt{Pedido}, observamos dependencias transitivas:
+\begin{itemize}
+    \item cliente $\rightarrow$ telefono\_cliente, direccion\_cliente. El teléfono y dirección dependen del cliente, no directamente de id\_pedido.
+\end{itemize}
+Para 3FN, separamos \texttt{Cliente}:
+\begin{itemize}
+    \item Cliente (\underline{id\_cliente}, nombre, telefono, direccion)
+\end{itemize}
+Y en \texttt{Pedido} ponemos id\_cliente (FK).
+
+Además, en \texttt{DetallePedido} no hay dependencias transitivas (precio\_unitario depende de la clave, cantidad también).
+
+Modelo final normalizado:
+\begin{itemize}
+    \item Cliente (\underline{id\_cliente}, nombre, telefono, direccion)
+    \item Producto (\underline{id\_producto}, nombre\_producto)
+    \item Pedido (\underline{id\_pedido}, fecha, id\_cliente FK)
+    \item DetallePedido (\underline{id\_pedido}, \underline{id\_producto}, cantidad, precio\_unitario)
+\end{itemize}
+
+\chapter{Conceptos Fundamentales para el Día a Día}
+Aunque no se explicita, el dominio de estos conceptos es esencial para cualquier profesional de datos.
+
+\section{Propiedades ACID}
+Garantizan transacciones confiables.
+\begin{itemize}
+    \item \textbf{Atomicidad:} Una transacción se ejecuta completamente o no se ejecuta (todo o nada).
+    \item \textbf{Consistencia:} La transacción lleva la base de datos de un estado válido a otro, respetando restricciones.
+    \item \textbf{Aislamiento (Isolation):} Las transacciones concurrentes no interfieren entre sí. Niveles: Read Uncommitted, Read Committed, Repeatable Read, Serializable.
+    \item \textbf{Durabilidad:} Una vez confirmada, la transacción persiste aunque el sistema falle.
+\end{itemize}
+
+\section{Niveles de Aislamiento}
+\begin{enumerate}
+    \item \textbf{Read Uncommitted:} Puede leer datos no confirmados (dirty reads).
+    \item \textbf{Read Committed:} Solo lee datos confirmados. Evita dirty reads, pero pueden ocurrir non-repeatable reads.
+    \item \textbf{Repeatable Read:} Asegura que si se lee una fila dos veces en la misma transacción, el valor no cambia. Puede tener phantom reads.
+    \item \textbf{Serializable:} Máximo aislamiento, las transacciones se ejecutan como si fueran secuenciales.
+\end{enumerate}
+
+\section{Bloqueos (Locks)}
+Mecanismos para controlar la concurrencia.
+\begin{itemize}
+    \item \textbf{Compartidos (Shared):} Para lectura. Varios pueden leer.
+    \item \textbf{Exclusivos (Exclusive):} Para escritura. Solo uno.
+    \item Pueden causar \textit{deadlocks} (bloqueos mutuos), que el SGBD detecta y resuelve.
+\end{itemize}
+
+\chapter{Modelamiento para Big Data y NoSQL}
+En entornos modernos, es común encontrarse con bases de datos NoSQL. Conocer sus principios ayuda a elegir la tecnología adecuada.
+
+\section{Tipos de bases de datos NoSQL}
+\begin{itemize}
+    \item \textbf{Clave-valor} (Redis, DynamoDB): Modelo simple, acceso por clave. Ideal para cachés, sesiones.
+    \item \textbf{Documentales} (MongoDB, Couchbase): Almacenan documentos JSON. Se modela pensando en las consultas: se desnormaliza para evitar joins.
+    \item \textbf{Columna ancha} (Cassandra, HBase): Modelado orientado a consultas, con clave de partición y clustering. Las tablas se diseñan según los patrones de acceso.
+    \item \textbf{Grafos} (Neo4j, Amazon Neptune): Nodos y relaciones con propiedades. Ideal para redes sociales, recomendaciones, detección de fraudes.
+\end{itemize}
+
+\section{Teorema CAP}
+En sistemas distribuidos, solo se pueden garantizar dos de tres: Consistencia, Disponibilidad y Tolerancia a Particiones. Los sistemas NoSQL eligen combinaciones (CP, AP, CA).
+
+\section{Modelamiento en MongoDB}
+\begin{itemize}
+    \item \textbf{Documentos anidados:} Cuando la relación es ``contiene'' y el subdocumento no se consulta independientemente.
+    \item \textbf{Referencias:} Cuando los datos son compartidos o grandes, se usa un ID para referenciar otro documento.
+\end{itemize}
+
+\section{Modelamiento en Cassandra}
+Clave primaria compuesta por \textbf{clave de partición} (determina nodo) y \textbf{clustering columns} (orden dentro de la partición). Las consultas deben filtrar por clave de partición.
+
+\chapter{Glosario de Términos}
+\begin{description}
+    \item[Atributo] Característica de una entidad.
+    \item[Cardinalidad] Número de instancias que participan en una relación.
+    \item[Clave primaria (PK)] Atributo o conjunto que identifica unívocamente una fila.
+    \item[Clave foránea (FK)] Atributo que referencia a una clave primaria de otra tabla.
+    \item[Dependencia funcional] Relación entre atributos donde uno determina al otro.
+    \item[Entidad] Objeto del mundo real distinguible.
+    \item[Índice] Estructura de acceso rápido a los datos.
+    \item[Normalización] Proceso de eliminar redundancias mediante formas normales.
+    \item[Relación] Asociación entre entidades.
+    \item[Transacción] Unidad de trabajo atómica.
+\end{description}
+
+
+\end{document}
