@@ -1,0 +1,500 @@
+% --- CORRECCION: Forzar interpretacion raw de la entrada ---
+\UseRawInputEncoding
+\documentclass[aspectratio=169, 10pt, xcolor=table]{beamer}
+
+% --- Configuracion del Tema ---
+\usetheme{Madrid}
+\usecolortheme{dolphin}
+
+% --- Paquetes necesarios ---
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric}
+\usepackage{etoolbox}
+
+% --- Ruta de Imagenes ---
+\graphicspath{{./imagenes/}}
+
+% --- Estilo para codigo Python (no se usa mucho aqui, pero por si acaso) ---
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\lstset{
+    language=SQL,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\scriptsize,
+    breaklines=true,
+    frame=single,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {ü}{{\"u}}1
+}
+
+% --- Pie de pagina personalizado ---
+\makeatletter
+\setbeamertemplate{footline}{
+  \leavevmode%
+  \hbox{%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{author in head/foot}%
+    \usebeamerfont{author in head/foot}\insertshortauthor
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{title in head/foot}%
+    \usebeamerfont{title in head/foot}Sesion 1
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,right]{date in head/foot}%
+    \usebeamerfont{date in head/foot}BBDD \hfill \insertframenumber/\inserttotalframenumber \hspace*{0.3cm}
+  \end{beamercolorbox}}%
+  \vskip0pt%
+}
+\makeatother
+
+% --- Datos de la portada ---
+\title[SESION 1 BBDD]{\textbf{Sesion 1}}
+\subtitle{El Universo del Dato y la Infraestructura Física}
+\author[Prof. C. Sanchez]{Carlos Cesar Sanchez Coronel}
+\institute{\textbf{BASES DE DATOS}}
+\date{2026}
+
+% --- Eliminar barra de navegacion ---
+\setbeamertemplate{navigation symbols}{}
+
+% --- Indice al inicio de cada seccion ---
+\AtBeginSection[]{
+  \begin{frame}
+    \frametitle{Contenido}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+\begin{document}
+
+% --- Portada ---
+\begin{frame}
+    \titlepage
+\end{frame}
+
+% --- Indice general ---
+\begin{frame}{Contenido}
+    \tableofcontents
+\end{frame}
+
+% ============================================================================
+% SECCION 1: DATO, INFORMACION Y CONOCIMIENTO
+% ============================================================================
+\section{Dato, Informacion y Conocimiento}
+
+\begin{frame}{Jerarquia del dato}
+    \begin{columns}[t]
+        \column{0.33\textwidth}
+        \textbf{Dato}
+        \begin{itemize}
+            \item Unidad minima, hecho objetivo.
+            \item Ej: $1010$, ``Perez'', \texttt{2025-03-15}, \texttt{true}.
+        \end{itemize}
+        \column{0.33\textwidth}
+        \textbf{Informacion}
+        \begin{itemize}
+            \item Dato contextualizado.
+            \item Ej: $1010$ es ID del cliente Juan Perez.
+        \end{itemize}
+        \column{0.33\textwidth}
+        \textbf{Conocimiento}
+        \begin{itemize}
+            \item Informacion asimilada para accion.
+            \item Ej: Clientes con ID similar compran en marzo $\Rightarrow$ campana.
+        \end{itemize}
+    \end{columns}
+    \vspace{0.3cm}
+    \centering
+    \begin{tikzpicture}[scale=0.8]
+        \draw[fill=blue!20] (0,0) rectangle (2,1) node[midway] {Dato};
+        \draw[fill=green!20] (3,0) rectangle (5,1) node[midway] {Informacion};
+        \draw[fill=red!20] (6,0) rectangle (8,1) node[midway] {Conocimiento};
+        \draw[->, thick] (2,0.5) -- (3,0.5);
+        \draw[->, thick] (5,0.5) -- (6,0.5);
+    \end{tikzpicture}
+\end{frame}
+
+% ============================================================================
+% SECCION 2: CLASIFICACION DE DATOS
+% ============================================================================
+\section{Clasificacion de Datos}
+
+\begin{frame}{Tipos segun su estructura}
+    \begin{table}
+        \centering
+        \begin{tabular}{l|l}
+            \toprule
+            Tipo & Ejemplo \\
+            \midrule
+            \textbf{Estructurados} & Tabla Clientes (ID, Nombre, Fecha) \\
+            \textbf{Semiestructurados} & JSON, XML, YAML \\
+            \textbf{No estructurados} & Imagenes, audio, video, texto libre \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+    \begin{itemize}
+        \item Datos no estructurados requieren procesamiento especial (embeddings, CNN, transformers).
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Tipos de datos elementales}
+    \begin{columns}[t]
+        \column{0.5\textwidth}
+        \begin{itemize}
+            \item \textbf{Numericos}: INT, BIGINT, FLOAT, DECIMAL
+            \item \textbf{Texto}: CHAR, VARCHAR, TEXT
+            \item \textbf{Fecha/hora}: DATE, TIME, TIMESTAMP
+        \end{itemize}
+        \column{0.5\textwidth}
+        \begin{itemize}
+            \item \textbf{Binarios}: BLOB (imagenes, audio)
+            \item \textbf{Booleanos}: BOOL
+        \end{itemize}
+    \end{columns}
+\end{frame}
+
+% ============================================================================
+% SECCION 3: CODIFICACION DE CARACTERES
+% ============================================================================
+\section{Codificacion de Caracteres}
+
+\begin{frame}{UTF-8: el estandar universal}
+    \begin{itemize}
+        \item Longitud variable (1-4 bytes), cubre todo Unicode.
+        \item Compatible con ASCII (1 byte para ingles).
+        \item Soporta todos los idiomas y emojis.
+        \item Resuelve limitaciones de ASCII y Latin-1.
+    \end{itemize}
+    \begin{exampleblock}{Ejemplo}
+        Caracter ``\~n'': en UTF-8 se codifica como 2 bytes (C3 B1).
+    \end{exampleblock}
+\end{frame}
+
+% ============================================================================
+% SECCION 4: FORMATOS DE ALMACENAMIENTO
+% ============================================================================
+\section{Formatos de Almacenamiento}
+
+\begin{frame}{Comparacion de formatos}
+    \begin{table}
+        \centering
+        \begin{tabular}{l|c|c|c}
+            \toprule
+            Formato & Legible & Eficiencia analitica & Soporte esquema \\
+            \midrule
+            CSV & Si & Baja & No \\
+            JSON & Si & Media & Implicito \\
+            Avro & No & Media & Si (evolutivo) \\
+            Parquet & No & Alta & Si \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+    \begin{itemize}
+        \item \textbf{Parquet}: ideal para data lakes (columnar, compresion).
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCION 5: METADATA
+% ============================================================================
+\section{Metadata}
+
+\begin{frame}{Los datos que hablan de los datos}
+    \begin{block}{Tipos de metadata}
+        \begin{description}
+            \item[Descriptiva:] descubrimiento (titulo, autor).
+            \item[Estructural:] estructura (formato, tipo de dato).
+            \item[Administrativa:] gestion (fecha creacion, permisos).
+        \end{description}
+    \end{block}
+    \begin{itemize}
+        \item \textbf{Data lineage}: rastreo de origen y transformaciones, basado en metadata.
+        \item Ayuda a auditar, depurar y entender el impacto de cambios.
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCION 6: LOGS Y DATOS TEMPORALES
+% ============================================================================
+\section{Logs y Datos Temporales}
+
+\begin{frame}{Registros de eventos y datos efimeros}
+    \begin{columns}[t]
+        \column{0.5\textwidth}
+        \textbf{Logs}
+        \begin{itemize}
+            \item Registros secuenciales de eventos.
+            \item Usos: auditoria, recuperacion, rendimiento.
+            \item Ej: binlog de MySQL.
+        \end{itemize}
+        \column{0.5\textwidth}
+        \textbf{Datos temporales}
+        \begin{itemize}
+            \item Caches, tablas temporales.
+            \item Ciclo de vida corto.
+            \item Ej: \texttt{CREATE TEMPORARY TABLE} en SQL.
+        \end{itemize}
+    \end{columns}
+\end{frame}
+
+% ============================================================================
+% SECCION 7: HARDWARE Y JERARQUIA DE MEMORIA
+% ============================================================================
+\section{Hardware y Jerarquia de Memoria}
+
+\begin{frame}{Jerarquia de memoria}
+    \begin{table}
+        \centering
+        \begin{tabular}{l|c}
+            \toprule
+            Nivel & Latencia aproximada \\
+            \midrule
+            Cache L1 & 1 ns \\
+            RAM (buffer pool) & 100 ns \\
+            NVMe & 20-50 $\mu$s (20.000-50.000 ns) \\
+            SSD & 0.1-0.2 ms (100.000-200.000 ns) \\
+            HDD & 4-10 ms (4.000.000-10.000.000 ns) \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+    \begin{itemize}
+        \item \textbf{Buffer pool}: area de RAM para cache de datos e indices.
+        \item \textit{Cache hit} = dato en RAM (ns); \textit{cache miss} = acceso a disco (ms).
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCION 8: COMPLEJIDAD COMPUTACIONAL DE BUSQUEDA
+% ============================================================================
+\section{Complejidad Computacional de Busqueda}
+
+\begin{frame}{Metodos de acceso}
+    \begin{columns}[t]
+        \column{0.5\textwidth}
+        \textbf{Table Scan}
+        \begin{itemize}
+            \item O(n): recorre toda la tabla.
+            \item Sin indice, o tabla muy pequena.
+        \end{itemize}
+        \textbf{Indice B-Tree}
+        \begin{itemize}
+            \item O(log n) para igualdad/rango.
+            \item Comun en SQL.
+        \end{itemize}
+        \column{0.5\textwidth}
+        \textbf{Indice Hash}
+        \begin{itemize}
+            \item O(1) promedio para igualdad exacta.
+            \item Ideal para cache (Redis).
+        \end{itemize}
+    \end{columns}
+    \vspace{0.3cm}
+    \begin{alertblock}{Nota}
+        Los indices aceleran lecturas pero ralentizan escrituras (actualizacion del indice).
+    \end{alertblock}
+\end{frame}
+
+% ============================================================================
+% SECCION 9: ESCALA DE DATOS (UNIDADES)
+% ============================================================================
+\section{Escala de Datos}
+
+\begin{frame}{De KB a PB}
+    \begin{table}
+        \centering
+        \begin{tabular}{l|c|l}
+            \toprule
+            Unidad & Bytes & Ejemplo \\
+            \midrule
+            KB & $10^3$ & Documento texto \\
+            MB & $10^6$ & Foto alta resolucion \\
+            GB & $10^9$ & Pelicula HD \\
+            TB & $10^{12}$ & Disco duro \\
+            PB & $10^{15}$ & Grandes empresas (banca, redes sociales) \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+    \begin{itemize}
+        \item Facebook ingiere $\approx$ 4 PB diarios.
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCION 10: ROLES EN LA GESTION DE DATOS
+% ============================================================================
+\section{Roles en la Gestion de Datos}
+
+\begin{frame}{Profesionales del dato}
+    \begin{description}
+        \item[DBA (Database Administrator)]: Operativa diaria, instalacion, parches, backups, tuning.
+        \item[Data Engineer]: Pipelines, ETL, infraestructura de datos (Spark, Airflow).
+        \item[Data Scientist]: Modelos predictivos y algoritmos de ML.
+        \item[Data Analyst]: Informes y visualizaciones.
+        \item[Data Steward]: Gobernanza, calidad, cumplimiento.
+    \end{description}
+\end{frame}
+
+% ============================================================================
+% SECCION 11: GOBERNANZA Y ETICA
+% ============================================================================
+\section{Gobernanza y Etica}
+
+\begin{frame}{Gobernanza de datos}
+    \begin{itemize}
+        \item Politicas, procesos y estandares para gestion efectiva y segura.
+        \item Componentes: catalogo de datos, metadata, data lineage.
+        \item Ayuda a prevenir sesgos en IA al rastrear origen de datos.
+    \end{itemize}
+    \begin{block}{Privacidad (GDPR)}
+        \begin{itemize}
+            \item Consentimiento explicito.
+            \item Derecho al olvido.
+            \item Minimizacion y anonimizacion.
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+% ============================================================================
+% SECCION 12: IA Y BASES DE DATOS
+% ============================================================================
+\section{IA y Bases de Datos}
+
+\begin{frame}{Cuando la IA es lenta}
+    \begin{exampleblock}{Caso: asistente bancario}
+        \begin{enumerate}
+            \item La IA solicita datos del usuario.
+            \item Tabla sin indice, millones de filas en HDD $\Rightarrow$ consulta de 2 segundos.
+            \item El usuario abandona por lentitud.
+        \end{enumerate}
+    \end{exampleblock}
+    \begin{itemize}
+        \item Un modelo avanzado es tan rapido como los datos que consume.
+        \item Optimizacion de acceso (indices, cache) es critica.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Ventana de contexto en LLMs}
+    \begin{itemize}
+        \item Memoria a corto plazo del modelo (tokens).
+        \item Ej: GPT-3: 4K tokens; Gemini 1.5 Pro: 1M tokens.
+        \item No cabe una base de datos completa.
+        \item Costo computacional O(n$^2$) para atencion.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Paradigma RAG (Retrieval-Augmented Generation)}
+    \begin{enumerate}
+        \item Pregunta $\rightarrow$ embedding.
+        \item Busqueda en base de datos vectorial (indices ANN: HNSW, IVF).
+        \item Fragmentos relevantes + pregunta inyectados en el prompt.
+        \item LLM genera respuesta fundamentada.
+    \end{enumerate}
+    \begin{itemize}
+        \item Indices aproximados (ANN) permiten busqueda sublineal en millones de vectores.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Alucinaciones y su relacion con BBDD}
+    \begin{block}{Causas desde la base de datos}
+        \begin{itemize}
+            \item Datos incorrectos o desactualizados.
+            \item Recuperacion fallida (indice mal calibrado, embedding pobre).
+            \item Timeout en consulta SQL $\Rightarrow$ LLM inventa.
+        \end{itemize}
+    \end{block}
+    \begin{alertblock}{Consecuencia}
+        La integridad, actualizacion y velocidad de la BD son primera linea de defensa contra alucinaciones.
+    \end{alertblock}
+\end{frame}
+
+\begin{frame}{Lecciones para el ingeniero de datos}
+    \begin{itemize}
+        \item Conoce los indices: B-Tree para SQL, HNSW para vectores.
+        \item Mide la latencia: 10 ms vs 2 s decide exito o fracaso.
+        \item Monitoriza calidad de datos: linaje y validaciones.
+        \item Disena para el peor caso: reintentos, respuestas degradadas.
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCION 13: EJERCICIOS PROPUESTOS (DEL SOLUCIONARIO)
+% ============================================================================
+\section{Ejercicios Propuestos}
+
+\begin{frame}{Ejercicios}
+    \begin{enumerate}
+        \item Diferencia entre dato, informacion y conocimiento (ejemplo bancario).
+        \item Tipos de datos segun estructura y su implicacion en IA.
+        \item Ventajas de UTF-8 sobre ASCII/Latin-1.
+        \item Comparar CSV, JSON, Avro, Parquet. Elegir para data lake.
+        \item Tipos de metadata y su relacion con data lineage.
+        \item Funcion de logs y tablas temporales.
+        \item Jerarquia de memoria y latencias.
+        \item Buffer pool y cache hit.
+        \item Complejidad de table scan vs indices B-Tree y hash.
+        \item Unidades de almacenamiento (KB a PB) y ejemplo real.
+        \item Roles: DBA, Data Engineer, Data Scientist.
+        \item Gobernanza y GDPR.
+        \item Impacto de latencia en IA (caso asistente).
+        \item Ventana de contexto y costo computacional.
+        \item Explicar RAG y el papel de indices vectoriales.
+        \item Causas de alucinaciones desde BD.
+        \item Indices ANN (HNSW, IVF) y ventaja.
+        \item Diseno de un motor de recomendacion en tiempo real.
+    \end{enumerate}
+\end{frame}
+
+% ============================================================================
+% SECCION 14: CASO PRACTICO INTEGRADOR
+% ============================================================================
+\section{Caso Practico: Motor de Recomendacion en Tiempo Real}
+
+\begin{frame}{Diseno de solucion}
+    \begin{itemize}
+        \item \textbf{Almacenamiento para perfiles activos}: RAM (con SSD como respaldo) para latencia ns.
+        \item \textbf{Busqueda por categoria y precio}: Indice B-Tree compuesto sobre (categoria, precio).
+        \item \textbf{Busqueda semantica}: Base de datos vectorial (pgvector, Pinecone) con embeddings de productos.
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCION 15: RESUMEN
+% ============================================================================
+\section{Resumen}
+
+\begin{frame}{Lo que hemos aprendido}
+    \begin{exampleblock}{Conceptos clave}
+        \begin{itemize}
+            \item Dato $\rightarrow$ Informacion $\rightarrow$ Conocimiento.
+            \item Datos estructurados, semiestructurados, no estructurados.
+            \item Codificacion UTF-8, formatos de archivo (Parquet para analitica).
+            \item Metadata y data lineage.
+            \item Logs y datos temporales.
+            \item Jerarquia de memoria: RAM vs disco.
+            \item Complejidad de busqueda: Table Scan, B-Tree, Hash.
+            \item Escala: KB, MB, GB, TB, PB.
+            \item Roles: DBA, Data Engineer, Data Scientist.
+            \item Gobernanza, GDPR y sesgo.
+            \item IA: ventana de contexto, RAG, indices vectoriales, alucinaciones.
+        \end{itemize}
+    \end{exampleblock}
+\end{frame}
+
+% --- Diapositiva final ---
+\begin{frame}
+    \centering
+    \Huge \textbf{Gracias!}
+
+\end{frame}
+
+\end{document}

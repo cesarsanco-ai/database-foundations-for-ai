@@ -1,0 +1,571 @@
+% --- CORRECCION: Forzar interpretacion raw de la entrada ---
+\UseRawInputEncoding
+\documentclass[aspectratio=169, 10pt, xcolor=table]{beamer}
+
+% --- Configuracion del Tema ---
+\usetheme{Madrid}
+\usecolortheme{dolphin}
+
+% --- Paquetes necesarios ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage{amsmath, amssymb}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric, babel}
+\usepackage{etoolbox}
+\usepackage{upquote}
+
+% --- Estilo para codigo SQL ---
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\lstset{
+    language=SQL,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\scriptsize,
+    breaklines=true,
+    frame=single,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {ü}{{\"u}}1
+}
+
+% --- Pie de pagina personalizado ---
+\makeatletter
+\setbeamertemplate{footline}{
+  \leavevmode%
+  \hbox{%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{author in head/foot}%
+    \usebeamerfont{author in head/foot}\insertshortauthor
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{title in head/foot}%
+    \usebeamerfont{title in head/foot}Sesión 5
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,right]{date in head/foot}%
+    \usebeamerfont{date in head/foot}BBDD \hfill \insertframenumber/\inserttotalframenumber \hspace*{0.3cm}
+  \end{beamercolorbox}}%
+  \vskip0pt%
+}
+\makeatother
+
+% --- Datos de la portada ---
+\title[SESIÓN 5 BBDD]{\textbf{Sesión 5}}
+\subtitle{Manipulación de Datos y Lógica de Conjuntos}
+\author[Prof. C. Sánchez]{Carlos César Sánchez Coronel}
+\institute{\textbf{BASES DE DATOS}}
+\date{}
+
+\setbeamertemplate{navigation symbols}{}
+
+\AtBeginSection[]{
+  \begin{frame}
+    \frametitle{Contenido de la sección}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+\begin{document}
+
+\begin{frame}
+    \titlepage
+\end{frame}
+
+\begin{frame}{Contenido general}
+    \tableofcontents
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 1: INTRODUCCIÓN A LA MANIPULACIÓN DE DATOS Y SUBLENGUAJES SQL
+% ============================================================================
+\section{Introducción y Sublenguajes SQL}
+
+\begin{frame}{Sublenguajes SQL}
+    \begin{block}{Clasificación}
+        \begin{itemize}
+            \item \textbf{DDL} (Data Definition Language): CREATE, ALTER, DROP, TRUNCATE.
+            \item \textbf{DML} (Data Manipulation Language): SELECT, INSERT, UPDATE, DELETE, MERGE.
+            \item \textbf{DCL} (Data Control Language): GRANT, REVOKE.
+            \item \textbf{TCL} (Transaction Control Language): BEGIN, COMMIT, ROLLBACK, SAVEPOINT.
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{DDL: Creación y modificación de estructuras}
+    \begin{exampleblock}{CREATE TABLE}
+        \begin{lstlisting}
+CREATE TABLE clientes (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE,
+    ciudad VARCHAR(50),
+    fecha_registro DATE DEFAULT CURRENT_DATE
+);
+        \end{lstlisting}
+    \end{exampleblock}
+    \begin{exampleblock}{ALTER y DROP}
+        \begin{lstlisting}
+ALTER TABLE clientes ADD COLUMN telefono VARCHAR(20);
+DROP TABLE clientes; -- Cuidado!
+        \end{lstlisting}
+    \end{exampleblock}
+\end{frame}
+
+\begin{frame}[fragile]{DML: Manipulación de datos}
+    \begin{columns}[t]
+        \column{0.5\textwidth}
+        \textbf{INSERT}
+        \begin{lstlisting}
+INSERT INTO clientes (nombre, email, ciudad)
+VALUES ('Carlos Ruiz', 'carlos@mail.com', 'Valencia');
+        \end{lstlisting}
+        \textbf{UPDATE}
+        \begin{lstlisting}
+UPDATE clientes SET ciudad = 'Sevilla'
+WHERE id = 5;
+        \end{lstlisting}
+        \column{0.5\textwidth}
+        \textbf{DELETE}
+        \begin{lstlisting}
+DELETE FROM clientes WHERE email IS NULL;
+        \end{lstlisting}
+        \textbf{MERGE (UPSERT en PostgreSQL)}
+        \begin{lstlisting}
+INSERT INTO productos (id, nombre, precio)
+VALUES (1, 'Laptop', 1200)
+ON CONFLICT (id) DO UPDATE SET
+    nombre = EXCLUDED.nombre,
+    precio = EXCLUDED.precio;
+        \end{lstlisting}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{DCL y TCL}
+    \begin{block}{DCL: Control de permisos}
+        \begin{lstlisting}
+GRANT SELECT ON clientes TO analista;
+REVOKE DELETE ON clientes FROM analista;
+        \end{lstlisting}
+    \end{block}
+    \begin{block}{TCL: Transacciones}
+        \begin{lstlisting}
+BEGIN;
+UPDATE cuentas SET saldo = saldo - 100 WHERE id = 1;
+UPDATE cuentas SET saldo = saldo + 100 WHERE id = 2;
+COMMIT; -- o ROLLBACK si algo falla
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}{Propiedades ACID}
+    \begin{description}
+        \item[Atomicidad] Todo o nada.
+        \item[Consistencia] Integridad de datos.
+        \item[Aislamiento] Transacciones concurrentes no interfieren.
+        \item[Durabilidad] Los cambios persisten tras fallos.
+    \end{description}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 2: PROCESO INTERNO DE UNA CONSULTA
+% ============================================================================
+\section{Proceso Interno de una Consulta}
+
+\begin{frame}{Orden Lógico de Ejecución}
+    \begin{enumerate}
+        \item FROM y JOINs
+        \item WHERE
+        \item GROUP BY
+        \item HAVING
+        \item SELECT (y funciones de ventana)
+        \item ORDER BY
+        \item LIMIT / OFFSET
+    \end{enumerate}
+    \begin{alertblock}{Importante}
+        Los alias de columna definidos en SELECT no pueden usarse en WHERE (porque WHERE se ejecuta antes).
+    \end{alertblock}
+\end{frame}
+
+\begin{frame}[fragile]{El Camino Físico}
+    \begin{enumerate}
+        \item \textbf{Parsing}: Verificación sintáctica y semántica.
+        \item \textbf{Optimización}: Generación de planes de ejecución (basado en costos).
+        \item \textbf{Ejecución}: Interacción con buffer pool y disco.
+        \item \textbf{Retorno}: Envío de resultados al cliente.
+    \end{enumerate}
+    \begin{block}{EXPLAIN (ANALYZE)}
+        \begin{verbatim}
+EXPLAIN (ANALYZE, BUFFERS) 
+SELECT * FROM clientes WHERE ciudad = 'Madrid';
+        \end{verbatim}
+    \end{block}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 3: JOINS
+% ============================================================================
+\section{Joins: Combinando Tablas}
+
+\begin{frame}{Tipos de JOIN}
+    \begin{columns}[t]
+        \column{0.5\textwidth}
+        \textbf{INNER JOIN}
+        \begin{itemize}
+            \item Solo filas con coincidencia en ambas.
+        \end{itemize}
+        \textbf{LEFT JOIN}
+        \begin{itemize}
+            \item Todas las filas de la izquierda + coincidencias.
+        \end{itemize}
+        \column{0.5\textwidth}
+        \textbf{RIGHT JOIN}
+        \begin{itemize}
+            \item Todas las filas de la derecha + coincidencias.
+        \end{itemize}
+        \textbf{FULL OUTER JOIN}
+        \begin{itemize}
+            \item Todas las filas de ambas, con NULL donde no hay.
+        \end{itemize}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Ejemplos de JOIN}
+    \begin{block}{INNER JOIN}
+        \begin{lstlisting}
+SELECT p.id, c.nombre, p.fecha
+FROM pedidos p
+INNER JOIN clientes c ON p.cliente_id = c.id;
+        \end{lstlisting}
+    \end{block}
+    \begin{block}{LEFT JOIN (clientes con o sin pedidos)}
+        \begin{lstlisting}
+SELECT c.nombre, COUNT(p.id) AS num_pedidos
+FROM clientes c
+LEFT JOIN pedidos p ON c.id = p.cliente_id
+GROUP BY c.id, c.nombre;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Self-Join y CROSS JOIN}
+    \begin{block}{Self-Join: Empleados con su jefe}
+        \begin{lstlisting}
+SELECT e1.nombre AS empleado, e2.nombre AS jefe
+FROM empleados e1
+LEFT JOIN empleados e2 ON e1.jefe_id = e2.id;
+        \end{lstlisting}
+    \end{block}
+    \begin{block}{CROSS JOIN: Producto cartesiano}
+        \begin{lstlisting}
+SELECT * FROM colores CROSS JOIN tallas;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}{Algoritmos Internos de JOIN}
+    \begin{description}
+        \item[Nested Loop:] Una tabla pequeña o con índice; va fila por fila.
+        \item[Hash Join:] Tablas grandes sin índice; construye una tabla hash.
+        \item[Merge Join:] Tablas ordenadas; fusiona ambas.
+    \end{description}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 4: SUBCONSULTAS
+% ============================================================================
+\section{Subconsultas}
+
+\begin{frame}[fragile]{Tipos de Subconsultas}
+    \begin{block}{Escalar (un solo valor)}
+        \begin{lstlisting}
+SELECT nombre, (SELECT AVG(precio) FROM productos) AS promedio
+FROM productos;
+        \end{lstlisting}
+    \end{block}
+    \begin{block}{Múltiples filas con IN}
+        \begin{lstlisting}
+SELECT nombre FROM clientes
+WHERE id IN (SELECT cliente_id FROM pedidos WHERE monto > 1000);
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Subconsultas Correlacionadas}
+    \begin{block}{Empleados con salario mayor al promedio de su departamento}
+        \begin{lstlisting}
+SELECT e.nombre, e.salario
+FROM empleados e
+WHERE e.salario > (SELECT AVG(salario)
+                   FROM empleados
+                   WHERE departamento_id = e.departamento_id);
+        \end{lstlisting}
+    \end{block}
+    \begin{alertblock}{Rendimiento}
+        Se evalúan para cada fila exterior; pueden ser lentas en tablas grandes.
+    \end{alertblock}
+\end{frame}
+
+\begin{frame}[fragile]{Subconsultas en FROM}
+    \begin{block}{Tabla derivada}
+        \begin{lstlisting}
+SELECT categoria, AVG(precio) AS precio_medio
+FROM (SELECT * FROM productos WHERE activo = true) AS productos_activos
+GROUP BY categoria;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 5: COMMON TABLE EXPRESSIONS (CTEs)
+% ============================================================================
+\section{CTEs}
+
+\begin{frame}[fragile]{CTEs Básicas}
+    \begin{block}{WITH ...}
+        \begin{lstlisting}
+WITH ventas_cliente AS (
+    SELECT c.id, c.nombre, SUM(dp.cantidad * pr.precio) AS total
+    FROM clientes c
+    LEFT JOIN pedidos p ON c.id = p.cliente_id
+    LEFT JOIN detalle_pedido dp ON p.id = dp.pedido_id
+    LEFT JOIN productos pr ON dp.producto_id = pr.id
+    GROUP BY c.id, c.nombre
+)
+SELECT * FROM ventas_cliente WHERE total > 1000;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{CTEs Múltiples y Recursivas}
+    \begin{block}{Múltiples CTEs}
+        \begin{lstlisting}
+WITH
+    ventas AS (SELECT ...),
+    clientes_vip AS (SELECT ...)
+SELECT ...
+        \end{lstlisting}
+    \end{block}
+    \begin{block}{Recursiva (organigrama)}
+        \begin{lstlisting}
+WITH RECURSIVE organigrama AS (
+    SELECT id, nombre, jefe_id, 1 AS nivel
+    FROM empleados WHERE jefe_id IS NULL
+    UNION ALL
+    SELECT e.id, e.nombre, e.jefe_id, o.nivel + 1
+    FROM empleados e JOIN organigrama o ON e.jefe_id = o.id
+)
+SELECT * FROM organigrama ORDER BY nivel;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 6: BUENAS PRÁCTICAS Y OPTIMIZACIÓN
+% ============================================================================
+\section{Buenas Prácticas y Optimización}
+
+\begin{frame}{Consejos de Optimización}
+    \begin{itemize}
+        \item Preferir \texttt{EXISTS} a \texttt{IN} para subconsultas grandes.
+        \item Evitar funciones en columnas indexadas en \texttt{WHERE}.
+        \item Usar \texttt{UNION ALL} en lugar de \texttt{UNION} si no se necesitan duplicados.
+        \item Evitar \texttt{SELECT *} (especificar columnas).
+        \item Cuidado con conversiones implícitas.
+        \item Indexar columnas usadas en \texttt{JOIN}, \texttt{WHERE}, \texttt{ORDER BY}.
+        \item Analizar siempre con \texttt{EXPLAIN}.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Ejemplo de Optimización}
+    \begin{block}{Consulta ineficiente}
+        \begin{verbatim}
+SELECT * FROM pedidos WHERE EXTRACT(YEAR FROM fecha) = 2025;
+        \end{verbatim}
+    \end{block}
+    \begin{block}{Versión optimizada (aprovecha índice en fecha)}
+        \begin{verbatim}
+SELECT * FROM pedidos 
+WHERE fecha >= '2025-01-01' AND fecha < '2026-01-01';
+        \end{verbatim}
+    \end{block}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 7: HARDWARE Y NOSQL
+% ============================================================================
+\section{Hardware y Breve Mirada a NoSQL}
+
+\begin{frame}{Consideraciones de Hardware}
+    \begin{itemize}
+        \item \textbf{Buffer Pool}: Memoria caché de datos e índices (ej. \texttt{shared\_buffers} en PostgreSQL).
+        \item \textbf{SSD vs HDD}: SSD mejora lecturas aleatorias, crítico para índices.
+        \item \textbf{Parallel Query}: Uso de múltiples CPUs para consultas pesadas.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Joins en NoSQL}
+    \begin{itemize}
+        \item \textbf{MongoDB}: \texttt{\$lookup} en pipeline de agregación (left outer join).
+        \item \textbf{Cassandra}: No soporta joins; modelado desnormalizado.
+        \item \textbf{Redis}: No tiene joins; se maneja en aplicación.
+        \item \textbf{Neo4j}: Relaciones nativas (navegación en grafos).
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 8: EJERCICIOS RESUELTOS (DEL SOLUCIONARIO)
+% ============================================================================
+\section{Ejercicios Resueltos}
+
+\begin{frame}[fragile]{Ejercicio 1: Consultas Básicas}
+    \begin{block}{Enunciado}
+        Tabla \texttt{empleados} (id, nombre, salario, departamento\_id). Insertar tres empleados, actualizar salario de uno, eliminar empleados de un departamento.
+    \end{block}
+    \begin{block}{Solución}
+        \begin{lstlisting}
+INSERT INTO empleados (nombre, salario, departamento_id) VALUES
+('Juan Perez', 3000, 1),
+('Ana Garcia', 3500, 2),
+('Luis Fernandez', 3200, 1);
+
+UPDATE empleados SET salario = 3300 WHERE nombre = 'Juan Perez';
+
+DELETE FROM empleados WHERE departamento_id = 2;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 2: INNER JOIN y LEFT JOIN}
+    \begin{block}{Enunciado}
+        Con las tablas \texttt{clientes}, \texttt{pedidos}, \texttt{detalle\_pedido}, \texttt{productos}, obtener:
+        \begin{enumerate}
+            \item Pedidos con nombre de cliente y fecha.
+            \item Clientes con número de pedidos (0 si no tienen).
+            \item Total gastado por cliente.
+        \end{enumerate}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Solución Ejercicio 2}
+    \begin{lstlisting}
+-- 1. Pedidos con cliente
+SELECT p.id, c.nombre, p.fecha
+FROM pedidos p INNER JOIN clientes c ON p.cliente_id = c.id;
+
+-- 2. Clientes con numero de pedidos
+SELECT c.id, c.nombre, COUNT(p.id) AS num_pedidos
+FROM clientes c LEFT JOIN pedidos p ON c.id = p.cliente_id
+GROUP BY c.id, c.nombre;
+
+-- 3. Total gastado por cliente
+SELECT c.id, c.nombre, COALESCE(SUM(dp.cantidad * pr.precio), 0) AS total
+FROM clientes c
+LEFT JOIN pedidos p ON c.id = p.cliente_id
+LEFT JOIN detalle_pedido dp ON p.id = dp.pedido_id
+LEFT JOIN productos pr ON dp.producto_id = pr.id
+GROUP BY c.id, c.nombre;
+    \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 3: Subconsultas}
+    \begin{block}{Enunciado}
+        Productos cuyo precio es superior al precio medio de su categoría (subconsulta correlacionada).
+    \end{block}
+    \begin{block}{Solución}
+        \begin{lstlisting}
+SELECT p.nombre, p.precio
+FROM productos p
+WHERE p.precio > (SELECT AVG(precio)
+                  FROM productos
+                  WHERE categoria = p.categoria);
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 4: CTE}
+    \begin{block}{Enunciado}
+        Obtener empleados que ganan más que el promedio de su departamento, mostrando nombre, salario y promedio del departamento.
+    \end{block}
+    \begin{block}{Solución}
+        \begin{lstlisting}
+WITH promedio_depto AS (
+    SELECT departamento_id, AVG(salario) AS salario_prom
+    FROM empleados GROUP BY departamento_id
+)
+SELECT e.nombre, e.salario, pd.salario_prom
+FROM empleados e
+JOIN promedio_depto pd ON e.departamento_id = pd.departamento_id
+WHERE e.salario > pd.salario_prom;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 5: Optimización}
+    \begin{block}{Consulta lenta}
+        \begin{verbatim}
+SELECT * FROM pedidos WHERE EXTRACT(YEAR FROM fecha) = 2025;
+        \end{verbatim}
+    \end{block}
+    \begin{block}{Optimización}
+        \begin{itemize}
+            \item Reescribir: \texttt{WHERE fecha >= '2025-01-01' AND fecha < '2026-01-01'}
+            \item Crear índice en \texttt{fecha}.
+            \item Verificar con \texttt{EXPLAIN ANALYZE}.
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 6: CTE Recursiva}
+    \begin{block}{Enunciado}
+        Obtener organigrama completo con niveles desde \texttt{empleados(id, nombre, jefe\_id)}.
+    \end{block}
+    \begin{block}{Solución}
+        \begin{lstlisting}
+WITH RECURSIVE organigrama AS (
+    SELECT id, nombre, jefe_id, 1 AS nivel
+    FROM empleados WHERE jefe_id IS NULL
+    UNION ALL
+    SELECT e.id, e.nombre, e.jefe_id, o.nivel + 1
+    FROM empleados e JOIN organigrama o ON e.jefe_id = o.id
+)
+SELECT * FROM organigrama ORDER BY nivel, nombre;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 9: RESUMEN
+% ============================================================================
+\section{Resumen}
+
+\begin{frame}{Conceptos Clave de la Sesión 5}
+    \begin{itemize}
+        \item \textbf{Sublenguajes SQL}: DDL, DML, DCL, TCL.
+        \item \textbf{Transacciones}: ACID, COMMIT, ROLLBACK, SAVEPOINT.
+        \item \textbf{Orden lógico de ejecución} y su impacto.
+        \item \textbf{Joins}: INNER, LEFT, RIGHT, FULL, CROSS, self-join.
+        \item \textbf{Subconsultas}: escalares, correlacionadas, en FROM.
+        \item \textbf{CTEs}: simples, múltiples, recursivas.
+        \item \textbf{Optimización}: índices, evitar funciones en WHERE, usar EXISTS, analizar con EXPLAIN.
+        \item \textbf{Hardware}: buffer pool, SSD, parallel query.
+        \item \textbf{NoSQL}: aproximación a joins (\$lookup, desnormalización).
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+    \centering
+
+    
+    \vspace{1cm}
+    \large ¡Gracias por su atención!
+\end{frame}
+
+\end{document}

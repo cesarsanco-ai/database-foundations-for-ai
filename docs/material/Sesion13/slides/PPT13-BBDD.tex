@@ -1,0 +1,594 @@
+% --- CORRECCION: Forzar interpretacion raw de la entrada ---
+\UseRawInputEncoding
+\documentclass[aspectratio=169, 10pt, xcolor=table]{beamer}
+
+% --- Configuracion del Tema ---
+\usetheme{Madrid}
+\usecolortheme{dolphin}
+
+% --- Paquetes necesarios ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage{amsmath, amssymb}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric, babel}
+\usepackage{etoolbox}
+\usepackage{upquote}
+
+% --- Estilo para codigo SQL, bash, YAML ---
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\lstdefinestyle{bashstyle}{
+    language=bash,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\scriptsize,
+    breaklines=true,
+    frame=single,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {ü}{{\"u}}1
+}
+\lstdefinestyle{sqlstyle}{
+    language=SQL,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\scriptsize,
+    breaklines=true,
+    frame=single,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {ü}{{\"u}}1
+}
+\lstdefinestyle{yamlstyle}{
+    language=bash, % no hay lenguaje YAML nativo, se usa bash como base
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\scriptsize,
+    breaklines=true,
+    frame=single,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {ü}{{\"u}}1
+}
+\lstset{style=bashstyle} % Por defecto bash
+
+% --- Pie de pagina personalizado ---
+\makeatletter
+\setbeamertemplate{footline}{
+  \leavevmode%
+  \hbox{%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{author in head/foot}%
+    \usebeamerfont{author in head/foot}\insertshortauthor
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{title in head/foot}%
+    \usebeamerfont{title in head/foot}Sesión 13
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,right]{date in head/foot}%
+    \usebeamerfont{date in head/foot}BBDD \hfill \insertframenumber/\inserttotalframenumber \hspace*{0.3cm}
+  \end{beamercolorbox}}%
+  \vskip0pt%
+}
+\makeatother
+
+% --- Datos de la portada ---
+\title[SESIÓN 13 BBDD]{\textbf{Sesión 13}}
+\subtitle{Despliegue y Alta Disponibilidad}
+\author[Prof. C. Sánchez]{Carlos César Sánchez Coronel}
+\institute{\textbf{BASES DE DATOS}}
+\date{2026}
+
+\setbeamertemplate{navigation symbols}{}
+
+\AtBeginSection[]{
+  \begin{frame}
+    \frametitle{Contenido de la sección}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+\begin{document}
+
+\begin{frame}
+    \titlepage
+\end{frame}
+
+\begin{frame}{Contenido general}
+    \tableofcontents
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 1: INTRODUCCIÓN
+% ============================================================================
+\section{Introducción}
+
+\begin{frame}{Objetivos de la sesión}
+    \begin{itemize}
+        \item Comprender la importancia de la contenedorización para bases de datos.
+        \item Aprender a desplegar SGBD en Docker y configurar persistencia.
+        \item Conocer los conceptos básicos de Kubernetes aplicados a bases de datos.
+        \item Diferenciar estrategias de alta disponibilidad: réplicas de lectura, failover, clustering.
+        \item Configurar replicación en motores populares (PostgreSQL, MySQL).
+        \item Entender el balanceo de carga para bases de datos.
+        \item Analizar opciones en la nube (RDS, Cloud SQL) y comparar con on-premise.
+        \item Planificar y ejecutar migraciones de bases de datos.
+        \item Realizar ejercicios prácticos paso a paso.
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 2: CONTENEDORES Y BASES DE DATOS
+% ============================================================================
+\section{Contenedores y Bases de Datos}
+
+\begin{frame}{¿Por qué contenedores?}
+    \begin{itemize}
+        \item Entornos consistentes (desarrollo, prueba, producción).
+        \item Rápido aprovisionamiento y destrucción.
+        \item Aislamiento de recursos.
+        \item Integración con CI/CD.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Ejemplo: PostgreSQL en Docker}
+    \begin{lstlisting}[style=bashstyle]
+# Descargar imagen
+docker pull postgres:15
+
+# Ejecutar contenedor con persistencia
+docker run -d \
+  --name mi-postgres \
+  -e POSTGRES_PASSWORD=mi_password \
+  -e POSTGRES_USER=usuario \
+  -e POSTGRES_DB=mi_db \
+  -v pgdata:/var/lib/postgresql/data \
+  -p 5432:5432 \
+  postgres:15
+    \end{lstlisting}
+    \begin{itemize}
+        \item \texttt{-v pgdata:/var/lib/postgresql/data}: volumen nombrado para persistencia.
+        \item Variables de entorno configuran usuario, contraseña y base de datos inicial.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Volúmenes en Docker}
+    \begin{description}
+        \item[Volumen nombrado] Gestionado por Docker, ubicado en \texttt{/var/lib/docker/volumes/}. Recomendado para producción.
+        \item[Bind mount] Monta un directorio del host. Útil en desarrollo.
+    \end{description}
+    \begin{exampleblock}{Comandos}
+        \texttt{docker volume create pgdata}\\
+        \texttt{docker run -v pgdata:/var/lib/postgresql/data ...}
+    \end{exampleblock}
+\end{frame}
+
+\begin{frame}[fragile]{Redes en Docker}
+    Para comunicación entre contenedores:
+    \begin{lstlisting}[style=bashstyle]
+docker network create mi-red
+docker run -d --name postgres --network mi-red -e POSTGRES_PASSWORD=... postgres
+docker run -d --name app --network mi-red -p 8080:8080 mi-app
+    \end{lstlisting}
+    La aplicación accede a la BD usando el hostname \texttt{postgres}.
+\end{frame}
+
+\begin{frame}{Consideraciones de Rendimiento en Producción}
+    \begin{itemize}
+        \item Usar volúmenes rápidos (SSD).
+        \item Limitar recursos con \texttt{--memory} y \texttt{--cpus}.
+        \item Ajustar parámetros del kernel (ej. \texttt{shared\_buffers}).
+        \item Configurar rotación de logs.
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 3: ORQUESTACIÓN CON KUBERNETES
+% ============================================================================
+\section{Orquestación con Kubernetes}
+
+\begin{frame}{Kubernetes para Bases de Datos}
+    \begin{itemize}
+        \item Despliegues declarativos (Deployments, StatefulSets).
+        \item Auto-escalado.
+        \item Balanceo de carga interno (Services).
+        \item Auto-reparación (reinicio de contenedores fallidos).
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{StatefulSet vs Deployment}
+    \begin{description}
+        \item[Deployment] Para aplicaciones sin estado. Pods intercambiables.
+        \item[StatefulSet] Para aplicaciones con estado. Identidades estables (nombres como \texttt{postgres-0}), orden en despliegue/escalado, y almacenamiento persistente dedicado.
+    \end{description}
+    \alert{StatefulSet es el adecuado para bases de datos.}
+\end{frame}
+
+\begin{frame}[fragile]{Ejemplo: StatefulSet para PostgreSQL}
+    \begin{lstlisting}[style=yamlstyle]
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15
+        env:
+        - name: POSTGRES_PASSWORD
+          value: "mi_password"
+        - name: POSTGRES_USER
+          value: "usuario"
+        - name: POSTGRES_DB
+          value: "mi_db"
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: pgdata
+          mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+  - metadata:
+      name: pgdata
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
+    \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{Service para acceder a PostgreSQL}
+    \begin{lstlisting}[style=yamlstyle]
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+  clusterIP: None  # headless para descubrimiento
+    \end{lstlisting}
+\end{frame}
+
+\begin{frame}{Operadores para Bases de Datos en Kubernetes}
+    Extienden Kubernetes para tareas complejas: backups, failover, upgrades.
+    \begin{itemize}
+        \item Crunchy PostgreSQL Operator
+        \item Zalando PostgreSQL Operator
+        \item Oracle MySQL Operator
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 4: ESTRATEGIAS DE ALTA DISPONIBILIDAD (HA)
+% ============================================================================
+\section{Estrategias de Alta Disponibilidad}
+
+\begin{frame}{Conceptos: RTO y RPO}
+    \begin{description}
+        \item[RTO] Recovery Time Objective: tiempo máximo para restaurar servicio.
+        \item[RPO] Recovery Point Objective: pérdida máxima de datos aceptable.
+    \end{description}
+    Las estrategias HA buscan minimizar RTO y RPO.
+\end{frame}
+
+\begin{frame}{Réplicas de Lectura}
+    \begin{itemize}
+        \item Copias de la base principal que reciben cambios y aceptan lecturas.
+        \item Beneficios: escalabilidad de lecturas, aislamiento de cargas, mayor disponibilidad.
+        \item Implementaciones: PostgreSQL streaming replication, MySQL replication, MongoDB replica sets.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Failover}
+    Conmutación a nodo secundario ante fallo del primario.
+    \begin{description}
+        \item[Manual] Administrador promueve la réplica.
+        \item[Automático] Sistema de monitoreo ejecuta promoción (Patroni, repmgr, Orchestrator).
+    \end{description}
+    \alert{Riesgo de split-brain: usar quorum (etcd, ZooKeeper) y fencing.}
+\end{frame}
+
+\begin{frame}{Clustering}
+    \begin{description}
+        \item[Activo-Pasivo] Un nodo activo, otros en espera. Ej: PostgreSQL con Patroni.
+        \item[Activo-Activo] Todos los nodos aceptan escrituras, con resolución de conflictos. Ej: MySQL Cluster, Oracle RAC, Cassandra.
+    \end{description}
+\end{frame}
+
+\begin{frame}{Balanceo de Carga}
+    Distribuye tráfico entre varios servidores.
+    \begin{itemize}
+        \item \textbf{HAProxy}: balanceo TCP genérico.
+        \item \textbf{ProxySQL}: balanceo y enrutamiento para MySQL.
+        \item \textbf{pgpool-II}: pooling y balanceo para PostgreSQL.
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 5: REPLICACIÓN EN MOTORES ESPECÍFICOS
+% ============================================================================
+\section{Replicación en Motores Específicos}
+
+\begin{frame}[fragile]{PostgreSQL: Streaming Replication}
+    \begin{block}{Primario}
+        \begin{lstlisting}[style=sqlstyle]
+CREATE USER replicator WITH REPLICATION ENCRYPTED PASSWORD 'pass';
+        \end{lstlisting}
+        En \texttt{postgresql.conf}:
+        \begin{lstlisting}[style=bashstyle]
+wal_level = replica
+max_wal_senders = 5
+wal_keep_size = 1GB
+        \end{lstlisting}
+        En \texttt{pg\_hba.conf}:
+        \begin{lstlisting}[style=bashstyle]
+host replication replicator 192.168.1.0/24 md5
+        \end{lstlisting}
+    \end{block}
+    \begin{block}{Secundario}
+        \begin{lstlisting}[style=bashstyle]
+pg_basebackup -h primario -D /var/lib/postgresql/data -U replicator -v -P --wal-method=stream
+touch /var/lib/postgresql/data/standby.signal
+echo "primary_conninfo = 'host=primario user=replicator password=pass'" >> postgresql.auto.conf
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}{MySQL: Group Replication}
+    \begin{itemize}
+        \item Replicación multi-maestro con detección automática de fallos.
+        \item Configuración mediante MySQL Shell (InnoDB Cluster).
+        \item Proporciona consistencia fuerte y failover automático.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{MongoDB: Replica Sets}
+    \begin{itemize}
+        \item Grupo de servidores mongod con un primario y varios secundarios.
+        \item Failover automático: si el primario falla, los secundarios eligen uno nuevo.
+        \item Configuración: iniciar cada nodo con \texttt{--replSet}, luego \texttt{rs.initiate()} y \texttt{rs.add()}.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Oracle: Data Guard}
+    \begin{itemize}
+        \item Mantiene bases de datos standby (físicas o lógicas).
+        \item Puede ser síncrona (protección máxima) o asíncrona.
+        \item Fast-Start Failover para conmutación automática.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{SQL Server: Always On Availability Groups}
+    \begin{itemize}
+        \item Grupos de disponibilidad con réplicas síncronas o asíncronas.
+        \item Hasta 9 réplicas, failover automático con cluster de Windows.
+        \item Réplicas legibles.
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 6: BALANCEO DE CARGA PRÁCTICO
+% ============================================================================
+\section{Balanceo de Carga Práctico}
+
+\begin{frame}[fragile]{HAProxy para PostgreSQL}
+    Configuración en \texttt{/etc/haproxy/haproxy.cfg}:
+    \begin{lstlisting}[style=bashstyle]
+global
+    log stdout format raw local0
+defaults
+    log global
+    option tcplog
+    timeout connect 5s
+    timeout client 1m
+    timeout server 1m
+frontend pgsql
+    bind *:5432
+    default_backend pgsql_backend
+backend pgsql_backend
+    balance roundrobin
+    option pgsql-check user haproxy
+    server pg1 192.168.1.10:5432 check
+    server pg2 192.168.1.11:5432 check
+    \end{lstlisting}
+    Crear usuario \texttt{haproxy} en PostgreSQL para health checks.
+\end{frame}
+
+\begin{frame}{ProxySQL para MySQL}
+    \begin{itemize}
+        \item Enrutamiento de consultas (lecturas a réplicas, escrituras al primario).
+        \item Pooling de conexiones, caché de consultas, control de tráfico.
+        \item Configuración mediante tablas en memoria.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{pgpool-II para PostgreSQL}
+    \begin{itemize}
+        \item Middleware con pooling de conexiones, balanceo de carga, replicación y failover.
+        \item Se sitúa entre la aplicación y los servidores PostgreSQL.
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 7: DESPLIEGUE EN NUBE VS ON-PREMISE Y MIGRACIÓN
+% ============================================================================
+\section{Despliegue en Nube vs On-Premise y Migración}
+
+\begin{frame}{Servicios Gestionados (PaaS)}
+    \begin{description}
+        \item[AWS RDS] Soporta múltiples motores, replicación, backups, failover multi-AZ.
+        \item[Google Cloud SQL] PostgreSQL, MySQL, SQL Server con alta disponibilidad.
+        \item[Azure SQL Database] Base de datos como servicio escalable.
+    \end{description}
+    \textbf{Ventajas:} menor overhead, escalado sencillo, HA integrada. \\
+    \textbf{Desventajas:} menos control, vendor lock-in, costos variables.
+\end{frame}
+
+\begin{frame}{On-Premise}
+    \textbf{Ventajas:} control total, cumplimiento normativo, costos fijos. \\
+    \textbf{Desventajas:} inversión inicial alta, mantenimiento complejo, escalado limitado.
+\end{frame}
+
+\begin{frame}{Arquitectura Híbrida}
+    Combinación de on-premise y nube. Ej: datos sensibles on-premise, data lake en la nube para análisis, replicación para disaster recovery.
+\end{frame}
+
+\begin{frame}[fragile]{Migración a la Nube: Ejemplo con pg\_dump}
+    \begin{lstlisting}[style=bashstyle]
+# Dump local
+pg_dump -U usuario -h localhost mi_db > mi_db.sql
+
+# Restaurar en RDS (previamente crear instancia)
+psql -U usuario -h mi-instance.rds.amazonaws.com -d mi_db < mi_db.sql
+    \end{lstlisting}
+    Para migración sin downtime: usar AWS DMS con replicación continua (CDC).
+\end{frame}
+
+\begin{frame}{AWS Database Migration Service (DMS)}
+    \begin{itemize}
+        \item Servicio gestionado para migraciones con mínimo downtime.
+        \item Soporta replicación continua desde el origen.
+        \item Ideal para grandes volúmenes o migraciones heterogéneas (ej. Oracle a PostgreSQL).
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 8: EJERCICIOS RESUELTOS
+% ============================================================================
+\section{Ejercicios Resueltos}
+
+\begin{frame}[fragile]{Ejercicio 1: PostgreSQL con Docker y persistencia}
+    \textbf{Enunciado:} Crear contenedor PostgreSQL con volumen persistente, crear tabla, insertar datos, detener y eliminar contenedor, luego crear nuevo con mismo volumen y verificar persistencia.
+    \begin{block}{Solución}
+        \begin{lstlisting}[style=bashstyle]
+docker volume create pgdata
+docker run -d --name postgres1 -e POSTGRES_PASSWORD=admin -e POSTGRES_USER=admin -e POSTGRES_DB=testdb -v pgdata:/var/lib/postgresql/data -p 5432:5432 postgres:15
+docker exec -it postgres1 psql -U admin -d testdb
+# En psql:
+CREATE TABLE personas (id SERIAL, nombre TEXT);
+INSERT INTO personas (nombre) VALUES ('Ana'), ('Luis');
+SELECT * FROM personas;
+\q
+docker stop postgres1 && docker rm postgres1
+docker run -d --name postgres2 -e POSTGRES_PASSWORD=admin -e POSTGRES_USER=admin -e POSTGRES_DB=testdb -v pgdata:/var/lib/postgresql/data -p 5432:5432 postgres:15
+docker exec -it postgres2 psql -U admin -d testdb -c "SELECT * FROM personas;"
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 2: Configurar replicación PostgreSQL con Docker}
+    \textbf{Enunciado:} Levantar dos contenedores PostgreSQL (primario y réplica) en una misma máquina y configurar streaming replication asíncrona.
+    \begin{block}{Solución (resumida)}
+        \begin{lstlisting}[style=bashstyle]
+docker network create pg-net
+# Primario
+docker run -d --name pg-primary --network pg-net -e POSTGRES_PASSWORD=admin -e POSTGRES_USER=admin -e POSTGRES_DB=testdb -v pg-primary-data:/var/lib/postgresql/data postgres:15
+# Configurar primario (wal_level, max_wal_senders, pg_hba) y crear usuario replicator
+# Réplica: hacer basebackup y configurar standby
+        \end{lstlisting}
+        Ver detalles en el solucionario.
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 3: Failover manual en PostgreSQL}
+    \textbf{Enunciado:} Simular caída del primario y promover la réplica.
+    \begin{block}{Solución}
+        \begin{lstlisting}[style=bashstyle]
+docker stop pg-primary
+docker exec -it pg-replica pg_ctl promote -D /var/lib/postgresql/data
+# Ahora pg-replica es primario
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 4: Migrar MySQL local a AWS RDS (simulado)}
+    \textbf{Enunciado:} Migrar base de datos MySQL desde contenedor local a otro contenedor que simula RDS.
+    \begin{block}{Solución}
+        \begin{lstlisting}[style=bashstyle]
+# Origen
+docker run -d --name mysql-origen -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=ventas -p 3306:3306 mysql:8
+# Destino
+docker run -d --name mysql-destino -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=ventas -p 3307:3306 mysql:8
+# Dump y restore
+mysqldump -h127.0.0.1 -P3306 -uroot -proot ventas > ventas.sql
+mysql -h127.0.0.1 -P3307 -uroot -proot ventas < ventas.sql
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 5: Configurar HAProxy para balancear entre dos réplicas PostgreSQL}
+    \textbf{Enunciado:} Usar HAProxy para balancear conexiones de solo lectura entre dos réplicas.
+    \begin{block}{Solución}
+        \begin{lstlisting}[style=bashstyle]
+# Crear red y conectar réplicas
+docker network create ha-net
+# Ejecutar HAProxy con configuración (ver diapositiva anterior)
+# En cada réplica, crear usuario haproxy
+docker exec -it pg-replica1 psql -U admin -c "CREATE USER haproxy;"
+# Probar conexión
+psql -h127.0.0.1 -p5432 -U admin -d testdb -c "SELECT inet_server_addr();"
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 9: GLOSARIO
+% ============================================================================
+\section{Glosario}
+
+\begin{frame}{Términos Clave}
+    \begin{description}
+        \item[Contenedor] Entorno aislado para ejecutar aplicaciones.
+        \item[Docker] Plataforma de contenedores.
+        \item[Volumen] Mecanismo de persistencia en Docker.
+        \item[Kubernetes] Orquestador de contenedores.
+        \item[StatefulSet] Recurso de Kubernetes para aplicaciones con estado.
+        \item[Replicación] Copia de datos de un servidor a otro.
+        \item[Réplica de lectura] Copia que acepta consultas de solo lectura.
+        \item[Failover] Conmutación a nodo secundario ante fallo.
+        \item[Split-brain] Dos nodos creyéndose primarios.
+        \item[RTO] Recovery Time Objective.
+        \item[RPO] Recovery Point Objective.
+        \item[HAProxy] Balanceador TCP/HTTP.
+        \item[ProxySQL] Proxy para MySQL.
+        \item[pgpool-II] Middleware para PostgreSQL.
+        \item[AWS RDS] Servicio de base de datos relacional gestionado.
+    \end{description}
+\end{frame}
+
+% --- Diapositiva final ---
+\begin{frame}
+    \centering
+    \Huge \textbf{¿Preguntas?}
+    
+    \vspace{1cm}
+    \large ¡Gracias por su atención!
+\end{frame}
+
+\end{document}

@@ -1,0 +1,747 @@
+% --- CORRECCION: Forzar interpretacion raw de la entrada ---
+\UseRawInputEncoding
+\documentclass[aspectratio=169, 10pt, xcolor=table]{beamer}
+
+% --- Configuracion del Tema ---
+\usetheme{Madrid}
+\usecolortheme{dolphin}
+
+% --- Paquetes necesarios ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage{amsmath, amssymb}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric, babel}
+\usepackage{etoolbox}
+\usepackage{upquote}
+
+% --- Estilo para codigo SQL ---
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\lstset{
+    language=SQL,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\scriptsize,
+    breaklines=true,
+    frame=single,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {ü}{{\"u}}1
+}
+
+% --- Pie de pagina personalizado ---
+\makeatletter
+\setbeamertemplate{footline}{
+  \leavevmode%
+  \hbox{%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{author in head/foot}%
+    \usebeamerfont{author in head/foot}\insertshortauthor
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{title in head/foot}%
+    \usebeamerfont{title in head/foot}Sesión 7
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,right]{date in head/foot}%
+    \usebeamerfont{date in head/foot}BBDD \hfill \insertframenumber/\inserttotalframenumber \hspace*{0.3cm}
+  \end{beamercolorbox}}%
+  \vskip0pt%
+}
+\makeatother
+
+% --- Datos de la portada ---
+\title[SESIÓN 7 BBDD]{\textbf{Sesión 7}}
+\subtitle{Programación en el Servidor y Objetos de Base de Datos}
+\author[Prof. C. Sánchez]{Carlos César Sánchez Coronel}
+\institute{\textbf{BASES DE DATOS}}
+\date{}
+
+\setbeamertemplate{navigation symbols}{}
+
+\AtBeginSection[]{
+  \begin{frame}
+    \frametitle{Contenido de la sección}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+\begin{document}
+
+\begin{frame}
+    \titlepage
+\end{frame}
+
+\begin{frame}{Contenido general}
+    \tableofcontents
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 1: INTRODUCCIÓN
+% ============================================================================
+\section{Introducción}
+
+\begin{frame}{Objetivos de la sesión}
+    \begin{itemize}
+        \item Comprender el papel de los objetos de base de datos: vistas, funciones, procedimientos, triggers.
+        \item Aprender a crear y utilizar estos objetos para encapsular lógica de negocio.
+        \item Conocer técnicas de hash y cifrado para datos sensibles.
+        \item Integrar la base de datos con aplicaciones externas, ETL y modelos de IA.
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 2: VISTAS
+% ============================================================================
+\section{Vistas}
+
+\begin{frame}[fragile]{Vistas Simples}
+    \begin{block}{Definición}
+        Tabla virtual basada en una consulta. No almacena datos físicamente.
+    \end{block}
+    \begin{exampleblock}{Ejemplo}
+        \begin{lstlisting}
+CREATE VIEW clientes_activos AS
+SELECT id, nombre, email
+FROM clientes
+WHERE activo = true;
+
+SELECT * FROM clientes_activos WHERE ciudad = 'Madrid';
+        \end{lstlisting}
+    \end{exampleblock}
+    \begin{itemize}
+        \item \textbf{Seguridad}: ocultar columnas sensibles.
+        \item \textbf{Simplicidad}: encapsular joins complejos.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Vistas Materializadas}
+    \begin{block}{Características}
+        Almacenan físicamente el resultado de la consulta. Ideales para reportes.
+    \end{block}
+    \begin{exampleblock}{PostgreSQL}
+        \begin{lstlisting}
+CREATE MATERIALIZED VIEW resumen_ventas AS
+SELECT producto_id, SUM(cantidad) AS total_vendido
+FROM ventas GROUP BY producto_id;
+
+REFRESH MATERIALIZED VIEW resumen_ventas;
+REFRESH MATERIALIZED VIEW CONCURRENTLY resumen_ventas;
+        \end{lstlisting}
+    \end{exampleblock}
+    \begin{itemize}
+        \item \textbf{Ventaja}: consultas rápidas.
+        \item \textbf{Desventaja}: datos no están en tiempo real.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio Resuelto: Vista para Informes}
+    \textbf{Enunciado:} Crear una vista que muestre para cada cliente su nombre, total gastado y número de pedidos (solo clientes con al menos un pedido).
+    \begin{block}{Solución}
+        \begin{lstlisting}
+CREATE VIEW resumen_clientes AS
+SELECT c.id, c.nombre,
+       COUNT(p.id) AS num_pedidos,
+       COALESCE(SUM(p.total), 0) AS total_gastado
+FROM clientes c
+LEFT JOIN pedidos p ON c.id = p.cliente_id
+GROUP BY c.id, c.nombre
+HAVING COUNT(p.id) > 0;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 3: FUNCIONES Y PROCEDIMIENTOS
+% ============================================================================
+\section{Funciones y Procedimientos Almacenados}
+
+\begin{frame}{Diferencias Clave}
+    \begin{block}{Función}
+        \begin{itemize}
+            \item Retorna un valor (escalar o tabla).
+            \item Se usa dentro de expresiones SQL.
+            \item No puede realizar transacciones (commit/rollback) en la mayoría de motores.
+        \end{itemize}
+    \end{block}
+    \begin{block}{Procedimiento}
+        \begin{itemize}
+            \item Puede no retornar valor o devolver múltiples valores.
+            \item Puede incluir transacciones.
+            \item Se invoca con \texttt{CALL}.
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Funciones Escalares}
+    \begin{exampleblock}{Ejemplo: Calcular IVA (PostgreSQL)}
+        \begin{lstlisting}
+CREATE OR REPLACE FUNCTION calcular_iva(monto NUMERIC)
+RETURNS NUMERIC AS $$
+BEGIN
+    RETURN COALESCE(monto, 0) * 1.21;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+SELECT calcular_iva(100); -- 121
+        \end{lstlisting}
+    \end{exampleblock}
+    \begin{exampleblock}{Ejemplo: MySQL}
+        \begin{lstlisting}
+CREATE FUNCTION calcular_iva(monto DECIMAL(10,2))
+RETURNS DECIMAL(10,2) DETERMINISTIC
+BEGIN
+    RETURN monto * 1.21;
+END;
+        \end{lstlisting}
+    \end{exampleblock}
+\end{frame}
+
+\begin{frame}[fragile]{Funciones Tabla}
+    \begin{block}{Retornan un conjunto de filas}
+        \begin{lstlisting}
+CREATE OR REPLACE FUNCTION empleados_por_depto(depto_id INT)
+RETURNS TABLE(id INT, nombre TEXT, salario NUMERIC) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT id, nombre, salario
+    FROM empleados
+    WHERE departamento_id = depto_id;
+END;
+$$ LANGUAGE plpgsql STABLE;
+
+SELECT * FROM empleados_por_depto(2);
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Procedimientos Almacenados}
+    \begin{block}{Ejemplo: Transferencia bancaria (PostgreSQL)}
+        \begin{lstlisting}
+CREATE OR REPLACE PROCEDURE transferir(
+    origen INT, destino INT, monto NUMERIC
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    UPDATE cuentas SET saldo = saldo - monto WHERE id = origen;
+    UPDATE cuentas SET saldo = saldo + monto WHERE id = destino;
+    COMMIT;
+END;
+$$;
+
+CALL transferir(1, 2, 100);
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Caso de Uso Real: Generación de Tickets en Gasolinera}
+    \textbf{Problema:} Generar ticket correlativo por estación y fecha, con concurrencia.
+    \begin{block}{Solución con función}
+        \begin{lstlisting}
+CREATE TABLE ventas_gasolina (
+    id SERIAL PRIMARY KEY,
+    estacion_id INT NOT NULL,
+    fecha DATE NOT NULL DEFAULT CURRENT_DATE,
+    ticket_num INT NOT NULL,
+    importe NUMERIC NOT NULL,
+    UNIQUE (estacion_id, fecha, ticket_num)
+);
+
+CREATE OR REPLACE FUNCTION generar_ticket(p_estacion INT, p_importe NUMERIC)
+RETURNS INT AS $$
+DECLARE
+    v_ticket INT;
+BEGIN
+    SELECT COALESCE(MAX(ticket_num), 0) + 1 INTO v_ticket
+    FROM ventas_gasolina
+    WHERE estacion_id = p_estacion AND fecha = CURRENT_DATE
+    FOR UPDATE;
+
+    INSERT INTO ventas_gasolina (estacion_id, fecha, ticket_num, importe)
+    VALUES (p_estacion, CURRENT_DATE, v_ticket, p_importe);
+
+    RETURN v_ticket;
+END;
+$$ LANGUAGE plpgsql;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 4: TRIGGERS
+% ============================================================================
+\section{Triggers}
+
+\begin{frame}{Tipos de Triggers}
+    \begin{description}
+        \item[BEFORE] Se ejecuta antes de la operación. Útil para validaciones o modificar valores.
+        \item[AFTER] Después de la operación. Ideal para auditoría, sincronización.
+        \item[INSTEAD OF] Reemplaza la operación (en vistas).
+    \end{description}
+    \vspace{0.3cm}
+    \begin{description}
+        \item[FOR EACH ROW] Se ejecuta por cada fila afectada.
+        \item[FOR EACH STATEMENT] Se ejecuta una vez por sentencia.
+    \end{description}
+\end{frame}
+
+\begin{frame}[fragile]{Trigger de Auditoría}
+    \begin{block}{Registrar cambios de salario}
+        \begin{lstlisting}
+CREATE TABLE audit_salarios (
+    id_empleado INT,
+    salario_anterior NUMERIC,
+    salario_nuevo NUMERIC,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    usuario TEXT DEFAULT current_user
+);
+
+CREATE OR REPLACE FUNCTION audit_salario_func()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF OLD.salario IS DISTINCT FROM NEW.salario THEN
+        INSERT INTO audit_salarios (id_empleado, salario_anterior, salario_nuevo)
+        VALUES (OLD.id, OLD.salario, NEW.salario);
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trig_audit_salario
+AFTER UPDATE OF salario ON empleados
+FOR EACH ROW EXECUTE FUNCTION audit_salario_func();
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Trigger de Validación}
+    \begin{block}{Evitar salarios negativos}
+        \begin{lstlisting}
+CREATE OR REPLACE FUNCTION validar_salario()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.salario < 0 THEN
+        RAISE EXCEPTION 'El salario no puede ser negativo';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trig_validar_salario
+BEFORE INSERT OR UPDATE ON empleados
+FOR EACH ROW EXECUTE FUNCTION validar_salario();
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}{Precauciones con Triggers}
+    \begin{itemize}
+        \item \textbf{Rendimiento}: overhead en cada operación DML, especialmente por fila.
+        \item \textbf{Recursividad}: pueden dispararse a sí mismos; controlar con condiciones.
+        \item \textbf{Depuración}: lógica oculta, difícil de rastrear.
+        \item \textbf{Mantenibilidad}: efectos laterales no evidentes.
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 5: PROGRAMACIÓN AVANZADA
+% ============================================================================
+\section{Programación Avanzada}
+
+\begin{frame}[fragile]{Cursores}
+    \begin{block}{Recorrer filas una por una (ineficiente, pero a veces necesario)}
+        \begin{lstlisting}
+CREATE OR REPLACE FUNCTION procesar_empleados()
+RETURNS VOID AS $$
+DECLARE
+    cur CURSOR FOR SELECT id, salario FROM empleados WHERE activo = true;
+    v_id INT;
+    v_salario NUMERIC;
+BEGIN
+    OPEN cur;
+    LOOP
+        FETCH cur INTO v_id, v_salario;
+        EXIT WHEN NOT FOUND;
+        UPDATE empleados SET salario = v_salario * 1.05 WHERE id = v_id;
+    END LOOP;
+    CLOSE cur;
+END;
+$$ LANGUAGE plpgsql;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Manejo de Excepciones}
+    \begin{block}{Capturar errores en procedimientos}
+        \begin{lstlisting}
+CREATE OR REPLACE PROCEDURE transferir_seguro(
+    origen INT, destino INT, monto NUMERIC
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    UPDATE cuentas SET saldo = saldo - monto WHERE id = origen;
+    UPDATE cuentas SET saldo = saldo + monto WHERE id = destino;
+    COMMIT;
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK;
+        RAISE NOTICE 'Error en transferencia: %', SQLERRM;
+END;
+$$;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 6: HASH Y CRIPTOGRAFÍA
+% ============================================================================
+\section{Funciones de Hash y Criptografía}
+
+\begin{frame}{Conceptos Fundamentales}
+    \begin{description}
+        \item[Hash] Función unidireccional (no reversible). Ej: MD5, SHA-256.
+        \item[Cifrado] Reversible mediante clave (simétrico/asimétrico).
+        \item[Salt] Valor aleatorio añadido al hash para evitar ataques de diccionario.
+    \end{description}
+\end{frame}
+
+\begin{frame}[fragile]{Funciones Hash en SQL}
+    \begin{block}{PostgreSQL (requiere pgcrypto)}
+        \begin{lstlisting}
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+SELECT encode(digest('mi_secreto', 'sha256'), 'hex');
+        \end{lstlisting}
+    \end{block}
+    \begin{block}{MySQL}
+        \begin{lstlisting}
+SELECT MD5('mi_secreto');
+SELECT SHA2('mi_secreto', 256);
+        \end{lstlisting}
+    \end{block}
+    \begin{block}{SQL Server}
+        \begin{lstlisting}
+SELECT HASHBYTES('SHA2_256', 'mi_secreto');
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Almacenamiento Seguro de Contraseñas}
+    \begin{block}{Insertar usuario con hash + salt (PostgreSQL)}
+        \begin{lstlisting}
+INSERT INTO usuarios (email, password_hash, salt)
+VALUES (
+    'usuario@mail.com',
+    encode(digest('password123' || gen_salt('md5'), 'sha256'), 'hex'),
+    gen_salt('md5')
+);
+        \end{lstlisting}
+    \end{block}
+    \begin{block}{Verificación}
+        \begin{lstlisting}
+SELECT * FROM usuarios
+WHERE email = 'usuario@mail.com'
+AND password_hash = encode(digest('password_ingresada' || salt, 'sha256'), 'hex');
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Anonimización de Datos}
+    \begin{block}{Sustituir emails por hash (entornos de test)}
+        \begin{lstlisting}
+UPDATE clientes
+SET email = encode(digest(email || 's3cr3t', 'sha256'), 'hex');
+        \end{lstlisting}
+    \end{block}
+    \begin{alertblock}{Precaución}
+        Salt fijo no es seguro si el conjunto de emails es pequeño. Usar salt por registro.
+    \end{alertblock}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 7: INTEGRACIÓN CON SISTEMAS EXTERNOS
+% ============================================================================
+\section{Integración con Sistemas Externos}
+
+\begin{frame}{¿Por qué integrar lógica en la base de datos?}
+    \begin{itemize}
+        \item \textbf{Latencia}: código cerca de los datos.
+        \item \textbf{Consistencia}: reglas centralizadas.
+        \item \textbf{Seguridad}: control de acceso a nivel de fila/columna.
+        \item \textbf{Rendimiento}: operaciones complejas optimizadas por el motor.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Llamada desde Python (psycopg2)}
+    \begin{block}{Ejemplo con función y procedimiento}
+        \begin{lstlisting}[language=Python]
+import psycopg2
+
+conn = psycopg2.connect("dbname=test user=postgres")
+cur = conn.cursor()
+
+# Llamar a función que retorna valor
+cur.callproc('generar_ticket', [5, 45.50])
+ticket = cur.fetchone()[0]
+print(f"Ticket: {ticket}")
+
+# Llamar a procedimiento
+cur.callproc('transferir', [1, 2, 100])
+conn.commit()
+cur.close()
+conn.close()
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Integración con Machine Learning}
+    \begin{block}{Función que expone datos para entrenamiento}
+        \begin{lstlisting}
+CREATE OR REPLACE FUNCTION datos_entrenamiento(fecha_inicio DATE, fecha_fin DATE)
+RETURNS TABLE(fecha DATE, producto_id INT, total_vendido NUMERIC) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT fecha, producto_id, total_vendido
+    FROM resumen_diario
+    WHERE fecha BETWEEN fecha_inicio AND fecha_fin;
+END;
+$$ LANGUAGE plpgsql STABLE;
+        \end{lstlisting}
+    \end{block}
+    \begin{block}{Consumo en Python}
+        \begin{lstlisting}[language=Python]
+import pandas as pd
+df = pd.read_sql("SELECT * FROM datos_entrenamiento('2025-01-01', '2025-03-01')", conn)
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Orquestación con Apache Airflow}
+    \begin{block}{DAG que ejecuta un procedimiento diario}
+        \begin{lstlisting}[language=Python]
+from airflow import DAG
+from airflow.providers.postgres.operators.postgres import PostgresOperator
+from datetime import datetime
+
+with DAG('etl_diario', start_date=datetime(2025,1,1), schedule='@daily') as dag:
+    tarea = PostgresOperator(
+        task_id='actualizar_resumen',
+        postgres_conn_id='postgres_default',
+        sql="CALL actualizar_resumen_diario();"
+    )
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}{Seguridad: SECURITY DEFINER vs INVOKER}
+    \begin{description}
+        \item[SECURITY INVOKER] (por defecto) Se ejecuta con privilegios del que llama.
+        \item[SECURITY DEFINER] Se ejecuta con privilegios del creador.
+    \end{description}
+    \begin{exampleblock}{Ejemplo}
+        \begin{lstlisting}
+CREATE OR REPLACE FUNCTION eliminar_usuario(uid INT)
+RETURNS VOID SECURITY DEFINER AS $$
+BEGIN
+    DELETE FROM usuarios WHERE id = uid;
+END;
+$$ LANGUAGE plpgsql;
+
+REVOKE ALL ON usuarios FROM app_user;
+GRANT EXECUTE ON FUNCTION eliminar_usuario(INT) TO app_user;
+        \end{lstlisting}
+    \end{exampleblock}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 8: COMPARATIVA ENTRE MOTORES
+% ============================================================================
+\section{Comparativa entre Motores}
+
+\begin{frame}{Características de Programación}
+    \begin{table}
+        \centering
+        \begin{tabular}{l|c|c|c}
+            \toprule
+            Característica & PostgreSQL & MySQL & SQL Server \\
+            \midrule
+            Lenguaje procedural & PL/pgSQL, Python, etc. & SQL/PSM & T-SQL \\
+            Funciones escalares & Sí & Sí & Sí \\
+            Funciones tabla & Sí (RETURNS TABLE) & Sí (RETURNS) & Sí (TVF) \\
+            Procedimientos & Sí (CREATE PROCEDURE) & Sí & Sí \\
+            Triggers & BEFORE/AFTER & BEFORE/AFTER & INSTEAD OF, AFTER \\
+            Cursores & Sí & Sí & Sí \\
+            Vistas materializadas & Sí (REFRESH) & No nativas & Indexed views \\
+            SECURITY DEFINER & Sí & SQL SECURITY & EXECUTE AS \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 9: OPTIMIZACIÓN DE CÓDIGO
+% ============================================================================
+\section{Optimización de Código}
+
+\begin{frame}{Buenas Prácticas}
+    \begin{itemize}
+        \item Usar operaciones basadas en conjuntos en lugar de cursores.
+        \item Evitar triggers innecesarios.
+        \item Indexar columnas usadas en condiciones dentro de funciones.
+        \item Marcar funciones como \texttt{IMMUTABLE}, \texttt{STABLE} o \texttt{VOLATILE} según corresponda.
+        \item Analizar consultas con \texttt{EXPLAIN}.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Ejemplo de Optimización}
+    \begin{block}{Ineficiente (cursor)}
+        \begin{lstlisting}
+FOR r IN SELECT salario FROM empleados WHERE departamento_id = p_depto LOOP
+    total := total + r.salario;
+END LOOP;
+        \end{lstlisting}
+    \end{block}
+    \begin{block}{Eficiente (SQL directo)}
+        \begin{lstlisting}
+SELECT SUM(salario) INTO total FROM empleados WHERE departamento_id = p_depto;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 10: EJERCICIOS RESUELTOS INTEGRADORES
+% ============================================================================
+\section{Ejercicios Resueltos}
+
+\begin{frame}[fragile]{Ejercicio 1: Trigger de Stock}
+    \textbf{Enunciado:} Al insertar en \texttt{detalle\_pedido}, actualizar stock y abortar si insuficiente.
+    \begin{block}{Solución}
+        \begin{lstlisting}
+CREATE OR REPLACE FUNCTION actualizar_stock()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_stock INT;
+BEGIN
+    SELECT stock INTO v_stock FROM productos WHERE id = NEW.producto_id FOR UPDATE;
+    IF v_stock < NEW.cantidad THEN
+        RAISE EXCEPTION 'Stock insuficiente para producto %', NEW.producto_id;
+    END IF;
+    UPDATE productos SET stock = stock - NEW.cantidad WHERE id = NEW.producto_id;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trig_actualizar_stock
+BEFORE INSERT ON detalle_pedido
+FOR EACH ROW EXECUTE FUNCTION actualizar_stock();
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 2: Función para Calcular Total de Pedido}
+    \textbf{Enunciado:} Dado un \texttt{pedido\_id}, calcular la suma de (cantidad * precio) y actualizar la columna \texttt{total} en \texttt{pedidos}.
+    \begin{block}{Solución}
+        \begin{lstlisting}
+CREATE OR REPLACE FUNCTION calcular_total_pedido(p_pedido_id INT)
+RETURNS NUMERIC AS $$
+DECLARE
+    v_total NUMERIC;
+BEGIN
+    SELECT SUM(dp.cantidad * p.precio) INTO v_total
+    FROM detalle_pedido dp
+    JOIN productos p ON dp.producto_id = p.id
+    WHERE dp.pedido_id = p_pedido_id;
+
+    UPDATE pedidos SET total = v_total WHERE id = p_pedido_id;
+    RETURN v_total;
+END;
+$$ LANGUAGE plpgsql;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 3: Vista con Datos Sensibles Ocultos}
+    \textbf{Enunciado:} Crear vista que muestre nombre y salario, pero oculte salario a usuarios no autorizados.
+    \begin{block}{Solución}
+        \begin{lstlisting}
+CREATE VIEW empleados_rh AS
+SELECT id, nombre,
+       CASE WHEN CURRENT_USER = 'rh_user' THEN salario ELSE NULL END AS salario,
+       departamento_id
+FROM empleados;
+        \end{lstlisting}
+    \end{block}
+    Luego otorgar permisos select a los usuarios.
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 4: Transferencia con Auditoría}
+    \textbf{Enunciado:} Procedimiento que transfiera dinero entre cuentas y registre en auditoría.
+    \begin{block}{Solución}
+        \begin{lstlisting}
+CREATE TABLE auditoria_transferencias (
+    id SERIAL PRIMARY KEY,
+    origen INT, destino INT, monto NUMERIC,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    usuario TEXT DEFAULT current_user
+);
+
+CREATE OR REPLACE PROCEDURE transferir_con_auditoria(
+    p_origen INT, p_destino INT, p_monto NUMERIC
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_saldo NUMERIC;
+BEGIN
+    SELECT saldo INTO v_saldo FROM cuentas WHERE id = p_origen FOR UPDATE;
+    IF v_saldo < p_monto THEN
+        RAISE EXCEPTION 'Saldo insuficiente';
+    END IF;
+
+    UPDATE cuentas SET saldo = saldo - p_monto WHERE id = p_origen;
+    UPDATE cuentas SET saldo = saldo + p_monto WHERE id = p_destino;
+    INSERT INTO auditoria_transferencias (origen, destino, monto)
+    VALUES (p_origen, p_destino, p_monto);
+    COMMIT;
+END;
+$$;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 11: GLOSARIO
+% ============================================================================
+\section{Glosario}
+
+\begin{frame}{Términos Clave}
+    \begin{description}
+        \item[Vista] Tabla virtual basada en una consulta.
+        \item[Vista materializada] Vista que almacena físicamente los datos.
+        \item[Función escalar] Retorna un valor simple.
+        \item[Función tabla] Retorna un conjunto de filas.
+        \item[Procedimiento almacenado] Bloque de código que realiza acciones.
+        \item[Trigger] Código que se ejecuta automáticamente ante un evento.
+        \item[BEFORE / AFTER / INSTEAD OF] Momento de ejecución del trigger.
+        \item[FOR EACH ROW / STATEMENT] Nivel del trigger.
+        \item[Hash] Función unidireccional (resumen).
+        \item[Salt] Valor aleatorio añadido al hash.
+        \item[SECURITY DEFINER / INVOKER] Modo de ejecución con permisos.
+    \end{description}
+\end{frame}
+
+% --- Diapositiva final ---
+\begin{frame}
+    \centering
+
+    
+    \vspace{1cm}
+    \large ¡Gracias!
+\end{frame}
+
+\end{document}

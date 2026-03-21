@@ -1,0 +1,556 @@
+% --- CORRECCION: Forzar interpretacion raw de la entrada ---
+\UseRawInputEncoding
+\documentclass[aspectratio=169, 10pt, xcolor=table]{beamer}
+
+% --- Configuracion del Tema ---
+\usetheme{Madrid}
+\usecolortheme{dolphin}
+
+% --- Paquetes necesarios ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage{amsmath, amssymb}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric, babel}
+\usepackage{etoolbox}
+\usepackage{upquote}
+
+% --- Estilo para codigo SQL ---
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\lstset{
+    language=SQL,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\scriptsize,
+    breaklines=true,
+    frame=single,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {ü}{{\"u}}1
+}
+
+% --- Pie de pagina personalizado ---
+\makeatletter
+\setbeamertemplate{footline}{
+  \leavevmode%
+  \hbox{%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{author in head/foot}%
+    \usebeamerfont{author in head/foot}\insertshortauthor
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{title in head/foot}%
+    \usebeamerfont{title in head/foot}Sesión 6
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,right]{date in head/foot}%
+    \usebeamerfont{date in head/foot}BBDD \hfill \insertframenumber/\inserttotalframenumber \hspace*{0.3cm}
+  \end{beamercolorbox}}%
+  \vskip0pt%
+}
+\makeatother
+
+% --- Datos de la portada ---
+\title[SESIÓN 6 BBDD]{\textbf{Sesión 6}}
+\subtitle{Análisis Avanzado y Transformación de Datos con SQL}
+\author[Prof. C. Sánchez]{Carlos César Sánchez Coronel}
+\institute{\textbf{BASES DE DATOS}}
+\date{}
+
+\setbeamertemplate{navigation symbols}{}
+
+\AtBeginSection[]{
+  \begin{frame}
+    \frametitle{Contenido de la sección}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+\begin{document}
+
+\begin{frame}
+    \titlepage
+\end{frame}
+
+\begin{frame}{Contenido general}
+    \tableofcontents
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 1: AGREGACIONES Y AGRUPAMIENTOS
+% ============================================================================
+\section{Agregaciones y Agrupamientos}
+
+\begin{frame}{Funciones de Agregación Básicas}
+    \begin{block}{Funciones estándar}
+        \begin{itemize}
+            \item \texttt{COUNT(*)}: número de filas
+            \item \texttt{COUNT(expr)}: valores no nulos
+            \item \texttt{SUM(expr)}: suma
+            \item \texttt{AVG(expr)}: promedio
+            \item \texttt{MIN(expr)}: mínimo
+            \item \texttt{MAX(expr)}: máximo
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{GROUP BY y HAVING}
+    \begin{block}{Ejemplo: salario promedio por departamento}
+        \begin{lstlisting}
+SELECT departamento_id,
+       COUNT(*) AS num_empleados,
+       AVG(salario) AS salario_promedio
+FROM empleados
+GROUP BY departamento_id;
+        \end{lstlisting}
+    \end{block}
+    \begin{block}{Filtrar grupos con HAVING}
+        \begin{lstlisting}
+SELECT departamento_id, AVG(salario) AS promedio
+FROM empleados
+GROUP BY departamento_id
+HAVING AVG(salario) > 4000;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Agregaciones Avanzadas: ROLLUP, CUBE, GROUPING SETS}
+    \begin{block}{ROLLUP – subtotales jerárquicos}
+        \begin{lstlisting}
+SELECT departamento_id, ciudad, SUM(salario)
+FROM empleados
+GROUP BY ROLLUP (departamento_id, ciudad);
+        \end{lstlisting}
+    \end{block}
+    \begin{block}{CUBE – todas las combinaciones}
+        \begin{lstlisting}
+SELECT departamento_id, ciudad, SUM(salario)
+FROM empleados
+GROUP BY CUBE (departamento_id, ciudad);
+        \end{lstlisting}
+    \end{block}
+    \begin{block}{GROUPING SETS – agrupaciones específicas}
+        \begin{lstlisting}
+SELECT departamento_id, ciudad, SUM(salario)
+FROM empleados
+GROUP BY GROUPING SETS ((departamento_id), (ciudad), ());
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio Resuelto: Resumen de Ventas}
+    \textbf{Enunciado:} Tabla \texttt{ventas(producto, categoría, monto, fecha)}. Obtener:
+    \begin{enumerate}
+        \item Monto total por categoría.
+        \item Monto total por categoría y producto.
+        \item Categorías con total > 10000.
+        \item Totales con ROLLUP.
+    \end{enumerate}
+    \begin{block}{Solución}
+        \begin{lstlisting}
+-- 1. Por categoría
+SELECT categoria, SUM(monto) AS total
+FROM ventas GROUP BY categoria;
+
+-- 2. Por categoría y producto
+SELECT categoria, producto, SUM(monto)
+FROM ventas GROUP BY categoria, producto;
+
+-- 3. Categorías con total > 10000
+SELECT categoria, SUM(monto) AS total
+FROM ventas
+GROUP BY categoria
+HAVING SUM(monto) > 10000;
+
+-- 4. Con ROLLUP
+SELECT categoria, producto, SUM(monto)
+FROM ventas
+GROUP BY ROLLUP (categoria, producto);
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 2: FUNCIONES DE VENTANA
+% ============================================================================
+\section{Funciones de Ventana}
+
+\begin{frame}{Concepto y Sintaxis}
+    \begin{block}{Definición}
+        \begin{itemize}
+            \item Calculan sobre un conjunto de filas relacionadas con la fila actual.
+            \item No colapsan filas (mismo número de filas de salida).
+            \item Se usan con \texttt{OVER()}.
+        \end{itemize}
+    \end{block}
+    \begin{exampleblock}{Sintaxis básica}
+        \texttt{funcion() OVER (PARTITION BY col1 ORDER BY col2)}
+    \end{exampleblock}
+\end{frame}
+
+\begin{frame}[fragile]{Funciones de Ranking}
+    \begin{block}{\texttt{ROW\_NUMBER()}, \texttt{RANK()}, \texttt{DENSE\_RANK()}}
+        \begin{lstlisting}
+SELECT nombre, salario,
+       ROW_NUMBER() OVER (ORDER BY salario DESC) AS row_num,
+       RANK()       OVER (ORDER BY salario DESC) AS rank,
+       DENSE_RANK() OVER (ORDER BY salario DESC) AS dense_rank
+FROM empleados;
+        \end{lstlisting}
+    \end{block}
+    \begin{itemize}
+        \item \texttt{ROW\_NUMBER}: secuencial único
+        \item \texttt{RANK}: mismo rango para empates, deja huecos
+        \item \texttt{DENSE\_RANK}: mismo rango, sin huecos
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Funciones de Valor: LAG y LEAD}
+    \begin{block}{Acceder a filas anteriores/posteriores}
+        \begin{lstlisting}
+SELECT fecha, monto,
+       LAG(monto, 1) OVER (ORDER BY fecha) AS monto_anterior,
+       monto - LAG(monto, 1) OVER (ORDER BY fecha) AS diferencia
+FROM ventas_diarias;
+        \end{lstlisting}
+    \end{block}
+    \begin{block}{\texttt{FIRST\_VALUE}, \texttt{LAST\_VALUE}}
+        \begin{lstlisting}
+SELECT producto, fecha, cantidad,
+       FIRST_VALUE(cantidad) OVER (PARTITION BY producto ORDER BY fecha) AS primera_venta
+FROM ventas;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Agregaciones como Ventana y Marcos}
+    \begin{block}{Totales acumulados y medias móviles}
+        \begin{lstlisting}
+SELECT fecha, monto,
+       SUM(monto) OVER (ORDER BY fecha) AS acumulado,
+       AVG(monto) OVER (ORDER BY fecha ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS media_movil_3
+FROM ventas_diarias;
+        \end{lstlisting}
+    \end{block}
+    \begin{itemize}
+        \item \texttt{ROWS BETWEEN ... AND ...} define el marco.
+        \item \texttt{RANGE} trabaja con valores (ej. fechas).
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Ejemplo: Top N por Departamento}
+    \begin{block}{Tres empleados mejor pagados por departamento}
+        \begin{lstlisting}
+WITH ranked AS (
+    SELECT nombre, salario, departamento_id,
+           ROW_NUMBER() OVER (PARTITION BY departamento_id ORDER BY salario DESC) AS rn
+    FROM empleados
+)
+SELECT * FROM ranked WHERE rn <= 3;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 3: LIMPIEZA Y TRANSFORMACIÓN DE DATOS
+% ============================================================================
+\section{Limpieza y Transformación de Datos}
+
+\begin{frame}[fragile]{Manejo de Valores Nulos}
+    \begin{block}{\texttt{COALESCE} y \texttt{NULLIF}}
+        \begin{lstlisting}
+-- Reemplazar nulos
+SELECT nombre, COALESCE(email, 'sin-email@empresa.com') AS email
+FROM clientes;
+
+-- Evitar división por cero
+SELECT total / NULLIF(cantidad, 0) FROM ventas;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Funciones de Texto}
+    \begin{block}{Manipulación de cadenas}
+        \begin{lstlisting}
+SELECT UPPER(nombre), LOWER(email), INITCAP(TRIM(nombre))
+FROM clientes;
+
+-- Concatenar
+SELECT nombre || ' (' || email || ')' FROM clientes;
+
+-- Reemplazar
+SELECT REPLACE(telefono, '-', '') FROM clientes;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Expresiones Regulares}
+    \begin{block}{Extraer dominio de email}
+        \begin{lstlisting}
+-- PostgreSQL
+SELECT email, SUBSTRING(email FROM '@(.*)$') AS dominio
+FROM clientes;
+
+-- Con REGEXP_REPLACE
+SELECT REGEXP_REPLACE(email, '.*@', '') AS dominio
+FROM clientes;
+        \end{lstlisting}
+    \end{block}
+    \begin{block}{Limpiar teléfono (solo dígitos)}
+        \begin{lstlisting}
+SELECT REGEXP_REPLACE(telefono, '[^0-9]', '', 'g') AS telefono_limpio
+FROM clientes;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Funciones de Fecha y Hora}
+    \begin{block}{Extraer partes, truncar, convertir}
+        \begin{lstlisting}
+-- Extraer año
+SELECT EXTRACT(YEAR FROM fecha) FROM ventas;
+
+-- Truncar a mes
+SELECT DATE_TRUNC('month', fecha) FROM ventas;
+
+-- Convertir texto a fecha
+SELECT TO_DATE('15/03/2025', 'DD/MM/YYYY') AS fecha;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio Resuelto: Limpieza de Datos de Clientes}
+    \textbf{Enunciado:} Tabla \texttt{clientes\_raw} con columnas: \texttt{id}, \texttt{nombre} (espacios y mayúsculas inconsistentes), \texttt{email} (nulos), \texttt{fecha\_registro} (texto 'DD/MM/YYYY'). Limpiar:
+    \begin{enumerate}
+        \item Nombre en formato título, sin espacios extras.
+        \item Email: si es nulo, asignar 'pendiente@mail.com'.
+        \item Fecha convertida a tipo DATE.
+    \end{enumerate}
+    \begin{block}{Solución}
+        \begin{lstlisting}
+SELECT id,
+       INITCAP(TRIM(nombre)) AS nombre_limpio,
+       COALESCE(email, 'pendiente@mail.com') AS email,
+       TO_DATE(fecha_registro, 'DD/MM/YYYY') AS fecha_registro_date
+FROM clientes_raw;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 4: TÉCNICAS AVANZADAS PARA ETL
+% ============================================================================
+\section{Técnicas Avanzadas para ETL}
+
+\begin{frame}[fragile]{Tablas Temporales}
+    \begin{block}{Crear y usar tablas temporales}
+        \begin{lstlisting}
+CREATE TEMP TABLE ventas_trimestre AS
+SELECT *
+FROM ventas
+WHERE fecha >= DATE_TRUNC('quarter', CURRENT_DATE) - INTERVAL '3 months';
+
+SELECT * FROM ventas_trimestre;
+        \end{lstlisting}
+    \end{block}
+    \begin{itemize}
+        \item Existen solo durante la sesión.
+        \item Útiles para resultados intermedios.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{CTEs y Subconsultas Correlacionadas}
+    \begin{block}{CTE para mejor legibilidad}
+        \begin{lstlisting}
+WITH promedio_depto AS (
+    SELECT departamento_id, AVG(salario) AS salario_prom
+    FROM empleados GROUP BY departamento_id
+)
+SELECT e.nombre, e.salario, pd.salario_prom
+FROM empleados e
+JOIN promedio_depto pd ON e.departamento_id = pd.departamento_id
+WHERE e.salario > pd.salario_prom;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Condicionales con CASE}
+    \begin{block}{Categorizar salarios}
+        \begin{lstlisting}
+SELECT nombre, salario,
+       CASE
+           WHEN salario < 2000 THEN 'Bajo'
+           WHEN salario < 4000 THEN 'Medio'
+           ELSE 'Alto'
+       END AS categoria_salarial
+FROM empleados;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Pivotes con CASE y Agregación Condicional}
+    \begin{block}{Ventas mensuales por producto}
+        \begin{lstlisting}
+SELECT producto,
+       SUM(CASE WHEN EXTRACT(month FROM fecha) = 1 THEN monto ELSE 0 END) AS enero,
+       SUM(CASE WHEN EXTRACT(month FROM fecha) = 2 THEN monto ELSE 0 END) AS febrero,
+       SUM(monto) AS total
+FROM ventas
+GROUP BY producto;
+        \end{lstlisting}
+    \end{block}
+    \begin{block}{Usando FILTER (PostgreSQL)}
+        \begin{lstlisting}
+SELECT producto,
+       SUM(monto) FILTER (WHERE EXTRACT(month FROM fecha) = 1) AS enero,
+       SUM(monto) FILTER (WHERE EXTRACT(month FROM fecha) = 2) AS febrero
+FROM ventas
+GROUP BY producto;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Manejo de Duplicados con ROW\_NUMBER}
+    \begin{block}{Eliminar duplicados por email}
+        \begin{lstlisting}
+WITH duplicados AS (
+    SELECT *, ROW_NUMBER() OVER (PARTITION BY email ORDER BY id) AS rn
+    FROM clientes
+)
+DELETE FROM clientes
+WHERE id IN (SELECT id FROM duplicados WHERE rn > 1);
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio Resuelto: Transformación Compleja}
+    \textbf{Enunciado:} Con tablas \texttt{ventas} y \texttt{productos}, se pide:
+    \begin{enumerate}
+        \item Crear tabla temporal con ventas del último trimestre.
+        \item Pivot: total por categoría y mes.
+        \item Clasificar ventas como 'baja', 'media', 'alta'.
+        \item Mostrar solo categorías con total > 1000.
+    \end{enumerate}
+    \begin{block}{Solución (parcial)}
+        \begin{lstlisting}
+-- 1. Tabla temporal
+CREATE TEMP TABLE ventas_trimestre AS
+SELECT v.*, p.categoria
+FROM ventas v
+JOIN productos p ON v.producto = p.id
+WHERE v.fecha >= DATE_TRUNC('quarter', CURRENT_DATE) - INTERVAL '3 months';
+
+-- 2. Pivot por mes
+SELECT categoria,
+       SUM(CASE WHEN EXTRACT(month FROM fecha) = 1 THEN monto ELSE 0 END) AS enero,
+       SUM(CASE WHEN EXTRACT(month FROM fecha) = 2 THEN monto ELSE 0 END) AS febrero,
+       SUM(monto) AS total
+FROM ventas_trimestre
+GROUP BY categoria
+HAVING SUM(monto) > 1000;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 5: EJERCICIOS ADICIONALES (DEL SOLUCIONARIO)
+% ============================================================================
+\section{Ejercicios Adicionales}
+
+\begin{frame}[fragile]{Ejercicio 1: Series Temporales}
+    \textbf{Enunciado:} Calcular la media móvil de 7 días de las ventas diarias.
+    \begin{block}{Solución}
+        \begin{lstlisting}
+SELECT fecha, monto,
+       AVG(monto) OVER (ORDER BY fecha ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS media_movil_7
+FROM ventas_diarias;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 2: Extraer Código Postal}
+    \textbf{Enunciado:} De una dirección como 'Calle Falsa 123, 28080 Madrid', extraer el código postal (5 dígitos).
+    \begin{block}{Solución}
+        \begin{lstlisting}
+SELECT direccion,
+       SUBSTRING(direccion FROM '[0-9]{5}') AS codigo_postal
+FROM clientes;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 3: Agregación Condicional}
+    \textbf{Enunciado:} Contar empleados por departamento y cuántos tienen salario > 3000.
+    \begin{block}{Solución}
+        \begin{lstlisting}
+SELECT departamento_id,
+       COUNT(*) AS total,
+       COUNT(*) FILTER (WHERE salario > 3000) AS altos_salarios
+FROM empleados
+GROUP BY departamento_id;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 4: CTE Recursiva para Jerarquía}
+    \textbf{Enunciado:} Con tabla \texttt{empleados(id, nombre, jefe\_id)}, mostrar nivel jerárquico y camino desde el CEO.
+    \begin{block}{Solución}
+        \begin{lstlisting}
+WITH RECURSIVE jerarquia AS (
+    SELECT id, nombre, jefe_id, 1 AS nivel, nombre AS path
+    FROM empleados WHERE jefe_id IS NULL
+    UNION ALL
+    SELECT e.id, e.nombre, e.jefe_id, j.nivel + 1,
+           j.path || ' > ' || e.nombre
+    FROM empleados e
+    JOIN jerarquia j ON e.jefe_id = j.id
+)
+SELECT id, nombre, nivel, path
+FROM jerarquia
+ORDER BY nivel, nombre;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 6: GLOSARIO
+% ============================================================================
+\section{Glosario}
+
+\begin{frame}{Términos Clave}
+    \begin{description}
+        \item[Función de agregación] Opera sobre un conjunto y devuelve un único valor.
+        \item[GROUP BY] Agrupa filas con valores comunes.
+        \item[HAVING] Filtra grupos después de la agregación.
+        \item[ROLLUP / CUBE / GROUPING SETS] Extensiones para subtotales.
+        \item[Función de ventana] Calcula sobre un marco de filas sin colapsar.
+        \item[OVER] Define la ventana (partición, orden, marco).
+        \item[ROW\_NUMBER, RANK, DENSE\_RANK] Funciones de ranking.
+        \item[LAG / LEAD] Acceden a filas anteriores/posteriores.
+        \item[COALESCE] Primer valor no nulo.
+        \item[NULLIF] Compara y devuelve NULL si iguales.
+        \item[Expresión regular] Patrón para búsqueda en texto.
+        \item[CTE] Common Table Expression (WITH).
+        \item[Tabla temporal] Tabla efímera para una sesión.
+        \item[CASE] Expresión condicional.
+        \item[Pivot] Transformar filas en columnas.
+    \end{description}
+\end{frame}
+
+% --- Diapositiva final ---
+\begin{frame}
+    \centering
+
+    
+    \vspace{1cm}
+    \large ¡Gracias!
+\end{frame}
+
+\end{document}

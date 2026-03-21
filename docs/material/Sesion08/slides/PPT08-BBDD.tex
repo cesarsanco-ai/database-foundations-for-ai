@@ -1,0 +1,604 @@
+% --- CORRECCION: Forzar interpretacion raw de la entrada ---
+\UseRawInputEncoding
+\documentclass[aspectratio=169, 10pt, xcolor=table]{beamer}
+
+% --- Configuracion del Tema ---
+\usetheme{Madrid}
+\usecolortheme{dolphin}
+
+% --- Paquetes necesarios ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage{amsmath, amssymb}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric, babel}
+\usepackage{etoolbox}
+\usepackage{upquote}
+
+% --- Estilo para codigo SQL ---
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\lstdefinestyle{mysql}{
+    language=SQL,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\scriptsize,
+    breaklines=true,
+    frame=single,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {ü}{{\"u}}1
+}
+\lstdefinestyle{python}{
+    language=Python,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\scriptsize,
+    breaklines=true,
+    frame=single,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {ü}{{\"u}}1
+}
+\lstset{style=mysql} % Por defecto SQL, pero se puede cambiar con \lstset{style=python}
+
+% --- Pie de pagina personalizado ---
+\makeatletter
+\setbeamertemplate{footline}{
+  \leavevmode%
+  \hbox{%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{author in head/foot}%
+    \usebeamerfont{author in head/foot}\insertshortauthor
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{title in head/foot}%
+    \usebeamerfont{title in head/foot}Sesión 8
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,right]{date in head/foot}%
+    \usebeamerfont{date in head/foot}BBDD \hfill \insertframenumber/\inserttotalframenumber \hspace*{0.3cm}
+  \end{beamercolorbox}}%
+  \vskip0pt%
+}
+\makeatother
+
+% --- Datos de la portada ---
+\title[SESIÓN 8 BBDD]{\textbf{Sesión 8}}
+\subtitle{Captura de Datos y Extracción Masiva}
+\author[Prof. C. Sánchez]{Carlos César Sánchez Coronel}
+\institute{\textbf{BASES DE DATOS}}
+\date{}
+
+\setbeamertemplate{navigation symbols}{}
+
+\AtBeginSection[]{
+  \begin{frame}
+    \frametitle{Contenido de la sección}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+\begin{document}
+
+\begin{frame}
+    \titlepage
+\end{frame}
+
+\begin{frame}{Contenido general}
+    \tableofcontents
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 1: INTRODUCCIÓN A LA CAPTURA DE DATOS
+% ============================================================================
+\section{Introducción a la Captura de Datos}
+
+\begin{frame}{Importancia de la Captura de Datos}
+    \begin{itemize}
+        \item \textbf{Alimentación de modelos de IA}: Los modelos requieren grandes volúmenes de datos diversos (texto, imágenes, sensores).
+        \item \textbf{Toma de decisiones en tiempo real}: Fraude, recomendaciones, monitoreo.
+        \item \textbf{Análisis histórico}: Tendencias, estudios retrospectivos.
+        \item \textbf{Integración de sistemas}: Unificar fuentes heterogéneas.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Clasificación de Fuentes de Datos}
+    \begin{block}{Según origen}
+        \begin{itemize}
+            \item \textbf{Internas}: BD transaccionales, logs, archivos corporativos.
+            \item \textbf{Externas}: Web, APIs, datos gubernamentales, redes sociales.
+        \end{itemize}
+    \end{block}
+    \begin{block}{Según forma de entrega}
+        \begin{itemize}
+            \item \textbf{Batch}: Datos en bloques periódicos (diario, semanal).
+            \item \textbf{Streaming}: Datos continuos en tiempo real (eventos, sensores).
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 2: WEB SCRAPING
+% ============================================================================
+\section{Fuentes Externas y Web Scraping}
+
+\begin{frame}{Web Scraping}
+    \begin{block}{Definición}
+        Extracción automatizada de información de sitios web.
+    \end{block}
+    \begin{exampleblock}{Casos de uso}
+        \begin{itemize}
+            \item Entrenamiento de LLMs (Common Crawl).
+            \item Monitoreo de precios de la competencia.
+            \item Agregadores de noticias.
+            \item Investigación académica.
+        \end{itemize}
+    \end{exampleblock}
+\end{frame}
+
+\begin{frame}[fragile]{Herramientas de Scraping en Python}
+    \begin{description}
+        \item[requests] Peticiones HTTP.
+        \item[BeautifulSoup] Parseo de HTML.
+        \item[Selenium] Automatización de navegadores (JavaScript).
+        \item[Scrapy] Framework para scraping a gran escala.
+    \end{description}
+    \begin{block}{Ejemplo básico}
+        \begin{lstlisting}[style=python]
+import requests
+from bs4 import BeautifulSoup
+
+url = 'https://quotes.toscrape.com/'
+response = requests.get(url)
+soup = BeautifulSoup(response.text, 'html.parser')
+
+for quote in soup.select('.quote'):
+    text = quote.select_one('.text').get_text()
+    author = quote.select_one('.author').get_text()
+    print(f'{author}: {text}')
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}{Consideraciones Legales y Éticas}
+    \begin{itemize}
+        \item Respetar \texttt{robots.txt}.
+        \item No sobrecargar servidores (rate limiting, delays).
+        \item Verificar términos de servicio.
+        \item Cumplir normativas de protección de datos (GDPR, CCPA).
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Common Crawl}
+    \begin{block}{¿Qué es?}
+        Organización sin fines de lucro que realiza rastreos masivos de la web y pone los datos a disposición pública (petabytes en formato WARC).
+    \end{block}
+    \begin{alertblock}{Importancia para IA}
+        Base de entrenamiento de modelos como GPT, BERT, etc. por su diversidad y escala.
+    \end{alertblock}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 3: APIs
+% ============================================================================
+\section{APIs (Application Programming Interfaces)}
+
+\begin{frame}{Tipos de APIs}
+    \begin{description}
+        \item[REST] Basada en HTTP, verbos (GET, POST), devuelve JSON/XML.
+        \item[GraphQL] Cliente especifica campos necesarios.
+        \item[SOAP] Protocolo pesado basado en XML, entornos empresariales.
+        \item[WebSockets] Comunicación bidireccional en tiempo real.
+    \end{description}
+\end{frame}
+
+\begin{frame}[fragile]{Autenticación y Rate Limiting}
+    \begin{itemize}
+        \item \textbf{API Key} en header o parámetro.
+        \item \textbf{OAuth} tokens.
+        \item \textbf{Rate limiting}: límite de peticiones por tiempo; respetar para no ser bloqueado.
+    \end{itemize}
+    \begin{block}{Ejemplo con API REST (JSONPlaceholder)}
+        \begin{lstlisting}[style=python]
+import requests
+import json
+
+url = 'https://jsonplaceholder.typicode.com/posts'
+response = requests.get(url)
+if response.status_code == 200:
+    posts = response.json()
+    with open('posts.json', 'w') as f:
+        json.dump(posts, f, indent=2)
+else:
+    print('Error:', response.status_code)
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 4: STREAMING Y CHANGE DATA CAPTURE
+% ============================================================================
+\section{Captura en Tiempo Real y Streaming}
+
+\begin{frame}{Concepto de Streaming}
+    \begin{block}{Procesamiento continuo de datos a medida que llegan}
+        \begin{itemize}
+            \item Baja latencia (ms).
+            \item Eventos, sensores, logs, redes sociales.
+        \end{itemize}
+    \end{block}
+    \begin{exampleblock}{Casos de uso}
+        \begin{itemize}
+            \item Detección de fraude en transacciones.
+            \item Monitoreo IoT.
+            \item Análisis de tendencias en redes sociales.
+        \end{itemize}
+    \end{exampleblock}
+\end{frame}
+
+\begin{frame}{Change Data Capture (CDC)}
+    \begin{block}{Captura de cambios en bases de datos en tiempo real}
+        \begin{itemize}
+            \item Inserciones, actualizaciones, eliminaciones.
+            \item Sin afectar el rendimiento transaccional.
+        \end{itemize}
+    \end{block}
+    \begin{description}
+        \item[Basado en logs] Lee log transaccional (WAL, binlog). Ej: Debezium.
+        \item[Basado en triggers] Impacta rendimiento.
+        \item[Consultas periódicas] No es tiempo real.
+    \end{description}
+\end{frame}
+
+\begin{frame}{Debezium y Kafka}
+    \begin{center}
+        \begin{tikzpicture}[node distance=2cm, auto]
+            \node (db) [draw, rectangle] {Base de Datos};
+            \node (debezium) [draw, rectangle, right of=db, xshift=1.5cm] {Debezium};
+            \node (kafka) [draw, rectangle, right of=debezium, xshift=1.5cm] {Kafka};
+            \draw[->] (db) -- (debezium) node[midway, above] {log};
+            \draw[->] (debezium) -- (kafka) node[midway, above] {mensajes};
+        \end{tikzpicture}
+    \end{center}
+    \begin{itemize}
+        \item Debezium se conecta a la BD y publica cambios en tópicos Kafka.
+        \item Consumidores (Spark, aplicaciones) procesan los eventos.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Apache Kafka}
+    \begin{block}{Plataforma de streaming distribuida}
+        \begin{itemize}
+            \item \textbf{Tópicos}: categorías de mensajes.
+            \item \textbf{Productores}: publican mensajes.
+            \item \textbf{Consumidores}: leen mensajes.
+            \item \textbf{Partitions}: paralelismo y orden.
+        \end{itemize}
+    \end{block}
+    \begin{alertblock}{Ventajas}
+        Alta escalabilidad, persistencia, tolerancia a fallos, procesamiento en tiempo real.
+    \end{alertblock}
+\end{frame}
+
+\begin{frame}{Otras Plataformas de Streaming}
+    \begin{itemize}
+        \item \textbf{AWS Kinesis}: servicio gestionado en AWS.
+        \item \textbf{Google Pub/Sub}: global, push/pull.
+        \item \textbf{Apache Pulsar}: almacenamiento en capas.
+        \item \textbf{RabbitMQ}: orientado a colas (menos escalable).
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 5: FORMATOS DE DATOS Y ALMACENAMIENTO
+% ============================================================================
+\section{Formatos de Datos y Almacenamiento}
+
+\begin{frame}{Formatos de Archivo}
+    \begin{table}
+        \centering
+        \begin{tabular}{l|l|l|l}
+            \toprule
+            Formato & Tipo & Compresión & Uso típico \\
+            \midrule
+            CSV & Texto fila & Baja & Intercambio simple \\
+            JSON & Texto semi-estructurado & Media & APIs, documentos \\
+            Avro & Binario fila con esquema & Alta & Streaming (Kafka) \\
+            Parquet & Columnar & Alta & Análisis, data lakes \\
+            ORC & Columnar & Alta & Hive, Hadoop \\
+            WARC & Archivo web & Variable & Common Crawl \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+\end{frame}
+
+\begin{frame}{Data Lakes vs Data Warehouses}
+    \begin{block}{Data Lake}
+        \begin{itemize}
+            \item Almacena datos en bruto (formatos nativos).
+            \item Flexible, estructurados y no estructurados.
+            \item Ej: Amazon S3, Azure Data Lake, HDFS.
+        \end{itemize}
+    \end{block}
+    \begin{block}{Data Warehouse}
+        \begin{itemize}
+            \item Datos procesados y estructurados (esquema estrella).
+            \item Optimizado para consultas analíticas rápidas.
+            \item Ej: Snowflake, BigQuery, Redshift.
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+\begin{frame}{Particionamiento en Data Lakes}
+    \begin{block}{Organización en carpetas}
+        \texttt{s3://bucket/ventas/year=2025/month=03/day=15/ventas.parquet}
+    \end{block}
+    \begin{itemize}
+        \item Permite a motores como Spark leer solo las particiones necesarias.
+        \item Reduce E/S y acelera consultas.
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 6: PROCESAMIENTO A GRAN ESCALA
+% ============================================================================
+\section{Procesamiento a Gran Escala}
+
+\begin{frame}{Apache Spark}
+    \begin{block}{Motor unificado de procesamiento distribuido}
+        \begin{itemize}
+            \item \textbf{Spark SQL}: consultas SQL sobre DataFrames.
+            \item \textbf{DataFrames}: API similar a tablas.
+            \item \textbf{Structured Streaming}: procesamiento en streaming.
+            \item \textbf{MLlib}: machine learning a escala.
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Ejemplo con PySpark}
+    \begin{block}{Leer CSV, calcular total por producto y guardar en Parquet}
+        \begin{lstlisting}[style=python]
+from pyspark.sql import SparkSession
+
+spark = SparkSession.builder.appName("ventas").getOrCreate()
+
+df = spark.read.option("header", "true").csv("ruta/ventas.csv")
+df = df.withColumn("monto", df["cantidad"].cast("int") * df["precio"].cast("float"))
+resultado = df.groupBy("producto").sum("monto").withColumnRenamed("sum(monto)", "total")
+resultado.write.parquet("resultado.parquet")
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}{Apache Flink vs Spark Streaming}
+    \begin{description}
+        \item[Spark Streaming] Micro-batches (intervalos de tiempo). Robusto, maduro.
+        \item[Flink] Streaming puro, evento por evento, menor latencia. Ideal para fraudes, monitoreo.
+    \end{description}
+\end{frame}
+
+\begin{frame}{Hadoop MapReduce}
+    \begin{itemize}
+        \item Modelo de programación distribuida (map y reduce).
+        \item Lento porque escribe resultados intermedios en disco.
+        \item Reemplazado por Spark en la mayoría de casos.
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 7: EJEMPLO INTEGRADOR: PIPELINE DE TWEETS
+% ============================================================================
+\section{Ejemplo Integrador: Captura de Tweets en Tiempo Real}
+
+\begin{frame}{Arquitectura del Pipeline}
+    \begin{enumerate}
+        \item \textbf{Fuente}: API de Twitter (streaming) con autenticación OAuth.
+        \item \textbf{Ingesta}: Productor Kafka (Python) publica tweets en tópico \texttt{tweets}.
+        \item \textbf{Procesamiento}: Spark Structured Streaming lee de Kafka, limpia (quita RTs), extrae hashtags, y guarda en Parquet particionado por fecha.
+        \item \textbf{Almacenamiento}: Data lake en S3 (Parquet).
+        \item \textbf{Análisis batch}: Spark genera reportes diarios.
+    \end{enumerate}
+\end{frame}
+
+\begin{frame}[fragile]{Productor Kafka en Python}
+    \begin{lstlisting}[style=python]
+from kafka import KafkaProducer
+import tweepy, json
+
+producer = KafkaProducer(
+    bootstrap_servers='localhost:9092',
+    value_serializer=lambda v: json.dumps(v).encode('utf-8')
+)
+
+class StreamListener(tweepy.Stream):
+    def on_data(self, raw_data):
+        tweet = json.loads(raw_data)
+        producer.send('tweets', value=tweet)
+        return True
+
+stream = StreamListener(consumer_key, consumer_secret, access_token, access_token_secret)
+stream.filter(track=['#datascience'])
+    \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{Consumidor Spark Structured Streaming}
+    \begin{lstlisting}[style=python]
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import from_json, col
+from pyspark.sql.types import StructType, StructField, StringType, TimestampType
+
+spark = SparkSession.builder.appName("tweet_analysis").getOrCreate()
+
+schema = StructType([
+    StructField("id", StringType()),
+    StructField("text", StringType()),
+    StructField("created_at", TimestampType())
+])
+
+df = spark.readStream.format("kafka") \
+    .option("kafka.bootstrap.servers", "localhost:9092") \
+    .option("subscribe", "tweets") \
+    .load() \
+    .select(from_json(col("value").cast("string"), schema).alias("data")) \
+    .select("data.*")
+
+# Limpieza: quitar retweets
+df_clean = df.filter(~col("text").startswith("RT"))
+
+# Escribir en Parquet particionado por fecha
+query = df_clean.writeStream \
+    .format("parquet") \
+    .partitionBy("created_at") \
+    .option("path", "s3a://bucket/tweets/") \
+    .option("checkpointLocation", "/tmp/checkpoint") \
+    .trigger(processingTime="5 minutes") \
+    .start()
+
+query.awaitTermination()
+    \end{lstlisting}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 8: EJERCICIOS RESUELTOS (DEL SOLUCIONARIO)
+% ============================================================================
+\section{Ejercicios Resueltos}
+
+\begin{frame}[fragile]{Ejercicio 1: Scraping de una Página Web}
+    \textbf{Enunciado:} Extraer citas, autores y etiquetas de \url{http://quotes.toscrape.com} y guardar en CSV.
+    \begin{block}{Solución}
+        \begin{lstlisting}[style=python]
+import requests, csv
+from bs4 import BeautifulSoup
+
+url = 'http://quotes.toscrape.com'
+quotes = []
+while url:
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, 'html.parser')
+    for quote in soup.select('.quote'):
+        text = quote.select_one('.text').get_text()
+        author = quote.select_one('.author').get_text()
+        tags = [tag.get_text() for tag in quote.select('.tag')]
+        quotes.append([text, author, ', '.join(tags)])
+    next_btn = soup.select_one('.next a')
+    url = next_btn['href'] if next_btn else None
+
+with open('quotes.csv', 'w', newline='', encoding='utf-8') as f:
+    writer = csv.writer(f)
+    writer.writerow(['quote', 'author', 'tags'])
+    writer.writerows(quotes)
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 2: Consumo de API Pública}
+    \textbf{Enunciado:} Obtener posts de JSONPlaceholder y guardarlos en JSON.
+    \begin{block}{Solución}
+        \begin{lstlisting}[style=python]
+import requests, json
+
+response = requests.get('https://jsonplaceholder.typicode.com/posts')
+posts = response.json()
+with open('posts.json', 'w') as f:
+    json.dump(posts, f, indent=2)
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 3: Simulación de CDC con Triggers en PostgreSQL}
+    \textbf{Enunciado:} Crear trigger que registre cambios en \texttt{clientes} y un script Python que lea la auditoría y publique en Kafka.
+    \begin{block}{Trigger (PostgreSQL)}
+        \begin{lstlisting}[style=mysql]
+CREATE TABLE clientes_audit (...);
+CREATE OR REPLACE FUNCTION audit_clientes() RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        INSERT INTO clientes_audit (cliente_id, nombre_nuevo, email_nuevo, operacion)
+        VALUES (NEW.id, NEW.nombre, NEW.email, 'I');
+    ELSIF TG_OP = 'UPDATE' THEN
+        INSERT INTO clientes_audit (cliente_id, nombre_anterior, nombre_nuevo, email_anterior, email_nuevo, operacion)
+        VALUES (OLD.id, OLD.nombre, NEW.nombre, OLD.email, NEW.email, 'U');
+    ELSIF TG_OP = 'DELETE' THEN
+        INSERT INTO clientes_audit (cliente_id, nombre_anterior, email_anterior, operacion)
+        VALUES (OLD.id, OLD.nombre, OLD.email, 'D');
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Script Python para leer auditoría y enviar a Kafka}
+    \begin{lstlisting}[style=python]
+import psycopg2
+from kafka import KafkaProducer
+import json
+
+conn = psycopg2.connect("dbname=test user=postgres")
+cur = conn.cursor()
+cur.execute("SELECT * FROM clientes_audit WHERE fecha > NOW() - INTERVAL '1 minute'")
+rows = cur.fetchall()
+
+producer = KafkaProducer(bootstrap_servers='localhost:9092',
+                         value_serializer=lambda v: json.dumps(v).encode('utf-8'))
+
+for row in rows:
+    data = {'id': row[0], 'cliente_id': row[1], 'operacion': row[7], 'fecha': str(row[6])}
+    producer.send('clientes_audit', value=data)
+    \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 4: Procesamiento Batch con Spark}
+    \textbf{Enunciado:} Cargar CSV de ventas, calcular total por producto y guardar en Parquet.
+    \begin{block}{Solución}
+        \begin{lstlisting}[style=python]
+from pyspark.sql import SparkSession
+
+spark = SparkSession.builder.appName("ventas").getOrCreate()
+df = spark.read.option("header", "true").csv("ruta/ventas*.csv")
+df = df.withColumn("monto", df["cantidad"].cast("int") * df["precio"].cast("float"))
+resultado = df.groupBy("producto").sum("monto").withColumnRenamed("sum(monto)", "total")
+resultado.write.parquet("resultado.parquet")
+        \end{lstlisting}
+    \end{block}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 9: GLOSARIO
+% ============================================================================
+\section{Glosario}
+
+\begin{frame}{Términos Clave}
+    \begin{description}
+        \item[Web Scraping] Extracción automatizada de datos web.
+        \item[API] Interfaz para comunicación entre sistemas.
+        \item[CDC] Change Data Capture, captura de cambios en BD.
+        \item[Streaming] Procesamiento continuo de datos.
+        \item[Kafka] Plataforma de streaming distribuida.
+        \item[Debezium] Herramienta de CDC sobre Kafka.
+        \item[Parquet] Formato columnar optimizado para análisis.
+        \item[Data Lake] Almacén de datos en bruto.
+        \item[Spark] Motor de procesamiento distribuido.
+    \end{description}
+\end{frame}
+
+% --- Diapositiva final ---
+\begin{frame}
+    \centering
+
+    
+    \vspace{1cm}
+    \large ¡Gracias!
+\end{frame}
+
+\end{document}

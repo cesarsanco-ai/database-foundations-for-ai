@@ -1,0 +1,582 @@
+% latexmk -pdf PPT12-BBDD.tex && find . -maxdepth 1 -type f ! -name "*.tex" ! -name "*.pdf" -delete
+
+% --- CORRECCION: Forzar interpretacion raw de la entrada ---
+\UseRawInputEncoding
+\documentclass[aspectratio=169, 10pt, xcolor=table]{beamer}
+
+% --- Configuracion del Tema ---
+\usetheme{Madrid}
+\usecolortheme{dolphin}
+
+% --- Paquetes necesarios ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage{amsmath, amssymb}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric, babel}
+\usepackage{etoolbox}
+% \usepackage{upquote} % Eliminado por posibles conflictos
+
+% --- Estilo para codigo SQL y Python ---
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\lstdefinestyle{mysql}{
+    language=SQL,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\scriptsize,
+    breaklines=true,
+    frame=single,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {ü}{{\"u}}1
+}
+\lstdefinestyle{python}{
+    language=Python,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\scriptsize,
+    breaklines=true,
+    frame=single,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {ü}{{\"u}}1
+}
+\lstset{style=python} % Por defecto Python
+
+% --- Pie de pagina personalizado ---
+\makeatletter
+\setbeamertemplate{footline}{
+  \leavevmode%
+  \hbox{%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{author in head/foot}%
+    \usebeamerfont{author in head/foot}\insertshortauthor
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{title in head/foot}%
+    \usebeamerfont{title in head/foot}Sesión 12
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,right]{date in head/foot}%
+    \usebeamerfont{date in head/foot}BBDD \hfill \insertframenumber/\inserttotalframenumber \hspace*{0.3cm}
+  \end{beamercolorbox}}%
+  \vskip0pt%
+}
+\makeatother
+
+% --- Datos de la portada ---
+\title[SESIÓN 12 BBDD]{\textbf{Sesión 12}}
+\subtitle{Bases de Datos Vectoriales y RAG}
+\author[Prof. C. Sánchez]{Carlos César Sánchez Coronel}
+\institute{\textbf{BASES DE DATOS}}
+\date{2026}
+
+\setbeamertemplate{navigation symbols}{}
+
+\AtBeginSection[]{
+  \begin{frame}
+    \frametitle{Contenido de la sección}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+\begin{document}
+
+% Desactivar caracteres activos de babel (<, >) para que no interfieran con listings
+\shorthandoff{<>}
+
+\begin{frame}
+    \titlepage
+\end{frame}
+
+\begin{frame}{Contenido general}
+    \tableofcontents
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 1: INTRODUCCIÓN A LAS BASES DE DATOS VECTORIALES
+% ============================================================================
+\section{Introducción a las Bases de Datos Vectoriales}
+
+\begin{frame}{¿Qué es un vector en el contexto de IA?}
+    \begin{itemize}
+        \item Un \textbf{embedding} es una representación densa de baja dimensionalidad de un objeto (texto, imagen, audio, etc.) en un espacio continuo.
+        \item Objetos semánticamente similares tienen vectores cercanos según alguna métrica.
+        \item Generados por modelos como Word2Vec, BERT, Sentence Transformers, CLIP.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Limitaciones de las bases de datos tradicionales}
+    \begin{itemize}
+        \item No están optimizadas para búsquedas por similitud semántica.
+        \item Búsquedas exactas o por palabras clave (LIKE, full-text) no capturan significado.
+        \item No manejan eficientemente vectores de alta dimensionalidad.
+        \item Escaneo completo (O(n)) inviable para millones de vectores.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{¿Qué hace una base de datos vectorial?}
+    \begin{itemize}
+        \item Almacena vectores junto con metadatos.
+        \item Indexa los vectores para búsquedas rápidas de vecinos cercanos (ANN).
+        \item Ofrece APIs para calcular distancias y recuperar elementos similares.
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 2: EMBEDDINGS
+% ============================================================================
+\section{Embeddings}
+
+\begin{frame}{Definición y generación}
+    \begin{itemize}
+        \item Un \textbf{embedding} es una lista ordenada de números que representa un objeto.
+        \item Modelos populares:
+        \begin{itemize}
+            \item Texto: Sentence Transformers (all-MiniLM-L6-v2), OpenAI embeddings.
+            \item Imágenes: CLIP, ResNet.
+            \item Multimodal: CLIP, ImageBind.
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Ejemplo con Sentence Transformers}
+    \begin{lstlisting}[style=python]
+from sentence_transformers import SentenceTransformer
+
+model = SentenceTransformer('all-MiniLM-L6-v2')
+oraciones = ["El gato duerme en el sofá", "Un perro juega en el parque"]
+embeddings = model.encode(oraciones)
+print(embeddings.shape)  # (2, 384)
+print(embeddings[0][:5]) # primeros 5 valores del primer vector
+    \end{lstlisting}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 3: BÚSQUEDA DE SIMILITUD
+% ============================================================================
+\section{Búsqueda de Similitud: k-NN y ANN}
+
+\begin{frame}{k-NN exacto vs ANN}
+    \begin{description}
+        \item[k-NN exacto] Calcula distancia con todos los vectores, O(n) por consulta. Inviable para millones.
+        \item[ANN (Approximate Nearest Neighbors)] Algoritmos que sacrifican precisión por velocidad (complejidad sublineal).
+    \end{description}
+\end{frame}
+
+\begin{frame}{Algoritmos ANN}
+    \begin{description}
+        \item[HNSW] Grafos multinivel, alta velocidad y precisión, alto consumo de memoria.
+        \item[IVF] Divide espacio en clusters (k-means), explora clusters cercanos.
+        \item[PQ (Product Quantization)] Comprime vectores, reduce memoria, usado con IVF.
+    \end{description}
+\end{frame}
+
+\begin{frame}{Comparativa de algoritmos}
+    \begin{table}
+        \centering
+        \begin{tabular}{l|c|c}
+            \toprule
+            Algoritmo & Velocidad & Precisión \\
+            \midrule
+            HNSW & Alta & Muy alta \\
+            IVF & Alta & Alta \\
+            PQ & Muy alta & Media \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 4: MÉTRICAS DE DISTANCIA
+% ============================================================================
+\section{Métricas de Distancia}
+
+\begin{frame}{Métricas comunes}
+    \begin{description}
+        \item[Similitud de coseno] Mide ángulo entre vectores; ignora magnitudes. $\frac{u \cdot v}{\|u\|\|v\|}$
+        \item[Distancia Euclidiana (L2)] Distancia geométrica: $\sqrt{\sum (u_i - v_i)^2}$
+        \item[Producto punto] Si vectores normalizados, equivale al coseno.
+    \end{description}
+    \begin{alertblock}{Importante}
+        Usar la métrica con la que fue entrenado el modelo (ej. coseno para Sentence Transformers).
+    \end{alertblock}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 5: TECNOLOGÍAS DE BASES DE DATOS VECTORIALES
+% ============================================================================
+\section{Tecnologías de Bases de Datos Vectoriales}
+
+\begin{frame}{Bases de datos nativas}
+    \begin{description}
+        \item[Pinecone] Servicio cloud gestionado, índice HNSW.
+        \item[Milvus] Open source, múltiples índices, despliegue on-premise/cloud.
+        \item[Weaviate] Open source, módulos de ML, búsqueda híbrida.
+        \item[Qdrant] Alto rendimiento en Rust, open source y cloud.
+        \item[Chroma] Ligera, para prototipos y proyectos pequeños.
+    \end{description}
+\end{frame}
+
+\begin{frame}{Extensiones sobre bases de datos existentes}
+    \begin{description}
+        \item[pgvector] Extensión PostgreSQL, índices IVFFlat y HNSW.
+        \item[Elasticsearch] Tipo dense\_vector, búsqueda híbrida.
+        \item[Redis Stack] Módulo RedisVL para búsqueda vectorial.
+        \item[MongoDB Atlas Search] Soporte vectorial (beta).
+    \end{description}
+\end{frame}
+
+\begin{frame}{Tabla comparativa}
+    \begin{table}
+        \centering
+        \begin{tabular}{l|c|c}
+            \toprule
+            Tecnología & Tipo & Índices \\
+            \midrule
+            Pinecone & Nativa (cloud) & HNSW \\
+            Milvus & Nativa (open source) & HNSW, IVF, etc. \\
+            Weaviate & Nativa (open source) & HNSW \\
+            pgvector & Extensión PostgreSQL & IVFFlat, HNSW \\
+            Elasticsearch & Motor de búsqueda & HNSW (plugin) \\
+            RedisVL & Módulo Redis & HNSW \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+\end{frame}
+
+\begin{frame}[fragile]{Ejemplo con pgvector}
+    \begin{lstlisting}[style=mysql]
+CREATE EXTENSION vector;
+
+CREATE TABLE productos (
+    id SERIAL PRIMARY KEY,
+    nombre TEXT,
+    descripcion TEXT,
+    embedding vector(384)
+);
+
+-- Indice HNSW (requiere pgvector >= 0.5.0)
+CREATE INDEX ON productos USING hnsw (embedding vector_cosine_ops);
+
+-- Búsqueda: productos similares a una descripción
+SELECT nombre, embedding <=> '[0.1,0.2,...]' AS distancia
+FROM productos
+ORDER BY embedding <=> '[0.1,0.2,...]'
+LIMIT 10;
+    \end{lstlisting}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 6: RETRIEVAL AUGMENTED GENERATION (RAG)
+% ============================================================================
+\section{Retrieval Augmented Generation (RAG)}
+
+\begin{frame}{Problema que resuelve RAG}
+    \begin{itemize}
+        \item Los LLMs tienen conocimiento limitado a su fecha de entrenamiento.
+        \item Pueden alucinar (inventar) cuando no saben algo.
+        \item RAG proporciona contexto relevante extraído de una base de conocimiento, reduciendo alucinaciones.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Flujo de trabajo típico}
+    \begin{enumerate}
+        \item \textbf{Indexación}: dividir documentos, generar embeddings, almacenar en BD vectorial.
+        \item \textbf{Consulta}: usuario hace pregunta.
+        \item \textbf{Embedding de consulta} y búsqueda de fragmentos similares.
+        \item \textbf{Generación de prompt} con fragmentos recuperados.
+        \item \textbf{LLM} genera respuesta basada en el contexto.
+    \end{enumerate}
+\end{frame}
+
+\begin{frame}{Orquestadores para RAG}
+    \begin{description}
+        \item[LangChain] Framework para cadenas con LLMs, integración con múltiples fuentes y bases vectoriales.
+        \item[LlamaIndex] Especializado en indexación y recuperación de datos.
+        \item[Haystack] Framework modular para búsqueda y RAG.
+    \end{description}
+\end{frame}
+
+\begin{frame}[fragile]{Ejemplo con LangChain y Chroma}
+    \begin{lstlisting}[style=python]
+from langchain.document_loaders import PyPDFLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.vectorstores import Chroma
+from langchain.llms import OpenAI
+from langchain.chains import RetrievalQA
+
+# Cargar y dividir PDF
+loader = PyPDFLoader("documento.pdf")
+documentos = loader.load()
+splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+docs = splitter.split_documents(documentos)
+
+# Embeddings y vectorstore
+embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+vectorstore = Chroma.from_documents(docs, embeddings)
+
+# Cadena QA
+llm = OpenAI(temperature=0)
+qa = RetrievalQA.from_chain_type(llm=llm, retriever=vectorstore.as_retriever())
+respuesta = qa.run("¿Cuál es el tema principal del documento?")
+print(respuesta)
+    \end{lstlisting}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 7: INTEGRACIÓN CON SQL Y NOSQL
+% ============================================================================
+\section{Integración con SQL y NoSQL}
+
+\begin{frame}{Casos de integración}
+    \begin{itemize}
+        \item Metadatos en PostgreSQL, embeddings en pgvector (búsqueda híbrida).
+        \item Documentos en MongoDB, búsqueda semántica con base vectorial externa.
+        \item Data lake con archivos Parquet + catálogo de embeddings.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Estrategias de consistencia}
+    \begin{itemize}
+        \item \textbf{Sincronización síncrona}: escribir en ambas bases dentro de transacción.
+        \item \textbf{CDC (Change Data Capture)}: capturar cambios y propagar vía Kafka/Debezium.
+        \item \textbf{Batch periódico}: reindexar cada cierto tiempo.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Búsqueda híbrida con pgvector}
+    \begin{lstlisting}[style=mysql]
+SELECT nombre, precio, embedding <=> query_embedding AS distancia
+FROM productos
+WHERE categoria = 'electronica' AND precio < 500
+ORDER BY embedding <=> query_embedding
+LIMIT 10;
+    \end{lstlisting}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 8: DESPLIEGUE ON-PREMISE Y CLOUD
+% ============================================================================
+\section{Despliegue On-Premise y Cloud}
+
+\begin{frame}{On-Premise vs Cloud}
+    \begin{description}
+        \item[On-Premise] Control total, seguridad, sin dependencia de proveedor. Mantenimiento y escalado manual.
+        \item[Cloud] Escalabilidad elástica, menor overhead operativo, pago por uso. Dependencia del proveedor, costos variables.
+    \end{description}
+\end{frame}
+
+\begin{frame}{Servicios cloud gestionados}
+    \begin{itemize}
+        \item \textbf{AWS}: OpenSearch Serverless (vectorial), Aurora PostgreSQL con pgvector, MemoryDB (Redis).
+        \item \textbf{GCP}: Vertex AI Vector Search, AlloyDB con pgvector.
+        \item \textbf{Azure}: Cognitive Search con vectorial, Cosmos DB (preview).
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Dimensionamiento y costos}
+    \begin{itemize}
+        \item Factores: número de vectores, dimensionalidad, tipo de índice, QPS.
+        \item Ejemplo Pinecone: $0.50/hora por cada millón de vectores (aprox). Para 10M vectores, costo mensual ≈ $3,600.
+        \item pgvector en RDS puede ser más económico si ya se tiene instancia.
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 9: CASOS DE USO REALES
+% ============================================================================
+\section{Casos de Uso Reales}
+
+\begin{frame}{Búsqueda semántica en e-commerce}
+    Usuarios buscan con lenguaje natural (ej. ``vestido rojo elegante''). Embeddings de descripciones vs. embedding de consulta.
+\end{frame}
+
+\begin{frame}{Sistemas de preguntas y respuestas (FAQ)}
+    Documentación interna indexada en base vectorial; chatbot RAG responde preguntas de empleados.
+\end{frame}
+
+\begin{frame}{Recomendación de contenidos}
+    Embeddings de películas basados en trama/género; recomendar las más similares a las vistas por el usuario.
+\end{frame}
+
+\begin{frame}{Detección de plagio / documentos duplicados}
+    Comparar embeddings de documentos para encontrar similitudes.
+\end{frame}
+
+\begin{frame}{Búsqueda multimodal}
+    Usar CLIP para buscar imágenes con texto o viceversa.
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 10: EJERCICIOS RESUELTOS
+% ============================================================================
+\section{Ejercicios Resueltos}
+
+\begin{frame}[fragile]{Ejercicio 1: Embeddings y pgvector}
+    \textbf{Enunciado:} Generar embeddings de oraciones y buscar similitud con pgvector.
+    \begin{lstlisting}[style=python]
+import psycopg2
+from sentence_transformers import SentenceTransformer
+
+conn = psycopg2.connect(dbname="test", user="postgres")
+cur = conn.cursor()
+cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
+cur.execute("DROP TABLE IF EXISTS oraciones;")
+cur.execute("CREATE TABLE oraciones (id SERIAL PRIMARY KEY, texto TEXT, embedding vector(384));")
+
+model = SentenceTransformer('all-MiniLM-L6-v2')
+oraciones = ["El gato duerme en el sofá", "Los perros juegan en el parque", "Me gusta la comida italiana", "El cielo está nublado hoy"]
+embeddings = model.encode(oraciones).tolist()
+
+for texto, emb in zip(oraciones, embeddings):
+    cur.execute("INSERT INTO oraciones (texto, embedding) VALUES (%s, %s);", (texto, emb))
+conn.commit()
+
+consulta = "animales domésticos"
+emb_consulta = model.encode([consulta]).tolist()[0]
+cur.execute("""SELECT texto, embedding <=> %s::vector AS distancia FROM oraciones ORDER BY embedding <=> %s::vector LIMIT 2;""", (emb_consulta, emb_consulta))
+for texto, dist in cur.fetchall():
+    print(f"{texto} (distancia: {dist:.4f})")
+cur.close(); conn.close()
+    \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 2: Pipeline RAG con LangChain y Chroma}
+    \textbf{Enunciado:} Cargar PDF, dividir, crear embeddings, construir QA con Chroma.
+    \begin{lstlisting}[style=python]
+from langchain.document_loaders import PyPDFLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.vectorstores import Chroma
+from langchain.llms import OpenAI
+from langchain.chains import RetrievalQA
+
+loader = PyPDFLoader("documento.pdf")
+documentos = loader.load()
+splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+docs = splitter.split_documents(documentos)
+
+embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+vectorstore = Chroma.from_documents(docs, embeddings)
+
+llm = OpenAI(temperature=0)
+qa = RetrievalQA.from_chain_type(llm=llm, retriever=vectorstore.as_retriever())
+respuesta = qa.run("¿Cual es el tema principal del documento?")
+print(respuesta)
+    \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 3: Búsqueda híbrida con pgvector}
+    \textbf{Enunciado:} Filtrar por precio y categoría, ordenar por similitud.
+    \begin{lstlisting}[style=python]
+import psycopg2
+from sentence_transformers import SentenceTransformer
+
+conn = psycopg2.connect(dbname="test", user="postgres")
+cur = conn.cursor()
+
+model = SentenceTransformer('all-MiniLM-L6-v2')
+consulta = "teléfono inteligente con buena cámara"
+emb_consulta = model.encode([consulta]).tolist()[0]
+
+cur.execute("""
+    SELECT nombre, precio, embedding <=> %s::vector AS dist
+    FROM productos
+    WHERE precio > 50 AND categoria = 'electronica'
+    ORDER BY embedding <=> %s::vector
+    LIMIT 5;
+""", (emb_consulta, emb_consulta))
+
+for row in cur.fetchall():
+    print(row)
+cur.close(); conn.close()
+    \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 4: Comparación de índices en Milvus}
+    \textbf{Enunciado:} Crear colección, insertar vectores, comparar HNSW vs IVFFlat.
+    \begin{lstlisting}[style=python]
+from pymilvus import connections, Collection, FieldSchema, CollectionSchema, DataType, utility
+import numpy as np
+import time
+
+connections.connect("default", host="localhost", port="19530")
+
+fields = [
+    FieldSchema(name="id", dtype=DataType.INT64, is_primary=True),
+    FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=128)
+]
+schema = CollectionSchema(fields)
+collection = Collection("test_vector", schema)
+
+data = [
+    [i for i in range(10000)],
+    [np.random.rand(128).tolist() for _ in range(10000)]
+]
+collection.insert(data)
+collection.flush()
+
+# HNSW
+hnsw_params = {"index_type": "HNSW", "metric_type": "COSINE", "params": {"M": 16, "efConstruction": 200}}
+collection.create_index("embedding", hnsw_params)
+collection.load()
+start = time.time()
+collection.search([np.random.rand(128).tolist()], "embedding", param={"metric_type": "COSINE", "params": {"ef": 64}}, limit=10)
+print("HNSW tiempo:", time.time() - start)
+
+# IVF (drop index first)
+collection.drop_index()
+ivf_params = {"index_type": "IVF_FLAT", "metric_type": "COSINE", "params": {"nlist": 128}}
+collection.create_index("embedding", ivf_params)
+collection.load()
+start = time.time()
+collection.search([np.random.rand(128).tolist()], "embedding", param={"metric_type": "COSINE", "params": {"nprobe": 10}}, limit=10)
+print("IVF tiempo:", time.time() - start)
+    \end{lstlisting}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 11: GLOSARIO
+% ============================================================================
+\section{Glosario}
+
+\begin{frame}{Términos Clave}
+    \begin{description}
+        \item[Embedding] Representación vectorial de un objeto.
+        \item[Vector] Lista ordenada de números.
+        \item[Dimensionalidad] Número de componentes del vector.
+        \item[Similitud de coseno] Medida del ángulo entre vectores.
+        \item[Distancia Euclidiana] Distancia geométrica.
+        \item[ANN] Approximate Nearest Neighbors.
+        \item[HNSW] Hierarchical Navigable Small World.
+        \item[IVF] Inverted File Index.
+        \item[PQ] Product Quantization.
+        \item[RAG] Retrieval Augmented Generation.
+        \item[LangChain] Framework para aplicaciones con LLMs.
+        \item[pgvector] Extensión vectorial para PostgreSQL.
+        \item[Pinecone] Base de datos vectorial gestionada.
+        \item[Milvus] Plataforma de búsqueda vectorial open source.
+    \end{description}
+\end{frame}
+
+% --- Diapositiva final ---
+\begin{frame}
+    \centering
+    \Huge \textbf{¿Preguntas?}
+    
+    \vspace{1cm}
+    \large ¡Gracias por su atención!
+\end{frame}
+
+\end{document}

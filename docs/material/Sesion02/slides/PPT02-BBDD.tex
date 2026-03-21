@@ -1,0 +1,340 @@
+% USAR
+% latexmk -pdf PPT2-BBDD.tex && find . -maxdepth 1 -type f ! -name "*.tex" ! -name "*.pdf" -delete
+\UseRawInputEncoding
+\documentclass[aspectratio=169, 10pt, xcolor=table]{beamer}
+
+% --- Configuración del Tema ---
+\usetheme{Madrid}
+\usecolortheme{dolphin}
+\usepackage{mathtools}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{babel}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric}
+\usepackage{etoolbox}
+
+% --- Ruta de Imágenes ---
+\graphicspath{{./imagenes/}}
+
+% --- Estilo para código (SQL, Redis, etc.) ---
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\lstset{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\scriptsize,
+    breaklines=true,
+    frame=single,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {ü}{{\"u}}1
+}
+
+% --- Pie de página personalizado (adaptado a Sesión 2) ---
+\makeatletter
+\setbeamertemplate{footline}{
+  \leavevmode%
+  \hbox{%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{author in head/foot}%
+    \usebeamerfont{author in head/foot}\insertshortauthor
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{title in head/foot}%
+    \usebeamerfont{title in head/foot}Sesión 2
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,right]{date in head/foot}%
+    \usebeamerfont{date in head/foot}BBDD \hfill \insertframenumber/\inserttotalframenumber \hspace*{0.3cm}
+  \end{beamercolorbox}}%
+  \vskip0pt%
+}
+\makeatother
+
+% --- Datos de la portada ---
+\title[SESIÓN 2 BBDD]{\textbf{Sesión 2}}
+\subtitle{Estructuras de Datos en SQL y NoSQL: Algoritmos de búsqueda, índices y optimización}
+\author[Prof. C. Sánchez]{Carlos César Sánchez Coronel}
+\institute{\textbf{BASES DE DATOS}}
+\date{}
+
+% --- Eliminar barra de navegación ---
+\setbeamertemplate{navigation symbols}{}
+
+% --- Índice al inicio de cada sección ---
+\AtBeginSection[]{
+  \begin{frame}
+    \frametitle{Contenido}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+\begin{document}
+
+% --- Portada ---
+\begin{frame}
+    \titlepage
+\end{frame}
+
+% --- Índice general ---
+\begin{frame}{Contenido}
+    \tableofcontents
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 1: EL CORAZÓN ALGORÍTMICO DE LAS BASES DE DATOS
+% ============================================================================
+\section{El Corazón Algorítmico de las Bases de Datos}
+
+\begin{frame}{¿Qué es un índice?}
+    \begin{block}{Definición}
+        Estructura de datos auxiliar que acelera las búsquedas a costa de:
+        \begin{itemize}
+            \item Espacio adicional en memoria/disco.
+            \item Sobrecarga en escrituras (INSERT/UPDATE/DELETE).
+        \end{itemize}
+    \end{block}
+    \vspace{0.3cm}
+    \begin{table}
+        \centering
+        \begin{tabular}{lcc}
+            \toprule
+            \textbf{Operación} & \textbf{Sin índice} & \textbf{Con índice} \\
+            \midrule
+            Búsqueda por clave & $O(n)$ - Table Scan & $O(\log n)$ o $O(1)$ \\
+            Inserción           & $O(1)$ (al final)    & $O(\log n)$ (mantener orden) \\
+            Eliminación         & $O(n)$ (buscar+borrar) & $O(\log n)$ \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 2: MOTORES SQL – EL REINO DEL B-TREE
+% ============================================================================
+\section{Motores SQL: El Reino del B-Tree}
+
+\begin{frame}{Fundamento: B-Tree y B+Tree}
+    \begin{columns}
+        \column{0.6\textwidth}
+        \begin{itemize}
+            \item Árbol balanceado diseñado para disco.
+            \item Alto factor de ramificación (cientos de hijos).
+            \item Nodos de tamaño de página (4KB–16KB).
+            \item \textbf{B+Tree}: nodos internos solo claves; hojas con datos + punteros; hojas enlazadas.
+        \end{itemize}
+        \vspace{0.2cm}
+        \textbf{Complejidades:}
+        \begin{itemize}
+            \item Búsqueda por clave: $O(\log n)$ accesos a disco.
+            \item Búsqueda por rango: $O(\log n + k)$.
+            \item Inserción/eliminación: $O(\log n)$.
+        \end{itemize}
+        \column{0.4\textwidth}
+        \centering
+        \begin{tikzpicture}[scale=0.7, every node/.style={draw, circle, minimum size=0.6cm, inner sep=1pt}]
+            \node (a) at (0,2) {10};
+            \node (b) at (-1.5,1) {5};
+            \node (c) at (1.5,1) {15};
+            \node (d) at (-2.5,0) {2};
+            \node (e) at (-0.5,0) {7};
+            \node (f) at (0.5,0) {12};
+            \node (g) at (2.5,0) {18};
+            \draw (a) -- (b) (a) -- (c);
+            \draw (b) -- (d) (b) -- (e);
+            \draw (c) -- (f) (c) -- (g);
+        \end{tikzpicture}
+        \vspace{0.2cm}
+        {\tiny Ejemplo simplificado de B-Tree}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Oracle Database}
+    \begin{description}
+        \item[Índices B-Tree] (por defecto) – B+Tree para alta cardinalidad.
+        \item[Índices Bitmap] – Mapas de bits para baja cardinalidad.
+            \begin{itemize}
+                \item Ventaja: operaciones booleanas $O(1)$ con bitwise.
+                \item Desventaja: bloqueo en escrituras concurrentes.
+            \end{itemize}
+        \item[Índices Function-Based] – Almacenan resultado de función (ej. \texttt{UPPER(nombre)}).
+    \end{description}
+    \vspace{0.3cm}
+    \textbf{Caso de uso típico:} Data Warehousing con índices bitmap para dimensiones con pocos valores.
+\end{frame}
+
+\begin{frame}{SQL Server}
+    \begin{itemize}
+        \item \textbf{Clustered Index} (B+Tree): datos en hojas. Solo uno por tabla.
+        \item \textbf{Non-Clustered Index} (B+Tree): hojas con punteros a filas.
+        \item \textbf{Columnstore Index}: almacenamiento columnar, compresión masiva, ideal para analíticas.
+            \begin{itemize}
+                \item Hasta 10x compresión, 100x velocidad en consultas agregadas.
+            \end{itemize}
+    \end{itemize}
+    \vspace{0.3cm}
+    \textbf{Caso de uso:} OLTP con clustered; Data Warehouses con columnstore.
+\end{frame}
+
+\begin{frame}{MySQL: Motores de almacenamiento}
+    \textbf{InnoDB} (por defecto)
+    \begin{itemize}
+        \item Índice clustered obligatorio (por PK o oculto).
+        \item Índices secundarios almacenan PK como puntero → dos accesos.
+    \end{itemize}
+    \textbf{MyISAM} (legacy)
+    \begin{itemize}
+        \item Índices no clustered: hojas con punteros físicos.
+    \end{itemize}
+    \textbf{MEMORY}
+    \begin{itemize}
+        \item Índices hash (búsquedas $O(1)$) y B-Tree.
+        \item Tablas volátiles en RAM.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{PostgreSQL: La navaja suiza de los índices}
+    \begin{itemize}
+        \item \textbf{B-Tree}: por defecto.
+        \item \textbf{Hash}: igualdad $O(1)$.
+        \item \textbf{GIN} (Generalized Inverted Index): para arrays, JSON, texto completo.
+        \item \textbf{GiST}: datos geométricos, búsquedas por similitud.
+        \item \textbf{SP-GiST}: particionamiento espacial.
+        \item \textbf{BRIN}: muy ligero, para datos correlacionados (series temporales).
+    \end{itemize}
+    \vspace{0.2cm}
+    \begin{exampleblock}{Ejemplo: índice GIN en JSON}
+        \begin{lstlisting}[language=SQL]
+CREATE INDEX idx_datos ON tabla USING GIN (datos_json);
+SELECT * FROM tabla WHERE datos_json @> '{"ciudad": "Madrid"}';
+        \end{lstlisting}
+    \end{exampleblock}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 3: MOTORES NoSQL – ESPECIALIZACIÓN Y RENDIMIENTO
+% ============================================================================
+\section{Motores NoSQL: Especialización y Rendimiento}
+
+\begin{frame}{Redis: Colección de estructuras en memoria}
+    \textbf{Arquitectura de dos niveles:}
+    \begin{itemize}
+        \item Tipo externo: String, List, Set, Sorted Set, Hash.
+        \item Implementación interna optimizada según datos.
+    \end{itemize}
+    \begin{table}
+        \centering
+        \begin{tabular}{l|l|l}
+            \toprule
+            \textbf{Estructura} & \textbf{Implementación} & \textbf{Complejidad} \\
+            \midrule
+            String & sds (int, embstr, raw) & Acceso $O(1)$, modificación $O(n)$ \\
+            List & quicklist (ziplist + linked list) & LPUSH/RPOP $O(1)$, acceso índice $O(n)$ \\
+            Set & intset / hashtable & $O(1)$ membresía \\
+            Sorted Set & skiplist + hashtable & ZADD $O(\log n)$, ZSCORE $O(1)$ \\
+            Stream & Radix Tree & Inserción/lectura por rango eficiente \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+\end{frame}
+
+\begin{frame}{Cassandra: LSM-Tree y el reinado de las escrituras}
+    \textbf{Arquitectura LSM-Tree:}
+    \begin{itemize}
+        \item \textbf{Memtable} (en memoria, ej. SkipList) recibe escrituras.
+        \item \textbf{Commit Log} (WAL) para durabilidad.
+        \item \textbf{SSTable} (Sorted String Table) en disco, inmutable.
+        \item \textbf{Compaction} fusiona SSTables en segundo plano.
+    \end{itemize}
+    \vspace{0.2cm}
+    \textbf{Ventajas:} escrituras secuenciales, alta compresión, escalabilidad.
+\end{frame}
+
+\begin{frame}{Cassandra: Optimizaciones de lectura}
+    Para evitar revisar muchas SSTables:
+    \begin{description}
+        \item[Bloom Filter] Estructura probabilística en memoria.
+            \begin{itemize}
+                \item ``No'' definitivo, ``Quizás sí'' (falso positivo típico 1\%).
+                \item $O(k)$ con $k$ funciones hash.
+            \end{itemize}
+        \item[Partition Index] Índice disperso de rangos de claves (B+Tree o BTI).
+        \item[Compression Metadata] Lectura solo de bloques necesarios.
+    \end{description}
+    \begin{block}{Efectividad}
+        Con 100 SSTables, los bloom filters eliminan el 99\% de comprobaciones de disco.
+    \end{block}
+\end{frame}
+
+\begin{frame}{MongoDB, Neo4j, Elasticsearch}
+    \begin{description}
+        \item[MongoDB] Índices B-Tree (WiredTiger), compuestos, multikey (arrays), geoespaciales (geohash/quads), hashed.
+        \item[Neo4j] Almacenamiento nativo de grafos: nodos con listas enlazadas de relaciones. Índices Lucene (FST) o B-Tree para propiedades.
+        \item[Elasticsearch] (Lucene) Índice invertido (término $\rightarrow$ listas de documentos). FST para autocompletado, BKD trees para numéricos/geo.
+    \end{description}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 4: TABLA COMPARATIVA DE COMPLEJIDADES
+% ============================================================================
+\section{Tabla Comparativa de Complejidades}
+
+\begin{frame}{Complejidades algorítmicas}
+    {\tiny
+    \begin{table}
+        \centering
+        \begin{tabular}{l|l|l}
+            \toprule
+            \textbf{Motor} & \textbf{Estructura primaria} & \textbf{Búsqueda por clave} \\
+            \midrule
+            Oracle (B-Tree) & B+Tree & $O(\log n)$ \\
+            Oracle (Bitmap) & Bitmap & $O(1)$ combinación \\
+            SQL Server & B+Tree & $O(\log n)$ \\
+            MySQL InnoDB & B+Tree (clustered) & $O(\log n)$ \\
+            PostgreSQL B-Tree & B+Tree & $O(\log n)$ \\
+            PostgreSQL GIN & Índice invertido & $O(\log n)$ \\
+            Redis Strings & sds & $O(1)$ \\
+            Redis Lists & quicklist & $O(n)$ acceso índice \\
+            Redis Sorted Sets & skiplist+hashtable & $O(\log n)$ (por score) \\
+            Cassandra & LSM-Tree & $O(\text{\#SSTables} \times \log n)$* \\
+            MongoDB & B-Tree & $O(\log n)$ \\
+            Elasticsearch & Índice invertido & $O(1)$ término a posting \\
+            Neo4j & Grafos nativos & $O(1)$ por ID de nodo \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+    \vspace{0.2cm}
+    *En Cassandra, con bloom filters, el factor es $O(m_{\text{false positives}} \times \log n)$ donde $m_{\text{false positives}}$ es pequeño.
+    }
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 5: RESUMEN
+% ============================================================================
+\section{Resumen}
+
+\begin{frame}{Lo que hemos aprendido}
+    \begin{exampleblock}{Conceptos clave}
+        \begin{itemize}
+            \item Los índices son estructuras auxiliares que aceleran búsquedas (costo en escrituras y espacio).
+            \item B+Tree es el estándar en motores SQL, con variantes (Bitmap, Columnstore, etc.).
+            \item PostgreSQL ofrece la mayor variedad de índices (GIN, GiST, BRIN…).
+            \item NoSQL especializa estructuras: Redis (in-memory), Cassandra (LSM-Tree + bloom filters), Elasticsearch (inverted index).
+            \item Cada motor elige la estructura según el caso de uso: OLTP, analíticas, tiempo real, grafos.
+        \end{itemize}
+    \end{exampleblock}
+\end{frame}
+
+% --- Diapositiva final ---
+\begin{frame}
+    \centering
+    \Huge \textbf{¡Gracias!}
+\end{frame}
+
+\end{document}

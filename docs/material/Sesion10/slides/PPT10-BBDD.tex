@@ -1,0 +1,492 @@
+% --- CORRECCION: Forzar interpretacion raw de la entrada ---
+\UseRawInputEncoding
+\documentclass[aspectratio=169, 10pt, xcolor=table]{beamer}
+
+% --- Configuracion del Tema ---
+\usetheme{Madrid}
+\usecolortheme{dolphin}
+
+% --- Paquetes necesarios ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage{amsmath, amssymb}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric, babel}
+\usepackage{etoolbox}
+\usepackage{upquote}
+
+% --- Estilo para codigo SQL y Python ---
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\lstdefinestyle{mysql}{
+    language=SQL,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\scriptsize,
+    breaklines=true,
+    frame=single,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {ü}{{\"u}}1
+}
+\lstdefinestyle{python}{
+    language=Python,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\scriptsize,
+    breaklines=true,
+    frame=single,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {ü}{{\"u}}1
+}
+\lstset{style=python} % Por defecto Python, aunque se puede cambiar
+
+% --- Pie de pagina personalizado ---
+\makeatletter
+\setbeamertemplate{footline}{
+  \leavevmode%
+  \hbox{%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{author in head/foot}%
+    \usebeamerfont{author in head/foot}\insertshortauthor
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{title in head/foot}%
+    \usebeamerfont{title in head/foot}Sesión 10
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,right]{date in head/foot}%
+    \usebeamerfont{date in head/foot}BBDD \hfill \insertframenumber/\inserttotalframenumber \hspace*{0.3cm}
+  \end{beamercolorbox}}%
+  \vskip0pt%
+}
+\makeatother
+
+% --- Datos de la portada ---
+\title[SESIÓN 10 BBDD]{\textbf{Sesión 10}}
+\subtitle{Big Data y Formatos de Alto Rendimiento}
+\author[Prof. C. Sánchez]{Carlos César Sánchez Coronel}
+\institute{\textbf{BASES DE DATOS}}
+\date{}
+
+\setbeamertemplate{navigation symbols}{}
+
+\AtBeginSection[]{
+  \begin{frame}
+    \frametitle{Contenido de la sección}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+\begin{document}
+
+\begin{frame}
+    \titlepage
+\end{frame}
+
+\begin{frame}{Contenido general}
+    \tableofcontents
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 1: INTRODUCCIÓN AL BIG DATA
+% ============================================================================
+\section{Introducción al Big Data}
+
+\begin{frame}{Las 5 V del Big Data}
+    \begin{description}
+        \item[Volumen] Cantidad masiva de datos (terabytes, petabytes). Ej: 500M tweets/día.
+        \item[Velocidad] Rapidez de generación y procesamiento. Ej: sensores IoT cada segundo.
+        \item[Variedad] Diferentes formatos: estructurados, semiestructurados, no estructurados.
+        \item[Veracidad] Calidad y confiabilidad. Ej: datos con ruido o valores erróneos.
+        \item[Valor] Capacidad de transformar datos en beneficios.
+    \end{description}
+\end{frame}
+
+\begin{frame}{¿Cuándo una solución es Big Data?}
+    \begin{itemize}
+        \item Cuando el volumen supera la capacidad de una sola máquina.
+        \item Cuando se requiere procesamiento en tiempo real (baja latencia).
+        \item Cuando los datos son muy diversos y necesitan integrarse.
+        \item Cuando se necesita escalabilidad horizontal.
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 2: ALMACENAMIENTO OPTIMIZADO PARA BIG DATA
+% ============================================================================
+\section{Almacenamiento Optimizado para Big Data}
+
+\begin{frame}{Formatos de archivo}
+    \begin{description}
+        \item[Parquet] Columnar, alta compresión, ideal para análisis en data lakes.
+        \item[ORC] Columnar, índices internos, usado en Hive/Hadoop.
+        \item[Avro] Binario orientado a filas, con esquema, excelente para streaming (Kafka).
+        \item[JSON] Texto semi-estructurado, usado en APIs, pero ineficiente para análisis masivo.
+        \item[CSV] Texto simple, baja compresión, solo para intercambio básico.
+    \end{description}
+\end{frame}
+
+\begin{frame}{Comparativa de formatos}
+    \begin{table}
+        \centering
+        \begin{tabular}{l|c|c|c}
+            \toprule
+            Formato & Tipo & Compresión & Uso típico \\
+            \midrule
+            Parquet & Columnar & Alta & Análisis, data lakes \\
+            ORC & Columnar & Alta & Hive, Hadoop \\
+            Avro & Fila & Media & Streaming, serialización \\
+            JSON & Texto & Baja & APIs, documentos \\
+            CSV & Texto & Baja & Intercambio simple \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+\end{frame}
+
+\begin{frame}[fragile]{Ejemplo: Lectura de Parquet con Spark}
+    \begin{lstlisting}[style=python]
+from pyspark.sql import SparkSession
+
+spark = SparkSession.builder.appName("lectura").getOrCreate()
+df = spark.read.parquet("s3://mi-bucket/ventas/")
+df.filter(df.fecha >= "2025-01-01").groupBy("producto").sum("monto").show()
+    \end{lstlisting}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 3: DATA LAKES, DATA WAREHOUSES Y LAKEHOUSES
+% ============================================================================
+\section{Data Lakes, Data Warehouses y Lakehouses}
+
+\begin{frame}{Data Lake}
+    \begin{itemize}
+        \item Almacena datos en bruto (cualquier formato).
+        \item Bajo costo, flexible (schema-on-read).
+        \item Puede convertirse en un \textit{data swamp} sin gobernanza.
+        \item Ejemplos: S3, HDFS, ADLS.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Data Warehouse}
+    \begin{itemize}
+        \item Datos estructurados y modelados (esquema estrella/copo).
+        \item Alto rendimiento en consultas analíticas (OLAP).
+        \item Costo elevado, menos flexible.
+        \item Ejemplos: Redshift, BigQuery, Snowflake.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Lakehouse}
+    \begin{block}{Concepto}
+        Fusión de data lake y data warehouse: almacenamiento tipo lake (bajo costo, formato abierto) con capacidades de gestión y rendimiento de warehouse (transacciones ACID, evolución de esquema).
+    \end{block}
+    \begin{exampleblock}{Tecnologías}
+        \begin{itemize}
+            \item Delta Lake (Databricks)
+            \item Apache Iceberg
+            \item Apache Hudi
+        \end{itemize}
+    \end{exampleblock}
+\end{frame}
+
+\begin{frame}{Delta Lake}
+    \begin{itemize}
+        \item Capa de almacenamiento ACID sobre Parquet.
+        \item \textbf{Time travel}: consultar versiones anteriores.
+        \item \textbf{Evolución de esquema}: añadir columnas sin reescribir.
+        \item \textbf{Compactación} de archivos pequeños.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Databricks: La plataforma Lakehouse}
+    \begin{itemize}
+        \item Motor Spark optimizado (hasta 50x más rápido).
+        \item Delta Lake como capa de almacenamiento.
+        \item Entorno de notebooks colaborativos.
+        \item Soporte para MLflow (machine learning) y SQL.
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 4: PROCESAMIENTO DISTRIBUIDO
+% ============================================================================
+\section{Procesamiento Distribuido}
+
+\begin{frame}{Apache Spark}
+    \begin{itemize}
+        \item Motor unificado: batch, streaming, SQL, ML, Graph.
+        \item Procesamiento en memoria (cuando es posible).
+        \item APIs en Scala, Python, Java, R.
+        \item \textbf{DataFrames} y \textbf{Spark SQL}.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Apache Flink}
+    \begin{itemize}
+        \item Procesamiento streaming nativo (evento por evento).
+        \item Latencia de milisegundos.
+        \item Excelente manejo de estado y ventanas.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Comparativa Spark vs Flink}
+    \begin{table}
+        \centering
+        \begin{tabular}{l|c|c}
+            \toprule
+            Característica & Spark & Flink \\
+            \midrule
+            Modelo & Micro-batches (o streaming continuo) & Streaming nativo \\
+            Latencia & Segundos & Milisegundos \\
+            Procesamiento con estado & Sí (checkpoints) & Sí (robusto) \\
+            Ecosistema & Muy amplio (SQL, ML, Graph) & En crecimiento \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+\end{frame}
+
+\begin{frame}[fragile]{Ejemplo: WordCount con PySpark}
+    \begin{lstlisting}[style=python]
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import explode, split, col
+
+spark = SparkSession.builder.appName("wordcount").getOrCreate()
+df = spark.read.text("s3://bucket/textos/*.txt")
+words = df.select(explode(split(col("value"), "\s+")).alias("word"))
+counts = words.groupBy("word").count().orderBy(col("count").desc())
+counts.show(10)
+    \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{Ejemplo: Streaming con Spark Structured Streaming}
+    \begin{lstlisting}[style=python]
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import window, col
+from pyspark.sql.types import StructType, StringType, TimestampType
+
+spark = SparkSession.builder.appName("streaming").getOrCreate()
+
+schema = StructType().add("usuario", StringType()).add("timestamp", TimestampType())
+
+df = spark.readStream.format("kafka") \
+    .option("kafka.bootstrap.servers", "localhost:9092") \
+    .option("subscribe", "clics") \
+    .load()
+
+clics = df.selectExpr("CAST(value AS STRING)") \
+          .select(from_json("value", schema).alias("data")) \
+          .select("data.*")
+
+counts = clics.groupBy(window("timestamp", "1 minute"), col("usuario")).count()
+
+query = counts.writeStream.outputMode("complete").format("console").start()
+query.awaitTermination()
+    \end{lstlisting}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 5: ARQUITECTURAS CLOUD, HÍBRIDAS Y ON-PREMISE
+% ============================================================================
+\section{Arquitecturas Cloud, Híbridas y On-Premise}
+
+\begin{frame}{Cloud (Nube)}
+    \begin{itemize}
+        \item Servicios gestionados: AWS EMR, Kinesis, Athena; Google Dataproc, BigQuery; Azure HDInsight, Synapse.
+        \item Escalabilidad elástica, pago por uso.
+        \item Menor mantenimiento, rápida implementación.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{On-Premise (Local)}
+    \begin{itemize}
+        \item Infraestructura propia.
+        \item Control total, soberanía de datos.
+        \item Alta inversión inicial (CapEx), mantenimiento complejo.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Híbrida}
+    \begin{itemize}
+        \item Combinación de cloud y on-premise.
+        \item Datos sensibles on-premise, picos de demanda en la nube.
+        \item Ejemplo: data lake en S3, procesamiento crítico en local.
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 6: CASOS DE USO REALES
+% ============================================================================
+\section{Casos de Uso Reales}
+
+\begin{frame}{Redes Sociales (Twitter)}
+    \begin{itemize}
+        \item Cientos de millones de tweets diarios.
+        \item Análisis de tendencias con Spark sobre datos en Parquet.
+        \item Detección de spam y recomendaciones.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Internet de las Cosas (IoT)}
+    \begin{itemize}
+        \item Sensores en plataformas petroleras (ej. Petrobras).
+        \item Ingesta con Kafka, procesamiento en tiempo real con Flink.
+        \item Detección de anomalías y prevención de fallos.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Finanzas (Bancos en Perú)}
+    \begin{itemize}
+        \item BCP, Interbank: millones de transacciones diarias.
+        \item CDC con Debezium, Kafka, Spark Streaming para detección de fraude.
+        \item Almacenamiento en Parquet para reportes regulatorios con Athena.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Retail (Falabella)}
+    \begin{itemize}
+        \item Personalización de ofertas basada en clics y compras.
+        \item Procesamiento en tiempo real con Spark Streaming.
+        \item Modelos de recomendación en Databricks.
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 7: HERRAMIENTAS Y PLATAFORMAS ADICIONALES
+% ============================================================================
+\section{Herramientas y Plataformas Adicionales}
+
+\begin{frame}{Apache Kafka}
+    \begin{itemize}
+        \item Plataforma de streaming para ingesta y distribución de eventos.
+        \item Cola distribuida, duradera, con particionamiento.
+        \item Se integra con Spark, Flink, etc.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Apache Airflow}
+    \begin{itemize}
+        \item Orquestador de workflows (DAGs en Python).
+        \item Programación y monitoreo de pipelines ETL/ELT.
+        \item Estándar en la industria.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Trino (antes Presto)}
+    \begin{itemize}
+        \item Motor de consultas SQL distribuido.
+        \item Consulta datos directamente en data lakes (S3, HDFS) en formatos como Parquet.
+        \item Ideal para análisis ad-hoc.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Otras herramientas}
+    \begin{itemize}
+        \item \textbf{Apache Hive}: Data warehouse sobre Hadoop.
+        \item \textbf{Apache HBase}: BD NoSQL columnar para acceso aleatorio.
+        \item \textbf{Elasticsearch}: Búsqueda y análisis de texto.
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 8: EJERCICIOS RESUELTOS
+% ============================================================================
+\section{Ejercicios Resueltos}
+
+\begin{frame}{Ejercicio 1: Elección de formato}
+    \textbf{Enunciado:} Almacenar logs de servidores para análisis posteriores. ¿Qué formato recomendaría?
+    \begin{block}{Solución}
+        Recomendaría \textbf{Parquet} por su compresión y eficiencia en consultas analíticas (filtrado por timestamp, nivel de log). Si se requiere ingestión en tiempo real, se puede usar Avro en Kafka y luego convertir a Parquet.
+    \end{block}
+\end{frame}
+
+% --- CORREGIDO: Añadido [fragile] a este frame ---
+\begin{frame}[fragile]{Ejercicio 2: Diseño de un data lake}
+    \textbf{Enunciado:} Estructura de carpetas en S3 para ventas diarias, clientes y productos.
+    \begin{block}{Solución}
+        \begin{verbatim}
+s3://mi-lake/
+  raw/
+    ventas/
+      year=2025/
+        month=03/
+          day=15/ventas_20250315.csv
+          day=16/...
+    clientes/clientes_20250315.csv
+    productos/productos.csv
+  staging/ventas_clean.parquet
+  analytics/ventas_diarias.parquet
+        \end{verbatim}
+        Particionar por fecha facilita consultas y evolución.
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 3: WordCount con Spark}
+    \textbf{Enunciado:} Contar palabras más frecuentes en archivos de texto.
+    \begin{block}{Solución (ver código en sección 4)}
+        (El código PySpark ya se mostró en la diapositiva de WordCount).
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Ejercicio 4: Procesamiento streaming con Spark}
+    \textbf{Enunciado:} Leer de Kafka eventos de clics y contar por minuto.
+    \begin{block}{Solución (ver código en sección 4)}
+        (El código PySpark de streaming ya se mostró).
+    \end{block}
+\end{frame}
+
+\begin{frame}{Ejercicio 5: Dimensionamiento de clúster}
+    \textbf{Enunciado:} Estimar nodos para procesar 10 TB diarios en 4 horas, con nodos de 64 GB RAM y 8 cores (asumiendo 1 TB/hora cada 10 cores).
+    \begin{block}{Solución}
+        \begin{itemize}
+            \item Capacidad por nodo: 8 cores → 0.8 TB/hora.
+            \item Rendimiento necesario: 10 TB / 4 h = 2.5 TB/hora.
+            \item Nodos: 2.5 / 0.8 ≈ 3.125 → \textbf{4 nodos}.
+        \end{itemize}
+        (Cálculo aproximado; en la práctica se requieren pruebas de rendimiento).
+    \end{block}
+\end{frame}
+
+% ============================================================================
+% SECCIÓN 9: GLOSARIO
+% ============================================================================
+\section{Glosario}
+
+\begin{frame}{Términos Clave}
+    \begin{description}
+        \item[Big Data] Conjuntos masivos que requieren procesamiento distribuido.
+        \item[Parquet] Formato columnar de alto rendimiento.
+        \item[Avro] Formato binario con esquema para streaming.
+        \item[Data Lake] Repositorio de datos en bruto.
+        \item[Data Warehouse] Almacén estructurado optimizado para análisis.
+        \item[Lakehouse] Fusión de data lake y data warehouse.
+        \item[Delta Lake] Capa ACID sobre Parquet.
+        \item[Spark] Motor de procesamiento distribuido.
+        \item[Flink] Motor de streaming de baja latencia.
+        \item[Kafka] Plataforma de mensajería distribuida.
+        \item[Airflow] Orquestador de pipelines.
+        \item[Trino] Motor de consultas SQL sobre data lakes.
+        \item[CDC] Change Data Capture.
+        \item[Sharding] Particionamiento horizontal.
+    \end{description}
+\end{frame}
+
+% --- Diapositiva final ---
+\begin{frame}
+    \centering
+
+    
+    \vspace{1cm}
+    \large ¡Gracias!
+\end{frame}
+
+\end{document}

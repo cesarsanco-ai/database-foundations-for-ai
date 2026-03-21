@@ -1,0 +1,599 @@
+% --- CORRECCION: Forzar interpretacion raw de la entrada ---
+\UseRawInputEncoding
+\documentclass[aspectratio=169, 10pt, xcolor=table]{beamer}
+
+% --- Configuracion del Tema ---
+\usetheme{Madrid}
+\usecolortheme{dolphin}
+\usepackage{mathtools}
+% --- Paquetes necesarios ---
+\usepackage[utf8]{inputenc}
+%\usepackage[spanish]{babel}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{babel}  % <-- AÑADE ESTA LÍNEA
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric}
+\usepackage{etoolbox}
+
+% --- Ruta de Imagenes ---
+\graphicspath{{./imagenes/}}
+
+% --- Estilo para codigo SQL ---
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\lstset{
+    language=SQL,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\scriptsize,
+    breaklines=true,
+    frame=single,
+    showstringspaces=false,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {ü}{{\"u}}1
+}
+
+% --- Pie de pagina personalizado ---
+\makeatletter
+\setbeamertemplate{footline}{
+  \leavevmode%
+  \hbox{%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{author in head/foot}%
+    \usebeamerfont{author in head/foot}\insertshortauthor
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{title in head/foot}%
+    \usebeamerfont{title in head/foot}Sesion 3
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,right]{date in head/foot}%
+    \usebeamerfont{date in head/foot}BBDD \hfill \insertframenumber/\inserttotalframenumber \hspace*{0.3cm}
+  \end{beamercolorbox}}%
+  \vskip0pt%
+}
+\makeatother
+
+% --- Datos de la portada ---
+\title[SESION 3 BBDD]{\textbf{Sesion 3}}
+\subtitle{Modelamiento de Datos: De la realidad al esquema físico}
+\author[Prof. C. Sanchez]{Carlos Cesar Sanchez Coronel}
+\institute{\textbf{BASES DE DATOS}}
+\date{}
+
+% --- Eliminar barra de navegacion ---
+\setbeamertemplate{navigation symbols}{}
+
+% --- Indice al inicio de cada seccion ---
+\AtBeginSection[]{
+  \begin{frame}
+    \frametitle{Contenido}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+\begin{document}
+
+% --- Portada ---
+\begin{frame}
+    \titlepage
+\end{frame}
+
+% --- Indice general ---
+\begin{frame}{Contenido}
+    \tableofcontents
+\end{frame}
+
+% ============================================================================
+% SECCION 1: INTRODUCCION AL MODELAMIENTO DE DATOS
+% ============================================================================
+\section{Introducción al Modelamiento de Datos}
+
+\begin{frame}{¿Por qué es importante modelar?}
+    \begin{itemize}
+        \item Un modelo de datos es el ``plano arquitectónico'' de la base de datos.
+        \item Sin él, los datos se corrompen, las consultas son lentas y el sistema se vuelve inmanejable.
+        \item Beneficios:
+        \begin{itemize}
+            \item Comunica necesidades entre negocio y técnicos.
+            \item Documenta la estructura para mantenimiento.
+            \item Optimiza el rendimiento.
+            \item Garantiza integridad y consistencia.
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{El ciclo de modelamiento}
+    \centering
+    \begin{tikzpicture}[node distance=2cm, auto]
+        \node (conceptual) [draw, rectangle, rounded corners, fill=blue!20] {Modelo Conceptual (E-R)};
+        \node (logico) [draw, rectangle, rounded corners, fill=green!20, right of=conceptual, xshift=3cm] {Modelo Lógico (tablas)};
+        \node (fisico) [draw, rectangle, rounded corners, fill=red!20, right of=logico, xshift=3cm] {Modelo Físico (SQL)};
+        \draw[->, thick] (conceptual) -- node[above] {Transformación} (logico);
+        \draw[->, thick] (logico) -- node[above] {Implementación} (fisico);
+    \end{tikzpicture}
+    \begin{itemize}
+        \item \textbf{Conceptual}: independiente del SGBD, refleja el negocio.
+        \item \textbf{Lógico}: tablas, columnas, restricciones (sin detalles físicos).
+        \item \textbf{Físico}: específico del SGBD (tipos, índices, particiones).
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCION 2: MODELO CONCEPTUAL (ENTIDAD-RELACION)
+% ============================================================================
+\section{Modelo Conceptual (Entidad-Relación)}
+
+\begin{frame}{Entidades}
+    \begin{block}{Definición}
+        Objeto del mundo real distinguible de otros por sus características.
+    \end{block}
+    \begin{columns}[t]
+        \column{0.5\textwidth}
+        \textbf{Entidad fuerte}
+        \begin{itemize}
+            \item Existe por sí misma.
+            \item Ej: Cliente, Producto.
+        \end{itemize}
+        \column{0.5\textwidth}
+        \textbf{Entidad débil}
+        \begin{itemize}
+            \item Depende de otra entidad.
+            \item Ej: Línea de pedido (depende de Pedido).
+        \end{itemize}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Atributos}
+    \begin{itemize}
+        \item \textbf{Simples}: atómicos (edad, nombre).
+        \item \textbf{Compuestos}: divisibles (dirección $\rightarrow$ calle, ciudad, CP).
+        \item \textbf{Multivalorados}: varios valores (teléfonos).
+        \item \textbf{Derivados}: se calculan (edad a partir de fecha\_nac).
+        \item \textbf{Clave}: identifica unívocamente (subrayado).
+    \end{itemize}
+    \centering
+    \begin{tikzpicture}[scale=0.6]
+        \draw (0,0) rectangle (2,1) node[midway] {Cliente};
+        \draw (2.5,0.5) circle (0.3) node {id};
+        \draw (2.5,-0.2) node {PK};
+        \draw (3.5,1) ellipse (0.5 and 0.3) node {nombre};
+        \draw (3.5,-0.2) ellipse (0.5 and 0.3) node {dirección};
+        \draw (4.5,0.5) ellipse (0.5 and 0.3) node {teléfono};
+        \draw[dashed] (4.5,0.5) ellipse (0.5 and 0.3);
+    \end{tikzpicture}
+\end{frame}
+
+\begin{frame}{Relaciones y cardinalidades}
+    \begin{block}{Cardinalidad}
+        Número de instancias que participan en una relación.
+    \end{block}
+    \begin{columns}[t]
+        \column{0.33\textwidth}
+        \textbf{1:1}
+        \begin{itemize}
+            \item Empleado $\leftrightarrow$ Carné
+        \end{itemize}
+        \column{0.33\textwidth}
+        \textbf{1:N}
+        \begin{itemize}
+            \item Cliente $\rightarrow$ Pedidos
+        \end{itemize}
+        \column{0.33\textwidth}
+        \textbf{N:M}
+        \begin{itemize}
+            \item Estudiante $\leftrightarrow$ Asignatura
+        \end{itemize}
+    \end{columns}
+    \vspace{0.3cm}
+    \centering
+    \begin{tikzpicture}[scale=0.7]
+        \draw (0,0) rectangle (1,1) node[midway] {A};
+        \draw (3,0) rectangle (4,1) node[midway] {B};
+        \draw[<->] (1,0.5) -- (3,0.5) node[midway, above] {1:1};
+        \draw (5,0) rectangle (6,1) node[midway] {C};
+        \draw (8,0) rectangle (9,1) node[midway] {D};
+        \draw[->] (6,0.5) -- (8,0.5) node[midway, above] {1:N};
+        \draw (10,0) rectangle (11,1) node[midway] {E};
+        \draw (13,0) rectangle (14,1) node[midway] {F};
+        \draw[<->] (11,0.5) -- (13,0.5) node[midway, above] {N:M};
+    \end{tikzpicture}
+\end{frame}
+
+% ============================================================================
+% SECCION 3: MODELO LOGICO Y NORMALIZACION
+% ============================================================================
+\section{Modelo Lógico y Normalización}
+
+\begin{frame}{Transformación de E-R a tablas}
+    \begin{enumerate}
+        \item Cada entidad fuerte $\rightarrow$ tabla.
+        \item Atributos simples $\rightarrow$ columnas.
+        \item Atributos compuestos se descomponen.
+        \item Atributos multivalorados $\rightarrow$ tabla aparte.
+        \item Relación 1:N: añadir FK en el lado ``N''.
+        \item Relación N:M: tabla intermedia con las PK.
+    \end{enumerate}
+\end{frame}
+
+\begin{frame}{Ejemplo de transformación}
+    \textbf{Conceptual}: Cliente (1) $\xrightarrow{realiza}$ Pedido (N)
+    \vspace{0.2cm}
+    \begin{center}
+        \begin{tikzpicture}
+            \draw (0,0) rectangle (1.5,1) node[midway] {Cliente};
+            \draw (4,0) rectangle (5.5,1) node[midway] {Pedido};
+            \draw[->] (1.5,0.5) -- (4,0.5) node[midway, above] {1:N};
+        \end{tikzpicture}
+    \end{center}
+    \textbf{Lógico}:
+    \begin{itemize}
+        \item Cliente (\underline{id\_cliente}, nombre, ...)
+        \item Pedido (\underline{id\_pedido}, fecha, \textit{id\_cliente} FK)
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Normalización: 1FN}
+    \begin{block}{Primera Forma Normal (1FN)}
+        Los atributos deben ser atómicos; no repetir grupos.
+    \end{block}
+    \begin{exampleblock}{Ejemplo: tabla con teléfonos repetidos}
+        \begin{tabular}{l|l}
+            id\_cliente & teléfonos \\
+            \hline
+            1 & 123, 456
+        \end{tabular}
+        \hspace{0.5cm} $\Rightarrow$ \hspace{0.5cm}
+        \begin{tabular}{l|l}
+            id\_cliente & teléfono \\
+            \hline
+            1 & 123 \\
+            1 & 456
+        \end{tabular}
+    \end{exampleblock}
+\end{frame}
+
+\begin{frame}{Normalización: 2FN}
+    \begin{block}{Segunda Forma Normal (2FN)}
+        Cumple 1FN y todo atributo no clave depende completamente de la clave primaria (aplica a claves compuestas).
+    \end{block}
+    \begin{exampleblock}{Ejemplo: tabla DetallePedido}
+        \begin{tabular}{l|l|l|l}
+            id\_pedido & id\_producto & cantidad & nombre\_producto \\
+            \hline
+            1 & A & 5 & Manzanas
+        \end{tabular}
+        \vspace{0.2cm}
+        \newline
+        \textit{nombre\_producto} depende solo de \textit{id\_producto} $\rightarrow$ viola 2FN.
+        \vspace{0.2cm}
+        \newline
+        Solución: crear tabla Producto(id\_producto, nombre\_producto).
+    \end{exampleblock}
+\end{frame}
+
+\begin{frame}{Normalización: 3FN}
+    \begin{block}{Tercera Forma Normal (3FN)}
+        Cumple 2FN y ningún atributo no clave depende transitivamente de otro no clave.
+    \end{block}
+    \begin{exampleblock}{Ejemplo: tabla Pedido}
+        \begin{tabular}{l|l|l|l}
+            id\_pedido & id\_cliente & nombre\_cliente & dirección\_cliente \\
+            \hline
+            1 & 7 & Juan & Av. Siempreviva
+        \end{tabular}
+        \vspace{0.2cm}
+        \newline
+        \textit{nombre\_cliente} y \textit{dirección} dependen de \textit{id\_cliente}, no de \textit{id\_pedido} $\rightarrow$ viola 3FN.
+        \vspace{0.2cm}
+        \newline
+        Solución: tabla Cliente(id\_cliente, nombre, dirección).
+    \end{exampleblock}
+\end{frame}
+
+\begin{frame}{Forma Normal de Boyce-Codd (BCNF)}
+    \begin{block}{BCNF}
+        Para toda dependencia funcional no trivial $X \rightarrow Y$, $X$ debe ser superclave.
+    \end{block}
+    \begin{exampleblock}{Ejemplo: Profesor (id\_prof, id\_depto, jefe\_depto)}
+        Dependencias: id\_prof $\rightarrow$ id\_depto; id\_depto $\rightarrow$ jefe\_depto.
+        \begin{itemize}
+            \item Está en 3FN, pero no en BCNF porque id\_depto no es clave y determina jefe\_depto.
+        \end{itemize}
+        Solución: separar en Profesor(id\_prof, id\_depto) y Departamento(id\_depto, jefe\_depto).
+    \end{exampleblock}
+\end{frame}
+
+% ============================================================================
+% SECCION 4: MODELO FISICO
+% ============================================================================
+\section{Modelo Físico}
+
+\begin{frame}{Tipos de datos comunes en PostgreSQL}
+    \begin{table}
+        \centering
+        \begin{tabular}{l|l}
+            \toprule
+            Tipo & Descripción \\
+            \midrule
+            \texttt{INT, BIGINT} & Enteros \\
+            \texttt{VARCHAR(n)} & Cadena de longitud variable \\
+            \texttt{CHAR(n)} & Cadena fija \\
+            \texttt{TEXT} & Texto largo \\
+            \texttt{DATE, TIMESTAMP} & Fechas y horas \\
+            \texttt{DECIMAL(p,s)} & Números exactos (moneda) \\
+            \texttt{BOOLEAN} & Verdadero/falso \\
+            \texttt{JSONB} & JSON binario (índices) \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+\end{frame}
+
+\begin{frame}{Índices avanzados}
+    \begin{itemize}
+        \item \textbf{B-Tree}: por defecto, para igualdad y rango.
+        \item \textbf{Hash}: solo igualdad ($=$), rápido.
+        \item \textbf{GIN}: índices invertidos (texto completo, JSONB, arrays).
+        \item \textbf{GiST}: datos geométricos, búsqueda por proximidad.
+        \item \textbf{BRIN}: para tablas ordenadas (series temporales), compacto.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Ejemplo físico: sistema universitario}
+    \begin{lstlisting}
+CREATE TABLE departamento (
+    id_depto SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE estudiante (
+    id_est SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    fecha_nac DATE
+);
+
+CREATE TABLE profesor (
+    id_prof SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    id_depto INT REFERENCES departamento(id_depto)
+);
+
+CREATE TABLE asignatura (
+    id_asig SERIAL PRIMARY KEY,
+    nombre VARCHAR(200) NOT NULL,
+    creditos INT CHECK (creditos > 0),
+    id_depto INT NOT NULL REFERENCES departamento(id_depto)
+);
+    \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{Tablas de relación N:M}
+    \begin{lstlisting}
+CREATE TABLE matricula (
+    id_est INT REFERENCES estudiante(id_est),
+    id_asig INT REFERENCES asignatura(id_asig),
+    semestre VARCHAR(10) NOT NULL,
+    nota DECIMAL(3,1) CHECK (nota BETWEEN 0 AND 10),
+    fecha_mat DATE DEFAULT CURRENT_DATE,
+    PRIMARY KEY (id_est, id_asig, semestre)
+);
+
+CREATE TABLE imparte (
+    id_prof INT REFERENCES profesor(id_prof),
+    id_asig INT REFERENCES asignatura(id_asig),
+    semestre VARCHAR(10) NOT NULL,
+    PRIMARY KEY (id_prof, id_asig, semestre)
+);
+    \end{lstlisting}
+\end{frame}
+
+% ============================================================================
+% SECCION 5: EJEMPLOS PRACTICOS (BIBLIOTECA, RED SOCIAL)
+% ============================================================================
+\section{Ejemplos Prácticos}
+
+\begin{frame}{Biblioteca: modelo conceptual}
+    \begin{itemize}
+        \item Entidades: Autor, Libro, Socio, Préstamo.
+        \item Relaciones:
+        \begin{itemize}
+            \item Autor $\xleftrightarrow{N:M}$ Libro (escribe)
+            \item Socio $\xrightarrow{1:N}$ Préstamo (realiza)
+            \item Préstamo $\xleftrightarrow{N:M}$ Libro (incluye)
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Biblioteca: modelo físico (PostgreSQL)}
+    \begin{lstlisting}
+CREATE TABLE autor ( id_autor SERIAL PRIMARY KEY, nombre VARCHAR(100) NOT NULL, nacionalidad VARCHAR(50) );
+CREATE TABLE libro ( isbn VARCHAR(20) PRIMARY KEY, titulo VARCHAR(200) NOT NULL, anio INT, editorial VARCHAR(100) );
+CREATE TABLE socio ( id_socio SERIAL PRIMARY KEY, nombre VARCHAR(100) NOT NULL, direccion VARCHAR(200), telefono VARCHAR(20) );
+CREATE TABLE prestamo ( id_prestamo SERIAL PRIMARY KEY, fecha_prestamo DATE NOT NULL DEFAULT CURRENT_DATE, fecha_devolucion DATE, id_socio INT NOT NULL REFERENCES socio(id_socio) );
+CREATE TABLE libro_autor ( id_autor INT REFERENCES autor(id_autor), isbn VARCHAR(20) REFERENCES libro(isbn), PRIMARY KEY (id_autor, isbn) );
+CREATE TABLE prestamo_libro ( id_prestamo INT REFERENCES prestamo(id_prestamo), isbn VARCHAR(20) REFERENCES libro(isbn), PRIMARY KEY (id_prestamo, isbn) );
+    \end{lstlisting}
+\end{frame}
+
+\begin{frame}{Red social: modelo conceptual}
+    \begin{itemize}
+        \item Entidades: Usuario, Publicación, Comentario.
+        \item Relaciones:
+        \begin{itemize}
+            \item Usuario $\xleftrightarrow{N:M}$ Usuario (sigue)
+            \item Usuario $\xrightarrow{1:N}$ Publicación
+            \item Usuario $\xrightarrow{1:N}$ Comentario
+            \item Publicación $\xrightarrow{1:N}$ Comentario
+            \item Usuario $\xleftrightarrow{N:M}$ Publicación (like)
+            \item Usuario $\xleftrightarrow{N:M}$ Comentario (like)
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCION 6: PROPIEDADES ACID Y TRANSACCIONES
+% ============================================================================
+\section{Propiedades ACID y Transacciones}
+
+\begin{frame}{ACID}
+    \begin{description}
+        \item[Atomicidad] Todo o nada.
+        \item[Consistencia] Estado válido antes y después.
+        \item[Aislamiento] Transacciones concurrentes no interfieren.
+        \item[Durabilidad] Una vez confirmado, persiste.
+    \end{description}
+\end{frame}
+
+\begin{frame}{Niveles de aislamiento}
+    \begin{table}
+        \centering
+        \begin{tabular}{l|c}
+            \toprule
+            Nivel & Anomalías evitadas \\
+            \midrule
+            Read Uncommitted & - \\
+            Read Committed & dirty reads \\
+            Repeatable Read & dirty + non-repeatable reads \\
+            Serializable & todas (incluye phantom reads) \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+\end{frame}
+
+\begin{frame}{Bloqueos (locks)}
+    \begin{itemize}
+        \item \textbf{Compartido (shared)}: para lectura; varios pueden tenerlo.
+        \item \textbf{Exclusivo (exclusive)}: para escritura; solo uno.
+        \item \textbf{Deadlock}: bloqueo mutuo; el SGBD mata una transacción.
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCION 7: MODELAMIENTO PARA BIG DATA Y NoSQL
+% ============================================================================
+\section{Modelamiento para Big Data y NoSQL}
+
+\begin{frame}{Tipos de bases de datos NoSQL}
+    \begin{columns}[t]
+        \column{0.5\textwidth}
+        \begin{itemize}
+            \item \textbf{Clave-valor} (Redis, DynamoDB)
+            \item \textbf{Documentales} (MongoDB)
+        \end{itemize}
+        \column{0.5\textwidth}
+        \begin{itemize}
+            \item \textbf{Columna ancha} (Cassandra, HBase)
+            \item \textbf{Grafos} (Neo4j)
+        \end{itemize}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Teorema CAP}
+    \begin{block}{CAP}
+        En sistemas distribuidos, solo se pueden garantizar dos de tres:
+        \begin{itemize}
+            \item \textbf{Consistencia} (todos ven los mismos datos)
+            \item \textbf{Disponibilidad} (siempre responde)
+            \item \textbf{Tolerancia a particiones} (funciona a pesar de fallos de red)
+        \end{itemize}
+    \end{block}
+    \begin{description}
+        \item[CP] MongoDB, HBase
+        \item[AP] Cassandra, CouchDB
+    \end{description}
+\end{frame}
+
+
+
+
+
+\begin{frame}{Modelamiento en Cassandra}
+    \begin{itemize}
+        \item Modelado orientado a consultas.
+        \item Clave primaria compuesta:
+        \begin{itemize}
+            \item \textbf{Clave de partición}: determina nodo.
+            \item \textbf{Columnas de clustering}: orden dentro de la partición.
+        \end{itemize}
+        \item Las consultas deben incluir la clave de partición.
+    \end{itemize}
+\end{frame}
+
+% ============================================================================
+% SECCION 8: EJERCICIOS DE NORMALIZACION (DEL SOLUCIONARIO)
+% ============================================================================
+\section{Ejercicios de Normalización}
+
+\begin{frame}{Ejercicio: Pedido no normalizado}
+    \begin{block}{Tabla original}
+        \begin{center}
+            \begin{tabular}{l|l|l|l|l}
+                id\_pedido & fecha & cliente & productos & cantidades \\
+                \hline
+                1 & 2024-01-01 & Juan & A, B & 5, 3
+            \end{tabular}
+        \end{center}
+    \end{block}
+    \textbf{1FN}: separar productos y cantidades en otra tabla.
+    \begin{center}
+        \begin{tabular}{l|l}
+            id\_pedido & id\_producto \\
+            \hline
+            1 & A \\
+            1 & B
+        \end{tabular}
+        \hspace{0.3cm}
+        \begin{tabular}{l|l}
+            id\_pedido & cantidad \\
+            \hline
+            1 & 5 \\
+            1 & 3
+        \end{tabular}
+    \end{center}
+\end{frame}
+
+\begin{frame}{Ejercicio (continuación)}
+    \textbf{2FN}: si hay nombre del producto que depende solo del producto, crear tabla Producto.
+    \begin{center}
+        Producto(\underline{id\_producto}, nombre, precio) \\
+        DetallePedido(\underline{id\_pedido}, \underline{id\_producto}, cantidad)
+    \end{center}
+    \textbf{3FN}: si hay datos del cliente que dependen del cliente, crear tabla Cliente.
+    \begin{center}
+        Cliente(\underline{id\_cliente}, nombre, dirección) \\
+        Pedido(\underline{id\_pedido}, fecha, id\_cliente FK)
+    \end{center}
+\end{frame}
+
+% ============================================================================
+% SECCION 9: RESUMEN
+% ============================================================================
+\section{Resumen}
+
+\begin{frame}{Lo que hemos aprendido}
+    \begin{exampleblock}{Conceptos clave}
+        \begin{itemize}
+            \item Modelo conceptual (E-R): entidades, atributos, relaciones.
+            \item Modelo lógico: tablas, FK, normalización (1FN,2FN,3FN,BCNF).
+            \item Modelo físico: tipos de datos, índices, particionamiento.
+            \item ACID y transacciones.
+            \item NoSQL: MongoDB (documentos), Cassandra (columnas), CAP.
+        \end{itemize}
+    \end{exampleblock}
+\end{frame}
+
+% --- Diapositiva final ---
+\begin{frame}
+    \centering
+    \Huge \textbf{Gracias!}
+
+\end{frame}
+
+\end{document}
