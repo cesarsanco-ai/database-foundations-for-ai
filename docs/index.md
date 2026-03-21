@@ -30,11 +30,9 @@ Cada sesión incluye material teórico, notebooks de práctica (SQL/Python), eje
 
 ## 📂 Recursos generales
 
-- [cite_start]**Syllabus Detallado**: Guía completa de los 5 capítulos del curso, desde fundamentos hasta persistencia políglota. [cite: 303, 307]  
-  [Ver syllabus completo](recursos/SESION0_BBDD.pdf)
 
 - **Proyecto Integrador**: Diseño y despliegue de una arquitectura híbrida (SQL + Vectorial) para un sistema de recomendación.  
-  [Ver proyecto integrador](proyecto-integrador/README.md)
+  [Ver proyecto integrador](https://github.com/cesarsanco-ai/bbdd-for-ai)
 
 ## 🔗 Repositorio 
 
