@@ -22,14 +22,14 @@ Material de apoyo y referencias de la semana.
 
 *Nivel: Intermedio* ⭐⭐⭐
 
-* 📓 **Notebook Fundamentos:** [Notebook 1](https://github.com/cesarsanco-ai/bbdd-for-ai/blob/main/docs/material/Sesion07/practica/SESION7-NTB1-BBDD.ipynb)
-* 📓 **Notebook Aplicaciones:** [Notebook 2](https://github.com/cesarsanco-ai/bbdd-for-ai/blob/main/docs/material/Sesion07/practica/SESION7-NTB2-BBDD.ipynb)
+* 📓 **Notebook Fundamentos:** [Notebook 1](https://github.com/cesarsanco-ai/database-foundations-for-ai/blob/main/docs/material/Sesion07/practica/SESION7-NTB1-BBDD.ipynb)
+* 📓 **Notebook Aplicaciones:** [Notebook 2](https://github.com/cesarsanco-ai/database-foundations-for-ai/blob/main/docs/material/Sesion07/practica/SESION7-NTB2-BBDD.ipynb)
 
 ---
 
 ## 🔗 Recursos complementarios
 
-* 📁 **[Repositorio del curso](https://github.com/cesarsanco-ai/bbdd-for-ai)** — Código y materiales en GitHub.
+* 📁 **[Repositorio del curso](https://github.com/cesarsanco-ai/database-foundations-for-ai)** — Código y materiales en GitHub.
 
 ---
 
