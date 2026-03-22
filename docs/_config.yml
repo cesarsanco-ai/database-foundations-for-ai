@@ -1,0 +1,22 @@
+# --- Información del Sitio ---
+title: "Base de Datos para IA"
+author: "Carlos César Sánchez Coronel"
+# --- Configuración de URLs ---
+url: "https://cesarsanco-ai.github.io"
+baseurl: "/database-foundations-for-ai"
+
+# --- Limpieza de Cabecera (Header) ---
+header_pages:
+  - index.md
+
+# --- Estética y Motores ---
+theme: minima
+markdown: kramdown
+kramdown:
+  math_engine: mathjax
+
+# --- Limpieza de Redes Sociales---
+email:
+twitter_username:
+github_username: "cesarsanco-ai"
+linkedin_username: "cesar-sanchez-c"

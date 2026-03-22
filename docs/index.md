@@ -30,23 +30,13 @@ Cada sesión incluye material teórico, notebooks de práctica (SQL/Python), eje
 
 ## 📂 Recursos generales
 
-
 - **Proyecto Integrador**: Diseño y despliegue de una arquitectura híbrida (SQL + Vectorial) para un sistema de recomendación.  
-  [Ver proyecto integrador](https://github.com/cesarsanco-ai/bbdd-for-ai)
+  [Ver proyecto integrador](https://github.com/cesarsanco-ai/database-foundations-for-ai)
 
 ## 🔗 Repositorio 
 
 Todo el código fuente, notebooks y materiales adicionales están disponibles en GitHub:
 
-[https://github.com/cesarsanco-ai/bbdd-for-ai](https://github.com/cesarsanco-ai/bbdd-for-ai)
+[https://github.com/cesarsanco-ai/database-foundations-for-ai](https://github.com/cesarsanco-ai/database-foundations-for-ai)
 
 
----
-
-### 👤 Autor
-
-**Carlos César Sánchez Coronel** | *Data Scientist & AI Engineer*
-
-*Lima, Perú*
-
-🔗 [LinkedIn](https://www.linkedin.com/in/cesar-sanchez-c/) | 📁 [GitHub](https://github.com/cesarsanco-ai)
