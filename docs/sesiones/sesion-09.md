@@ -2,7 +2,7 @@
 layout: default
 ---
 
-# Sesion 9: Pipelines de Datos
+# Sesion 9: Big Data
 [⬅️ Volver al Índice](../index.md)
 
 ## 🎯 Objetivo de la Sesión
@@ -15,11 +15,11 @@ Profundizar en los conceptos de la semana mediante el material teórico, diaposi
 
 Material de apoyo y referencias de la semana.
 
-* 🖼️ **Slides de Clase (PDF):** [PPT09-BBDD.pdf](../material/Sesion09/slides/PPT09-BBDD.pdf)
+* 🖼️ **Slides de Clase (PDF):** [PPT10-BBDD.pdf](../material/Sesion10/slides/PPT10-BBDD.pdf)
 
-* 📝 **Quick Reference:** [CheatSheet](../material/Sesion09/cheatsheet/cheatsheet.md)
+* 📝 **Quick Reference:** [CheatSheet](../material/Sesion10/cheatsheet/cheatsheet.md)
 
-* 📎 **Anexo Técnico:** [Material Complementario](../material/Sesion09/anexo/anexo.md)
+* 📎 **Anexo Técnico:** [Material Complementario](../material/Sesion10/anexo/anexo.md)
 
 ***
 
@@ -27,8 +27,8 @@ Material de apoyo y referencias de la semana.
 
 *Nivel: Intermedio* ⭐⭐⭐
 
-* 📓 **Notebook Fundamentos:** [Notebook 1](https://github.com/cesarsanco-ai/database-foundations-for-ai/blob/main/docs/material/Sesion09/practica/SESION9-NTB1-BBDD.ipynb)
-* 📓 **Notebook Aplicaciones:** [Notebook 2](https://github.com/cesarsanco-ai/database-foundations-for-ai/blob/main/docs/material/Sesion09/practica/SESION9-NTB2-BBDD.ipynb)
+* 📓 **Notebook Fundamentos:** [Notebook 1](https://github.com/cesarsanco-ai/database-foundations-for-ai/blob/main/docs/material/Sesion10/practica/SESION10-NTB1-BBDD.ipynb)
+* 📓 **Notebook Aplicaciones:** [Notebook 2](https://github.com/cesarsanco-ai/database-foundations-for-ai/blob/main/docs/material/Sesion10/practica/SESION10-NTB2-BBDD.ipynb)
 
 ***
 

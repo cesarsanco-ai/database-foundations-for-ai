@@ -11,16 +11,16 @@ Cada sesión incluye material teórico, notebooks de práctica (SQL/Python), eje
 
 | Semana | Tema |
 |--------|--------|
-| 01 | [Universo del Dato](sesiones/sesion-01.md) |
+| 01 | [Introducción](sesiones/sesion-01.md) |
 | 02 | [Modelamiento](sesiones/sesion-02.md) |
-| 03 | [Estructura de datos en Base de Datos](sesiones/sesion-03.md) |
+| 03 | [Algoritmos de búsqueda en BBDD](sesiones/sesion-03.md) |
 | 04 | [Normalización e Integridad Técnica](sesiones/sesion-04.md) |
 | 05 | [SQL - Parte 1](sesiones/sesion-05.md) |
 | 06 | [SQL - Parte 2](sesiones/sesion-06.md) |
 | 07 | [Programación en el Servidor](sesiones/sesion-07.md) |
-| 08 | [Ingeniería de Datos](sesiones/sesion-08.md) |
-| 09 | [Pipelines de Datos](sesiones/sesion-09.md) |
-| 10 | [Big Data](sesiones/sesion-10.md) |
+| 08 | [Pipelines de Dato](sesiones/sesion-09.md) |
+| 09 | [Big Data](sesiones/sesion-10.md) |
+| 10 | [Cloud Database](sesiones/sesion-15.md) |
 | 11 | [Ecosistema NoSQL](sesiones/sesion-11.md) |
 | 12 | [Bases de Datos Vectoriales](sesiones/sesion-12.md) |
 | 13 | [Despliegue y Alta Disponibilidad](sesiones/sesion-13.md) |
