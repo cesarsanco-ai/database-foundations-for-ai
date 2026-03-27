@@ -18,7 +18,7 @@ Cada sesión incluye material teórico, notebooks de práctica (SQL/Python), eje
 | 04 | [SQL - Parte 1](sesiones/sesion-05.md) |
 | 05 | [SQL - Parte 2](sesiones/sesion-06.md) |
 
-| 06 | [Optimización de búsquedas](sesiones/sesion-03.md) |
+| 06 | [Optimización de consultas](sesiones/sesion-03.md) |
 
 | 07 | [Programación en el Servidor](sesiones/sesion-07.md) |
 | 08 | [Pipeline de Datos](sesiones/sesion-09.md) |
