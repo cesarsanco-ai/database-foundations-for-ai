@@ -1,4 +1,6 @@
-## Sesión 1 
+---
+layout: default
+---
 # EL UNIVERSO DEL DATO
 
 Por CARLOS CÉSAR SÁNCHEZ CORONEL
