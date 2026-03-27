@@ -1,498 +1,188 @@
 
-## Sesión 10
-# BIG DATA Y FORMATOS DE ALTO RENDIMIENTO
-## Principios, almacenamiento, procesamiento y casos reales
+# **Teoría: Cloud Databases (Bases de Datos en la Nube)**
 
-**Autor:** Carlos César Sánchez Coronel  
+**Autor:** Carlos César Sánchez Coronel
 **Fecha:** 2026
 
 ---
 
-# Introducción al Big Data
+## 1. Introducción
 
-El término **Big Data** se refiere a conjuntos de datos cuyo tamaño, velocidad o variedad exceden la capacidad de las herramientas tradicionales para capturarlos, gestionarlos y procesarlos en un tiempo razonable. No es solo una cuestión de volumen, sino de cómo extraer valor de ellos. En esta sesión exploraremos los conceptos fundamentales, las tecnologías de almacenamiento optimizado, las plataformas de procesamiento distribuido y las arquitecturas modernas como el Lakehouse, con ejemplos concretos de su aplicación en el mundo real, incluyendo el contexto peruano y latinoamericano.
+Una **cloud database** o **base de datos en la nube** es un sistema de almacenamiento y gestión de datos que se ejecuta sobre infraestructura de nube, en lugar de depender de servidores locales. A diferencia de las bases de datos tradicionales (on-premise), la nube ofrece **elasticidad, alta disponibilidad y administración simplificada**, permitiendo a las empresas concentrarse en el valor de los datos en lugar de en la infraestructura.
 
-## Las 5 V del Big Data
+El concepto no se limita a bases de datos relacionales: hoy en día existen múltiples tipos de bases de datos en la nube que cubren necesidades transaccionales, analíticas, de series temporales, grafos y aplicaciones web.
 
-Inicialmente se definieron 3 V, pero hoy se habla de 5 o más:
+---
 
-1.  **Volumen**: Cantidad masiva de datos generados (terabytes, petabytes, exabytes).
+## 2. Características fundamentales de las Cloud Databases
 
-2.  **Velocidad**: Rapidez con la que se generan y deben procesarse (ej. sensores IoT, transacciones bancarias).
+1. **Gestión automatizada de infraestructura**: El proveedor de la nube se encarga del hardware, parches, actualizaciones y backups.
+2. **Escalabilidad**: Se puede escalar verticalmente (más CPU/RAM) o horizontalmente (más nodos).
+3. **Alta disponibilidad**: Replicación de datos en múltiples zonas (AZ) o regiones.
+4. **Seguridad y compliance**: Encriptación de datos en reposo y tránsito, gestión de identidades, auditorías y cumplimiento normativo.
+5. **Acceso global**: Los datos pueden ser accesibles desde cualquier lugar con internet, según políticas de red.
+6. **Modelo de pago por uso**: Se paga por almacenamiento, cómputo o número de transacciones, evitando inversión inicial en hardware (CapEx).
 
-3.  **Variedad**: Diferentes formatos (estructurados, semiestructurados, no estructurados).
+---
 
-4.  **Veracidad**: Calidad y confiabilidad de los datos.
+## 3. Tipos de Cloud Databases
 
-5.  **Valor**: Capacidad de transformar los datos en beneficios para el negocio.
+### 3.1 Relacionales (RDBMS)
 
-## ¿Cuándo una solución es Big Data?
+* **Definición**: Bases de datos tradicionales en la nube que siguen el modelo de tablas con relaciones entre ellas.
+* **Características**:
 
-No todo proyecto con muchos datos es Big Data. Se considera Big Data cuando las herramientas convencionales (una sola máquina, bases de datos relacionales) no pueden manejar la carga y se requiere procesamiento distribuido (múltiples nodos). Ejemplos típicos:
+  * ACID (Atomicidad, Consistencia, Aislamiento, Durabilidad).
+  * SQL como lenguaje principal.
+  * Ideal para aplicaciones transaccionales (OLTP).
+* **Ejemplos**: Amazon RDS, Cloud SQL (GCP), Azure SQL Database, Amazon Aurora.
+* **Uso típico**: ERP, CRM, sistemas financieros.
 
-- Redes sociales: millones de publicaciones diarias (Twitter, Facebook).
+### 3.2 NoSQL Documentales
 
-- IoT: millones de sensores enviando lecturas cada segundo.
+* **Definición**: Bases de datos orientadas a documentos (JSON/BSON) que permiten almacenar datos semi-estructurados.
+* **Características**:
 
-- Finanzas: transacciones bursátiles en tiempo real.
+  * Esquema flexible: no es necesario definir columnas fijas.
+  * Escalabilidad horizontal eficiente.
+  * Eventual consistency en muchos casos, aunque algunas ofrecen ACID parcial.
+* **Ejemplos**: MongoDB Atlas, Firebase Firestore, Couchbase Cloud.
+* **Uso típico**: Aplicaciones web y móviles, catálogos de productos, perfiles de usuario.
 
-- Ciencia: secuenciación genética, astronomía.
+### 3.3 NoSQL Key-Value
 
-# Almacenamiento Optimizado para Big Data
+* **Definición**: Datos almacenados como pares clave-valor.
+* **Características**:
 
-En Big Data, los datos no siempre residen en tablas de bases de datos tradicionales. Se utilizan formatos de archivo especialmente diseñados para ser eficientes en espacio y velocidad de lectura.
+  * Muy rápido para lecturas y escrituras simples.
+  * Generalmente eventual consistency.
+* **Ejemplos**: DynamoDB (AWS), Redis Cloud, Memcached Cloud.
+* **Uso típico**: Caché, sesiones de usuario, counters, leaderboard en juegos.
 
-## Apache Parquet
+### 3.4 NoSQL Columnar
 
-Parquet es un formato columnar de código abierto. Almacena los datos por columnas en lugar de por filas, lo que permite:
+* **Definición**: Bases de datos que almacenan datos por columnas y no por filas, optimizadas para análisis masivo.
+* **Características**:
 
-- Lecturas eficientes de subconjuntos de columnas (solo se leen las necesarias).
+  * Ideal para analytics y big data.
+  * Escalabilidad horizontal con particionamiento.
+  * Eventual consistency.
+* **Ejemplos**: Google Bigtable, Cassandra en la nube, HBase.
+* **Uso típico**: IoT, análisis de logs, telemetría.
 
-- Alta compresión (los datos de una misma columna suelen ser similares).
+### 3.5 Time Series
 
-- Esquemas evolutivos (se pueden añadir columnas).
+* **Definición**: Bases de datos especializadas en series temporales, para capturar datos que varían en el tiempo.
+* **Características**:
 
-Es el formato nativo de herramientas como Apache Spark, y es ampliamente usado en data lakes (S3, HDFS).
+  * Indexación optimizada por tiempo.
+  * Funciones agregadas específicas (promedios móviles, derivadas).
+* **Ejemplos**: InfluxDB Cloud, TimescaleDB en la nube.
+* **Uso típico**: Monitoreo de infraestructura, IoT, finanzas en tiempo real.
 
-## Apache ORC
+### 3.6 Bases de Datos de Grafos
 
-Optimized Row Columnar (ORC) es otro formato columnar, similar a Parquet, desarrollado originalmente por Hive. Ofrece características como índices internos y estadísticas para acelerar consultas.
+* **Definición**: Bases de datos diseñadas para modelar relaciones complejas entre entidades.
+* **Características**:
 
-## Apache Avro
+  * Consultas eficientes de nodos y aristas.
+  * Relacional pero no tabular.
+* **Ejemplos**: Amazon Neptune, Cosmos DB Graph.
+* **Uso típico**: Redes sociales, recomendaciones, análisis de fraude.
 
-Avro es un formato binario orientado a filas, con un esquema definido en JSON. Es ideal para serialización en sistemas de mensajería como Kafka, ya que es compacto y rápido. Soporta evolución de esquema (compatible hacia adelante/atrás).
+---
 
-## Comparativa de Formatos
+## 4. Escalabilidad en Cloud Databases
 
-::: center
-  **Formato**   **Tipo**   **Compresión**       **Uso típico**             **Evolución**
-  ------------- ---------- -------------------- -------------------------- ---------------
-  Parquet       Columnar   Alta (por columna)   Análisis, data lakes       Sí
-  ORC           Columnar   Alta                 Hive, Hadoop               Sí
-  Avro          Fila       Media                Streaming, serialización   Sí
-  JSON          Texto      Baja                 APIs, documentos           No
-  CSV           Texto      Baja                 Intercambio simple         No
-:::
+### 4.1 Escalabilidad Vertical
 
-## Ejemplo: Lectura de Parquet con Spark
+* Incrementar CPU, RAM o almacenamiento en un único nodo.
+* **Pros:** Simple de implementar.
+* **Contras:** Limitada por hardware físico.
 
-```python
-from pyspark.sql import SparkSession
+### 4.2 Escalabilidad Horizontal
 
-spark = SparkSession.builder.appName("lectura").getOrCreate()
-df = spark.read.parquet("s3://mi-bucket/ventas/")
-df.filter(df.fecha >= "2025-01-01").groupBy("producto").sum("monto").show()
-```
+* Añadir más nodos (clúster distribuido).
+* **Pros:** Escalabilidad casi ilimitada.
+* **Contras:** Mayor complejidad en sincronización y consistencia.
 
-# Data Lakes, Data Warehouses y Lakehouses
+### 4.3 Multi-Región
 
-## Data Lake
+* Distribuir datos en varias regiones geográficas.
+* Permite tolerancia a fallos y acceso global.
+* Puede introducir latencia inter-región.
 
-Un data lake es un repositorio que almacena datos en su formato original (crudo) a gran escala. Suele basarse en sistemas de archivos distribuidos como HDFS o almacenamiento en la nube (S3, ADLS). Ventajas:
+---
 
-- Bajo costo.
+## 5. Modelos de Consistencia
 
-- Almacena cualquier tipo de dato (estructurado, semiestructurado, no estructurado).
+| Modelo                   | Definición                                  | Ejemplo             |
+| ------------------------ | ------------------------------------------- | ------------------- |
+| **Strong Consistency**   | Siempre devuelve el dato más reciente       | RDS, Cloud SQL      |
+| **Eventual Consistency** | Los datos se sincronizan con tiempo         | DynamoDB, Cassandra |
+| **Causal Consistency**   | Se respeta el orden relativo de operaciones | Cosmos DB           |
 
-- Ideal para ciencia de datos y exploración.
+---
 
-Desventajas:
+## 6. Cloud Databases vs On-Premise
 
-- Puede convertirse en un "data swamp" si no hay gobernanza.
+| Característica | Cloud                 | On-Premise                 |
+| -------------- | --------------------- | -------------------------- |
+| Gestión HW     | No                    | Sí                         |
+| Escalabilidad  | Vertical / Horizontal | Limitada                   |
+| Backup         | Automático            | Manual                     |
+| Costo          | Opex (pago por uso)   | CapEx (inversión inicial)  |
+| Disponibilidad | SLA alto              | Depende de infraestructura |
+| Mantenimiento  | Proveedor             | Personal interno           |
 
-- Las consultas son lentas si no se usan herramientas adecuadas.
+---
 
-## Data Warehouse
+## 7. Integración con Big Data y Analytics
 
-Un data warehouse almacena datos estructurados, modelados y optimizados para consultas analíticas (OLAP). Ejemplos: Amazon Redshift, Google BigQuery, Snowflake. Ventajas:
+* Las cloud databases forman parte del ecosistema **moderno de datos**:
 
-- Alto rendimiento en consultas.
+  * **Data Lake** → almacenamiento masivo de datos crudos (S3, ADLS).
+  * **Data Warehouse / Cloud DB** → consultas rápidas y analítica (BigQuery, Redshift).
+  * **ETL / ELT** → transformación de datos entre sistemas.
+  * **Lakehouse** → unifica Data Lake + Data Warehouse en un mismo modelo.
 
-- Gobernanza y calidad de datos.
+* Ejemplo:
 
-- Ideal para reporting y BI.
+  * Una app de e-commerce almacena transacciones en **RDS**, eventos de clic en **DynamoDB**, y luego un pipeline ETL los lleva a **Redshift** para BI y dashboards.
 
-Desventajas:
+---
 
-- Costo más elevado.
+## 8. Casos de Uso Reales
 
-- Menos flexible para datos no estructurados.
+1. **Banca y Finanzas**
 
-## Lakehouse
+   * Transacciones en RDS o Aurora.
+   * Analytics en Redshift / BigQuery.
 
-El concepto **Lakehouse** (acuñado por Databricks) busca combinar lo mejor de ambos: almacenamiento tipo data lake (bajo costo, formato abierto) con capacidades de gestión y rendimiento de data warehouse (transacciones ACID, evolución de esquema, optimización de consultas). Se implementa sobre formatos como Delta Lake, Apache Iceberg o Apache Hudi.
+2. **Retail y E-commerce**
 
-::: center
-:::
+   * Catálogos de productos en MongoDB Atlas.
+   * Recomendaciones en Redis / DynamoDB.
 
-### Delta Lake
+3. **IoT y Smart Cities**
 
-Delta Lake es una capa de almacenamiento de código abierto que aporta ACID, versionado de datos (time travel) y manejo de metadatos escalable sobre Parquet. Es el núcleo de Databricks.
+   * Series temporales en InfluxDB Cloud o Bigtable.
 
-### Apache Iceberg
+4. **Aplicaciones Web y Móviles**
 
-Iceberg es otra tabla de formato abierto diseñada para grandes conjuntos de datos, con soporte en Spark, Flink, Trino, etc. Ofrece evolución de esquema segura y particionado oculto.
+   * Firestore o DynamoDB para perfiles de usuario y sesiones.
 
-## Databricks: La plataforma Lakehouse
+5. **Redes Sociales**
 
-Databricks es una plataforma unificada de análisis de datos que integra:
+   * Grafos en Neptune o Cosmos DB para relaciones y amigos.
 
-- Motor de procesamiento Apache Spark optimizado (hasta 50x más rápido).
+---
 
-- Capa de almacenamiento Delta Lake.
+## 9. Tendencias Actuales
 
-- Entorno de notebooks colaborativos.
+* **Serverless Databases**: bases de datos que escalan automáticamente sin necesidad de aprovisionar nodos (Aurora Serverless, BigQuery).
+* **Multi-model Databases**: soportan más de un modelo de datos (document + graph, JSON + SQL).
+* **Integración con IA y ML**: uso de bases de datos en pipelines de machine learning.
+* **Automatización y observabilidad**: monitoreo, alertas y tuning automático.
 
-- Soporte para machine learning (MLflow) y SQL.
 
-Es ampliamente usada en empresas de todo el mundo para proyectos de Big Data e IA.
-
-# Procesamiento Distribuido: Frameworks
-
-Para procesar volúmenes masivos de datos, se requiere computación paralela en clústeres de máquinas. Los principales frameworks son:
-
-## Apache Spark
-
-Spark es el motor más popular. Permite procesamiento batch, streaming, SQL, machine learning y graph en un mismo entorno. Utiliza memoria (cuando es posible) para acelerar las operaciones. Ofrece APIs en Scala, Python, Java, R.
-
-- **Resilient Distributed Datasets (RDD)**: estructura fundamental.
-
-- **DataFrames**: abstracción similar a tablas, con optimizaciones.
-
-- **Spark SQL**: consultas SQL sobre DataFrames.
-
-- **Structured Streaming**: procesamiento en tiempo real con API de DataFrames.
-
-## Apache Flink
-
-Flink es un motor de procesamiento de streaming nativo, con baja latencia y capacidad de estado. Es ideal para aplicaciones que requieren resultados en milisegundos.
-
-## Apache Hadoop MapReduce
-
-El precursor, pero hoy en desuso para la mayoría de aplicaciones debido a su alta latencia (escritura intermedia a disco) y complejidad.
-
-## Comparativa Spark vs Flink
-
-::: center
-  **Característica**         **Spark**                                          **Flink**
-  -------------------------- -------------------------------------------------- ------------------
-  Modelo                     Micro-batches (por defecto) o streaming continuo   Streaming nativo
-  Latencia                   Segundos (micro-batches)                           Milisegundos
-  Procesamiento con estado   Sí (checkpoints)                                   Sí (muy robusto)
-  Ecosistema                 Muy amplio (SQL, ML, Graph)                        En crecimiento
-  Facilidad de uso           Alta                                               Media
-:::
-
-# Arquitecturas Cloud, Híbridas y On-Premise
-
-## Cloud (Nube)
-
-Los proveedores cloud ofrecen servicios gestionados de Big Data:
-
-- **AWS**: EMR (Spark, Hadoop), Kinesis (streaming), Athena (consultas SQL sobre S3), Redshift (data warehouse).
-
-- **Google Cloud**: Dataproc (Spark/Hadoop), Pub/Sub, BigQuery.
-
-- **Azure**: HDInsight, Event Hubs, Synapse.
-
-Ventajas: escalabilidad elástica, pago por uso, menor mantenimiento.
-
-## On-Premise (Local)
-
-La empresa instala y gestiona su propio clúster (Hadoop, Spark) en sus servidores. Ventajas: control total, seguridad (datos no salen de la empresa). Desventajas: alta inversión inicial (CapEx), complejidad operativa.
-
-## Híbrida
-
-Combinación de ambos: algunos datos y procesos en la nube, otros en local. Por ejemplo, un data lake en la nube y procesamiento crítico on-premise, o viceversa.
-
-## Escalabilidad y Concurrencia
-
-En Big Data, la escalabilidad horizontal (añadir más nodos) es clave. La computación paralela permite dividir el trabajo entre muchos servidores. Conceptos importantes:
-
-- **Sharding**: dividir los datos en fragmentos (shards) distribuidos.
-
-- **Replicación**: copiar datos en varios nodos para tolerancia a fallos.
-
-- **Balanceo de carga**: distribuir las consultas entre nodos.
-
-# Casos de Uso Reales
-
-## Redes Sociales (Twitter)
-
-Twitter genera cientos de millones de tweets al día. Utilizan Hadoop y Spark para análisis de tendencias, detección de spam, y recomendaciones. Los datos se almacenan en formatos como Parquet en un data lake.
-
-## Internet de las Cosas (IoT)
-
-Empresas como Petrobras (Brasil) usan IoT en plataformas petroleras. Miles de sensores envían lecturas cada segundo. Los datos se procesan en tiempo real con Kafka y Flink para detectar anomalías y prevenir fallos.
-
-## Finanzas (Bancos)
-
-Un banco en Perú procesa millones de transacciones diarias. Utilizan CDC (Debezium) para capturar cambios en sus bases de datos transaccionales, los envían a Kafka, y luego Spark los transforma y carga en un data warehouse (Redshift) para análisis de fraude y reportes regulatorios.
-
-## Retail (Comercio Electrónico)
-
-Falabella (Chile) usa Big Data para personalización de ofertas. Los clics de los usuarios se capturan en tiempo real, se unen con datos históricos y se alimentan modelos de recomendación (machine learning) en Databricks.
-
-## Telecomunicaciones
-
-Una operadora móvil en Latinoamérica analiza registros de llamadas (CDRs) para optimizar la red y detectar patrones de fraude. Volúmenes de varios terabytes diarios procesados con Spark.
-
-## Big Data en Perú
-
-En Perú, sectores como banca, retail y telecomunicaciones están adoptando Big Data. Ejemplos:
-
-- BCP: uso de data lakes y machine learning para segmentación de clientes.
-
-- Interbank: analítica en tiempo real de transacciones.
-
-- Entel: procesamiento de datos de red para mejorar calidad de servicio.
-
-El crecimiento del cloud (AWS en Lima) está facilitando la adopción.
-
-# Computación Paralela y Concurrente
-
-## Conceptos Fundamentales
-
-- **Paralelismo**: ejecución simultánea de múltiples tareas en diferentes núcleos/máquinas.
-
-- **Concurrencia**: capacidad de manejar múltiples tareas al mismo tiempo (no necesariamente en paralelo).
-
-- **Cluster**: conjunto de máquinas que trabajan juntas.
-
-- **Nodo**: una máquina del clúster.
-
-- **Task**: unidad de trabajo (por ejemplo, procesar una partición de datos).
-
-## Modelos de Particionamiento
-
-Para distribuir datos, se usan técnicas como:
-
-- **Rango**: dividir por rangos de valores (ej. fechas).
-
-- **Hash**: aplicar función hash a una clave.
-
-- **Lista**: por categorías (ej. región).
-
-El particionamiento debe balancear la carga y permitir consultas eficientes.
-
-## Ejemplo: Sharding en Cassandra
-
-En Cassandra, la clave de partición determina el nodo donde se almacena la fila. Las consultas deben incluir la clave de partición para ser eficientes.
-
-# Herramientas y Plataformas Adicionales
-
-## Apache Kafka
-
-Plataforma de streaming para la ingesta y distribución de eventos en tiempo real. Actúa como cola distribuida y duradera. Se integra con Spark, Flink, etc.
-
-## Apache Airflow
-
-Orquestador de workflows. Permite programar y monitorizar pipelines complejos (DAGs). Es el estándar para orquestación ETL/ELT.
-
-## Trino (antes Presto)
-
-Motor de consultas SQL distribuido que puede consultar datos directamente en data lakes (S3, HDFS) en formatos como Parquet. Muy rápido para análisis ad-hoc.
-
-## Apache Hive
-
-Data warehouse sobre Hadoop que traduce SQL a MapReduce o Spark. Hoy menos usado.
-
-## Apache HBase
-
-Base de datos NoSQL columnar sobre HDFS, para acceso aleatorio en tiempo real.
-
-## Elasticsearch
-
-Motor de búsqueda y analítica, usado para logs y datos de texto.
-
-## Tabla Resumen
-
-::: center
-  **Herramienta**   **Función principal**
-  ----------------- -----------------------------------------------
-  Apache Spark      Procesamiento distribuido (batch y streaming)
-  Apache Flink      Procesamiento streaming de baja latencia
-  Apache Kafka      Mensajería y streaming de eventos
-  Apache Airflow    Orquestación de pipelines
-  Trino             Consultas SQL sobre data lakes
-  Elasticsearch     Búsqueda y análisis de texto
-  Databricks        Plataforma unificada Lakehouse
-  AWS EMR           Clústeres gestionados de Hadoop/Spark
-  Google BigQuery   Data warehouse serverless
-:::
-
-# Ejercicios Resueltos
-
-## Ejercicio 1: Elección de formato
-
-**Enunciado:** Una empresa necesita almacenar logs de servidores (texto) para análisis posteriores. ¿Qué formato recomendaría y por qué?
-
-**Solución:** Recomendaría Parquet, ya que permite compresión y consultas eficientes sobre campos específicos (timestamp, nivel de log). Además, se puede usar con Spark para procesar grandes volúmenes. Alternativamente, si se requiere ingestión en tiempo real, podrían usar Avro para Kafka y luego convertirlos a Parquet para almacenamiento.
-
-## Ejercicio 2: Diseño de un data lake
-
-**Enunciado:** Diseñar la estructura de carpetas para un data lake en S3 que almacena ventas diarias, clientes y productos.
-
-**Solución:**
-
-    s3://mi-lake/
-      raw/
-        ventas/
-          year=2025/
-            month=03/
-              day=15/
-                ventas_20250315.csv
-              day=16/
-                ...
-        clientes/
-          clientes_20250315.csv
-        productos/
-          productos.csv
-      staging/
-        ventas_clean.parquet
-        clientes_clean.parquet
-      analytics/
-        ventas_diarias.parquet
-
-Particionar por fecha facilita consultas posteriores y evolución.
-
-## Ejercicio 3: Contar palabras con Spark
-
-**Enunciado:** Escribir un script en PySpark que cuente las palabras más frecuentes en un conjunto de archivos de texto.
-
-**Solución:**
-
-```python
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import explode, split, col
-
-spark = SparkSession.builder.appName("wordcount").getOrCreate()
-df = spark.read.text("s3://bucket/textos/*.txt")
-words = df.select(explode(split(col("value"), "\s+")).alias("word"))
-counts = words.groupBy("word").count().orderBy(col("count").desc())
-counts.show(10)
-```
-
-## Ejercicio 4: Procesamiento streaming con Spark
-
-**Enunciado:** Leer un stream de Kafka con eventos de clics y contar los clics por minuto.
-
-**Solución:**
-
-```python
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import window, col
-
-spark = SparkSession.builder.appName("streaming").getOrCreate()
-df = spark.readStream.format("kafka") \
-    .option("kafka.bootstrap.servers", "localhost:9092") \
-    .option("subscribe", "clics") \
-    .load()
-# Asumimos que el valor es JSON con timestamp y usuario
-from pyspark.sql.types import StructType, StringType, TimestampType
-schema = StructType().add("usuario", StringType()).add("timestamp", TimestampType())
-clics = df.selectExpr("CAST(value AS STRING)").select(from_json("value", schema).alias("data")).select("data.*")
-counts = clics.groupBy(window("timestamp", "1 minute"), col("usuario")).count()
-query = counts.writeStream.outputMode("complete").format("console").start()
-query.awaitTermination()
-```
-
-## Ejercicio 5: Dimensionamiento de clúster
-
-**Enunciado:** Estimar el número de nodos necesarios para procesar 10 TB de datos diarios con Spark, asumiendo que cada nodo tiene 64 GB de RAM y 8 cores, y que el trabajo requiere 4 horas.
-
-**Solución:**
-
-- Supongamos que Spark puede procesar 1 TB por hora por cada 10 cores (depende del tipo de trabajo). Con 8 cores por nodo, 0.8 TB/hora/nodo.
-
-- Para 10 TB en 4 horas, se necesitan 10 / 4 = 2.5 TB/hora.
-
-- Nodos necesarios: 2.5 / 0.8 ≈ 3.125, es decir, 4 nodos.
-
-Este cálculo es muy aproximado; en la práctica se hacen pruebas de rendimiento.
-
-# Glosario de Términos
-
-Big Data
-
-:   Conjuntos de datos masivos que requieren procesamiento distribuido.
-
-Data Lake
-
-:   Repositorio de datos en bruto.
-
-Data Warehouse
-
-:   Almacén de datos estructurados optimizado para consultas.
-
-Lakehouse
-
-:   Arquitectura que combina data lake y data warehouse.
-
-Parquet
-
-:   Formato columnar de alto rendimiento.
-
-ORC
-
-:   Formato columnar similar a Parquet.
-
-Avro
-
-:   Formato binario orientado a filas, usado en streaming.
-
-Spark
-
-:   Motor de procesamiento distribuido.
-
-Flink
-
-:   Motor de procesamiento streaming de baja latencia.
-
-Kafka
-
-:   Plataforma de mensajería distribuida.
-
-CDC
-
-:   Change Data Capture, captura de cambios en bases de datos.
-
-Sharding
-
-:   Particionamiento horizontal de datos.
-
-Clúster
-
-:   Conjunto de máquinas trabajando juntas.
-
-On-Premise
-
-:   Infraestructura local.
-
-Cloud
-
-:   Infraestructura en la nube.
-
-Databricks
-
-:   Plataforma unificada Lakehouse.
-
-Delta Lake
-
-:   Capa de almacenamiento ACID sobre Parquet.
-
-# Referencias {#referencias .unnumbered}
-
-- Kleppmann, M. (2017). *Designing Data-Intensive Applications*. O'Reilly.
-
-- Zaharia, M., et al. (2016). *Apache Spark: A Unified Engine for Big Data Processing*. Communications of the ACM.
-
-- Databricks. *What is a Lakehouse?* <https://databricks.com/blog/2020/01/30/what-is-a-data-lakehouse.html>
-
-- Documentación de Apache Spark: <https://spark.apache.org/docs/latest/>
-
-- Documentación de Apache Kafka: <https://kafka.apache.org/documentation/>
-
-- Amazon Web Services. *Big Data en AWS*. <https://aws.amazon.com/big-data/>
-
-- Artículo: \"Big Data en Perú: estado actual y perspectivas\" (Revista de Ingeniería, 2024).

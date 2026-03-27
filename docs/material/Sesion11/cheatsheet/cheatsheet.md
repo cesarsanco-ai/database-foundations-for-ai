@@ -9,40 +9,95 @@ layout: default
 
 ---
 
-## Familias
+## 1️⃣ Conceptos Clave
 
-| Familia | Ejemplo | Bueno para |
-| :--- | :--- | :--- |
-| Documento | MongoDB | Catálogos, perfiles |
-| Clave-valor | Redis | Caché, sesiones |
-| Columna | Cassandra | Series temporales masivas |
-| Grafo | Neo4j | Redes, recomendación relacional |
-
----
-
-## CAP (recordatorio)
-
-No se pueden maximizar **C+A+P** a la vez en presencia de particiones — diseñar compromiso explícito.
+| Concepto    | Definición                                                                                   |
+| ----------- | -------------------------------------------------------------------------------------------- |
+| NoSQL       | “Not Only SQL”, bases de datos no relacionales.                                              |
+| Teorema CAP | En distribuidos no puedes tener Consistencia + Disponibilidad + Particiones al mismo tiempo. |
+| BASE        | Básicamente Disponible, Estado Suave (eventual consistency).                                 |
+| Sharding    | Particionamiento horizontal de datos.                                                        |
+| Replicación | Copia de datos en varios nodos para alta disponibilidad.                                     |
+| Embeddings  | Representación vectorial de datos para IA/ML.                                                |
+| Latencia    | Tiempo de respuesta de una operación.                                                        |
 
 ---
 
-## Teoría
+## 2️⃣ Tipos de NoSQL
 
-* [teoria11-bbdd.md](../teoria/teoria11-bbdd.md)
-
----
-
-## Mongo (idea)
-
-```javascript
-db.pedidos.find({ clienteId: ObjectId("...") }).sort({ fecha: -1 })
-```
+| Tipo        | Ejemplos              | Características / Casos de Uso                                            |
+| ----------- | --------------------- | ------------------------------------------------------------------------- |
+| Documental  | MongoDB, Couchbase    | Documentos JSON/BSON, esquema flexible, CMS, catálogos, datos de usuario. |
+| Clave-Valor | Redis, DynamoDB       | Ultra rápido, acceso por clave, caché, sesiones, colas, embeddings.       |
+| Grafos      | Neo4j, Amazon Neptune | Nodos y relaciones, recomendaciones, fraude, redes sociales.              |
+| Columnar    | Cassandra, HBase      | Columnas anchas, IoT, series temporales, mensajería.                      |
+| Búsqueda    | Elasticsearch, Solr   | Texto completo, análisis de logs, métricas, búsqueda web.                 |
 
 ---
 
-## Puntos críticos
+## 3️⃣ Características de NoSQL
 
-* **Índices** en NoSQL siguen siendo críticos; sin ellos, scans completos.
-* Migrar de SQL a documento sin rediseño ⇒ rendimiento pobre.
+* **Escalabilidad**: horizontal (añadir nodos).
+* **Flexibilidad**: esquema dinámico (schema-on-read).
+* **Alta disponibilidad**: replicación, tolerancia a fallos.
+* **Transacciones**: generalmente eventual consistency (BASE).
 
-> *“Elige el motor según el patrón de lectura/escritura, no según la moda.”*
+---
+
+## 4️⃣ Bases de Datos Populares
+
+| Base          | Tipo                   | Particularidades                                             |
+| ------------- | ---------------------- | ------------------------------------------------------------ |
+| MongoDB       | Documental             | BSON, sharding, replicación, consultas JSON.                 |
+| Redis         | Clave-Valor            | In-memory, estructuras avanzadas, RDB/AOF, clustering.       |
+| Neo4j         | Grafo                  | Nodos/relaciones, lenguaje Cypher.                           |
+| Cassandra     | Columnar               | Peer-to-peer, alta disponibilidad, consistencia eventual.    |
+| Elasticsearch | Búsqueda               | Documentos JSON, inverted index, agregaciones.               |
+| DynamoDB      | Clave-Valor/Documental | AWS managed, serverless, escalable.                          |
+| Cosmos DB     | Multimodelo            | Azure, document/graph/key-value/column, global distribution. |
+| Bigtable      | Columnar               | GCP, similar a HBase, IoT y series temporales.               |
+
+---
+
+## 5️⃣ Lenguajes / Conexión
+
+| Base          | Lenguaje / Conexión        |
+| ------------- | -------------------------- |
+| MongoDB       | Python: `pymongo`          |
+| Redis         | Python: `redis-py`         |
+| Neo4j         | Python: `neo4j` (driver)   |
+| Cassandra     | Python: `cassandra-driver` |
+| Elasticsearch | Python: `elasticsearch-py` |
+
+---
+
+## 6️⃣ Integración con IA
+
+* **Embeddings** → MongoDB, Elasticsearch, Redis.
+* **Caché de resultados** → Redis.
+* **Estado de conversación** → Redis.
+* **Recomendaciones basadas en relaciones** → Neo4j.
+
+---
+
+## 7️⃣ Escalabilidad / Nube
+
+| Estrategia         | Ejemplo Cloud                   |
+| ------------------ | ------------------------------- |
+| Serverless         | DynamoDB, Cosmos DB             |
+| Gestionado         | ElastiCache, DocumentDB         |
+| On-Premise / Cloud | Dependiendo de latencia y costo |
+
+---
+
+## 8️⃣ Casos de Uso Rápidos
+
+| Tipo        | Uso típico                                         |
+| ----------- | -------------------------------------------------- |
+| Documental  | Catálogos, CMS, sesiones, datos de usuario         |
+| Clave-Valor | Caché, colas, sesiones, leaderboard, embeddings    |
+| Grafos      | Recomendación, detección de fraude, social network |
+| Columnar    | IoT, series temporales, mensajería                 |
+| Búsqueda    | Logs, búsqueda web, métricas                       |
+
+

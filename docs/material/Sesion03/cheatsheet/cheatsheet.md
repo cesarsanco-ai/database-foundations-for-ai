@@ -9,45 +9,189 @@ layout: default
 
 ---
 
-## Complejidad (orden de magnitud)
+## 🎯 ¿Por qué normalizar?
 
-| Operación | Sin índice | Con B-Tree (idea) |
-| :--- | :--- | :--- |
-| Búsqueda por igualdad | O(n) | O(log n) |
-| Inserción | O(1) append* | O(log n) mantener orden |
+Evitar problemas:
 
-\*según motor y tabla
+* ❌ Inserción → no puedes guardar datos incompletos
+* ❌ Actualización → inconsistencias
+* ❌ Eliminación → pérdida accidental
 
----
-
-## Objetos
-
-| Objeto | Función |
-| :--- | :--- |
-| **Índice** | Acelerar lecturas filtradas / joins |
-| **PK** | Unicidad + acceso principal |
-| **Índice compuesto** | Consultas multi-columna (orden importa) |
+👉 Objetivo: **consistencia + sin redundancia**
 
 ---
 
-## Teoría
+## 🔗 Dependencias Funcionales (DF)
 
-* [teoria2-bbdd.md](../../Sesion04/teoria/teoria2-bbdd.md)
+👉 Regla:
 
----
+```
+X → Y  (X determina Y)
+```
 
-## SQL (ejemplo índice)
+* Si conoces **X**, sabes **Y**
+* Base de la normalización
 
-```sql
-CREATE INDEX idx_cliente_ciudad ON cliente (ciudad);
--- consultas: WHERE ciudad = 'Málaga'
+Ej:
+
+```
+id_departamento → nombre_departamento
 ```
 
 ---
 
-## Puntos críticos
+## 🧼 Formas Normales
 
-* **Índice mal elegido** = espacio desperdiciado y escrituras lentas.
-* En NoSQL, muchos sistemas **no** ofrecen joins eficientes: modelar para **consultas**, no solo para normalización.
+### 🥇 1NF (Primera Forma Normal)
 
-> *“El motor es rápido si el plan de ejecución usa el índice correcto.”*
+* Datos **atómicos**
+* ❌ listas / arrays en columnas
+
+✔ Solución:
+
+* Separar en otra tabla
+
+---
+
+### 🥈 2NF (Segunda Forma Normal)
+
+* Cumple 1NF
+* No hay dependencias parciales
+
+👉 Problema:
+
+* PK compuesta
+* Un atributo depende solo de una parte
+
+✔ Solución:
+
+* Crear nueva tabla
+
+---
+
+### 🥉 3NF (Tercera Forma Normal)
+
+* Cumple 2NF
+* ❌ dependencias transitivas
+
+👉 Problema:
+
+```
+A → B → C
+```
+
+✔ Solución:
+
+* Separar en otra tabla
+
+---
+
+### 🧠 BCNF
+
+* Más estricta que 3NF
+* Todo determinante debe ser **superclave**
+
+---
+
+### 🚀 4NF y 5NF
+
+* 4NF → multivalores
+* 5NF → joins complejos
+
+👉 En la práctica: **hasta 3NF / BCNF**
+
+---
+
+## ⚠️ Tipos de anomalías
+
+* **Inserción** → falta info
+* **Actualización** → duplicación
+* **Eliminación** → pérdida de datos
+
+---
+
+## 🔐 Integridad en SQL
+
+### 1. Dominio (valores válidos)
+
+* `NOT NULL` → obligatorio
+* `CHECK` → condición
+* Tipos (`INT`, `DATE`, etc.)
+
+---
+
+### 2. Entidad (unicidad)
+
+* `PRIMARY KEY` → único + no null
+* `UNIQUE` → único
+
+---
+
+### 3. Referencial (relaciones)
+
+* `FOREIGN KEY`
+
+Opciones:
+
+* `CASCADE` → propaga
+* `SET NULL` → pone null
+* `RESTRICT` → bloquea
+
+---
+
+### 4. Reglas extra
+
+* `CHECK`, `UNIQUE`, combinaciones
+
+---
+
+### 5. Triggers
+
+* Código automático (INSERT, UPDATE, DELETE)
+* Para lógica compleja
+
+---
+
+## ⚖️ Normalización vs Desnormalización
+
+| Normalización       | Desnormalización  |
+| ------------------- | ----------------- |
+| ✔ Consistencia      | ✔ Rendimiento     |
+| ✔ Menos redundancia | ❌ Más duplicación |
+| ❌ Más JOINs         | ✔ Menos JOINs     |
+
+👉 Uso típico:
+
+* OLTP → normalizado (3NF)
+* Data warehouse → desnormalizado
+
+---
+
+## 🧩 Patrón clásico (ejemplo mental)
+
+❌ Mal diseño:
+
+```
+Pedido(cliente, telefono, producto, precio)
+```
+
+✔ Bien:
+
+```
+Cliente(id, nombre, telefono)
+Producto(id, nombre, precio)
+Pedido(id, id_cliente)
+DetallePedido(id_pedido, id_producto)
+```
+
+---
+
+## ⚡ Reglas de oro
+
+* Siempre 1NF → 2NF → 3NF
+* Detecta dependencias funcionales
+* Usa PK y FK correctamente
+* Prefiere restricciones SQL > triggers
+* Desnormaliza solo si hay problema real
+
+

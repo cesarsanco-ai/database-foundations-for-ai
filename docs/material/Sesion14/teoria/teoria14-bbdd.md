@@ -1,514 +1,287 @@
-
-## Sesión 14
-# GESTIÓN DE ERRORES, RECUPERACIÓN Y ARQUITECTURAS HÍBRIDAS
+# Despliegue y Alta Disponibilidad 
 
 
-**Autor:** Carlos César Sánchez Coronel  
-**Fecha:** 2026
+## 1. Fundamentos Teóricos del Despliegue de Bases de Datos
+
+### 1.1. Definición y Alcance
+
+El despliegue de sistemas de bases de datos constituye el conjunto de decisiones arquitectónicas, operativas y de infraestructura que determinan cómo una instancia o clúster de base de datos es instalado, configurado, ejecutado y puesto a disposición de las aplicaciones consumidoras. Este proceso trasciende la mera instalación de software para abarcar dimensiones críticas como la disponibilidad, la escalabilidad, la durabilidad y la recuperación ante fallos.
+
+La teoría del despliegue de bases de datos se fundamenta en tres pilares:
+
+1. **Modelo de consistencia**: Define las garantías que el sistema ofrece respecto a la visibilidad de las escrituras concurrentes.
+2. **Arquitectura de distribución**: Determina cómo los datos se particionan y replican entre nodos.
+3. **Modelo de fallos**: Establece las suposiciones sobre tipos de fallos (caída de nodos, particiones de red, corrupción de datos) y los mecanismos para tolerarlos.
+
+### 1.2. Taxonomía de Modelos de Despliegue
+
+| Modelo | Caracterización | Fundamentos Teóricos |
+| :--- | :--- | :--- |
+| **Despliegue Monolítico** | Una sola instancia que gestiona todos los datos y operaciones. | Simplicidad operativa; punto único de fallo (SPOF). Apropiado para cargas de trabajo pequeñas o entornos de desarrollo. |
+| **Despliegue Clúster** | Múltiples nodos que operan como una unidad coordinada, compartiendo la carga y/o replicando datos. | Basado en sistemas distribuidos. Elimina SPOF mediante redundancia. Requiere protocolos de consenso. |
+| **Despliegue Multirregional** | Nodos distribuidos en múltiples zonas geográficas o centros de datos. | Proporciona resiliencia ante desastres regionales. Introduce complejidad de latencia y consistencia global. |
 
 ---
 
-# Introducción
+## 2. Teoría de Alta Disponibilidad (HA)
 
-En esta última sesión del curso, integraremos todos los conocimientos adquiridos para abordar los desafíos reales de la gestión de bases de datos en producción. Nos centraremos en cómo prevenir y recuperarse de errores catastróficos, cómo diseñar arquitecturas híbridas que combinen lo mejor de SQL, NoSQL y bases de datos vectoriales, y cómo desplegar estos sistemas de manera confiable y escalable. Este capítulo final es una guía para convertirte en un profesional capaz de enfrentar incidentes, diseñar soliones resilientes y mantener la consistencia en entornos políglotas.
+### 2.1. Definición y Métricas Fundamentales
 
-## Objetivos de la sesión
+La **alta disponibilidad** es la capacidad de un sistema de permanecer operativo y accesible durante períodos prolongados, minimizando el tiempo de inactividad no planificado.
 
-- Conocer las operaciones de alto riesgo y las mejores prácticas para evitarlas.
+| Métrica | Definición | Fórmula | Objetivo en HA |
+| :--- | :--- | :--- | :--- |
+| **Disponibilidad (Availability)** | Proporción de tiempo que el sistema está operativo. | `A = TiempoActivo / (TiempoActivo + TiempoInactivo)` | 99.9% (tres nueves) a 99.999% (cinco nueves) |
+| **MTBF (Mean Time Between Failures)** | Tiempo promedio entre fallos consecutivos. | `MTBF = TiempoTotalOperación / NúmeroFallos` | Maximizar |
+| **MTTR (Mean Time To Repair)** | Tiempo promedio para restaurar el servicio tras un fallo. | `MTTR = TiempoTotalInactividad / NúmeroFallos` | Minimizar |
+| **RPO (Recovery Point Objective)** | Pérdida de datos máxima aceptable medida en tiempo. | — | Segundos a minutos según criticidad |
+| **RTO (Recovery Time Objective)** | Tiempo máximo aceptable para restaurar el servicio. | — | Segundos a horas según criticidad |
 
-- Entender los mecanismos de recuperación ante desastres: backups, snapshots, point-in-time recovery.
+### 2.2. Teorema CAP y sus Implicaciones para HA
 
-- Analizar los desafíos específicos de la nube: latencia, costos de egreso, data drift.
+El **Teorema CAP** (Brewer, 2000; formalizado por Gilbert y Lynch, 2002) establece que un sistema distribuido de datos solo puede satisfacer dos de las tres siguientes garantías:
 
-- Diseñar arquitecturas híbridas que integren motores SQL, NoSQL y vectoriales.
+| Propiedad | Definición |
+| :--- | :--- |
+| **Consistency (C)** | Todos los nodos ven los mismos datos simultáneamente; tras una escritura, todas las lecturas posteriores devuelven ese valor. |
+| **Availability (A)** | Cada solicitud recibe una respuesta (no error) aunque algunos nodos hayan caído. |
+| **Partition Tolerance (P)** | El sistema continúa operando a pesar de la pérdida arbitraria de mensajes o fallos de red entre nodos. |
 
-- Aprender a orquestar múltiples bases de datos con contenedores e infraestructura como código.
+**Implicación teórica**: Dado que las particiones de red son inevitables en sistemas distribuidos, los sistemas deben elegir entre **CP** (priorizar consistencia sobre disponibilidad durante particiones) o **AP** (priorizar disponibilidad sobre consistencia).
 
-- Implementar sincronización entre sistemas mediante CDC y triggers.
+Esta elección fundamental determina la arquitectura de HA:
 
-- Resolver ejercicios prácticos que integran todos los conceptos.
+- **Sistemas CP**: Durante una partición de red, detienen las escrituras para preservar consistencia (ej. PostgreSQL con replicación síncrona, MongoDB con mayoría de réplicas).
+- **Sistemas AP**: Durante una partición, continúan aceptando escrituras, aceptando consistencia eventual (ej. Cassandra, CouchDB).
 
-# Operaciones de Alto Riesgo y Prevención
+### 2.3. Teorema PACELC
 
-En entornos productivos, ciertos comandos pueden causar daños irreparables si se ejecutan sin control. Conocerlos y establecer barreras es fundamental.
+Extensión del teorema CAP que añade la consideración de latencia: incluso sin particiones (P), los sistemas deben elegir entre consistencia (C) y latencia (L).
 
-## DROP vs. TRUNCATE
+| Condición | Trade-off |
+| :--- | :--- |
+| **Si hay Partición (P)** | Elegir entre Consistencia (C) o Disponibilidad (A) |
+| **Else (E), en operación normal** | Elegir entre Consistencia (C) o Latencia (L) |
 
-- `DROP TABLE`: Elimina la tabla y su estructura (metadata). Los datos no se pueden recuperar fácilmente (excepto desde backups).
+Este marco teórico explica por qué sistemas como DynamoDB ofrecen consistencia eventual por defecto (menor latencia) pero permiten consistencia fuerte a costa de mayor latencia.
 
-- `TRUNCATE TABLE`: Elimina todas las filas de una tabla de forma rápida, pero conserva la estructura. No genera registros de cada fila eliminada, por lo que no se puede deshacer con `ROLLBACK` en la mayoría de los motores.
+---
 
-::: center
-  **Operación**      **¿Elimina estructura?**   **¿Registra por fila?**
-  ------------------ -------------------------- -----------------------------
-  DROP               Sí                         No (metadata)
-  TRUNCATE           No                         No (solo desasigna páginas)
-  DELETE sin WHERE   No                         Sí (puede ser lento)
-:::
+## 3. Alta Disponibilidad en Bases de Datos SQL
 
-### Buenas prácticas
+### 3.1. Fundamentos de HA en Sistemas Relacionales
 
-- Siempre realizar un `SELECT` antes de un `DELETE` o `UPDATE` para verificar la condición.
+Los sistemas SQL tradicionalmente priorizan **consistencia fuerte (ACID)** sobre disponibilidad durante fallos. La arquitectura de HA se basa en combinaciones de replicación y failover automático.
 
-- Usar transacciones: `BEGIN; DELETE ...; ROLLBACK;` para probar.
+### 3.2. Arquitecturas de HA para SQL
 
-- En entornos críticos, deshabilitar permisos de `DROP` y `TRUNCATE` para usuarios regulares.
+| Arquitectura | Descripción | Mecanismos | Trade-offs Teóricos |
+| :--- | :--- | :--- | :--- |
+| **Replicación Síncrona con Failover Automático** | Uno o más nodos réplica mantienen copia idéntica; las escrituras se confirman solo cuando se confirman en réplica(s). | PostgreSQL (synchronous replication + Patroni), Oracle Data Guard (SYNC), SQL Server Always On (synchronous commit) | **CP system**: Consistencia fuerte; la disponibilidad se sacrifica si la réplica falla o la red se particiona. RPO = 0. |
+| **Replicación Asíncrona con Promoción Manual** | Las escrituras se confirman en el primario; las réplicas se actualizan con retraso. | PostgreSQL streaming replication (asíncrono), MySQL replication | **AP system**: Mayor disponibilidad de escritura; posible pérdida de datos (RPO > 0) si el primario falla antes de replicar. |
+| **Clúster de Alta Disponibilidad (Shared Storage)** | Múltiples servidores comparten un almacenamiento común (SAN); solo uno activo a la vez. | Windows Failover Cluster, Linux Pacemaker + DRBD | Elimina problema de replicación de datos; el almacenamiento compartido es SPOF potencial. |
+| **Clúster Activo-Activo Distribuido** | Múltiples nodos aceptan escrituras simultáneamente con detección de conflictos. | Google Spanner, CockroachDB, YugabyteDB | **CP system con alta disponibilidad**: Usa protocolos de consenso (Paxos, Raft) para lograr consistencia fuerte con tolerancia a fallos. Sacrifica latencia (requiere mayoría de nodos). |
 
-- Implementar una política de \"soft delete\" (marcar filas como eliminadas en lugar de borrarlas físicamente).
+### 3.3. Protocolos de Consenso en SQL Distribuido
 
-## UPDATE/DELETE sin WHERE
+Los sistemas SQL distribuidos modernos utilizan protocolos de consenso para coordinar la replicación y el failover:
 
-El error humano más común. Por ejemplo:
+| Protocolo | Fundamentos | Aplicación |
+| :--- | :--- | :--- |
+| **Raft** | Elección de líder mediante votación; replicación de log con compromiso mayoritario. | CockroachDB, YugabyteDB, etcd (usado por Patroni) |
+| **Paxos** | Protocolo de consenso clásico; variantes como Multi-Paxos para logs replicados. | Google Spanner, Amazon Aurora (implementación propietaria) |
 
-```sql
--- Peligro: actualiza todos los salarios
-UPDATE empleados SET salario = 0;
+**Teorema fundamental**: En un sistema con `n` nodos, se requiere al menos `⌊n/2⌋ + 1` nodos (mayoría) para formar un quórum que pueda elegir líder y comprometer escrituras, garantizando que no existan dos líderes simultáneos (*split-brain*).
 
--- Correcto: con WHERE
-UPDATE empleados SET salario = 0 WHERE id = 123;
-```
+### 3.4. Estrategias de Despliegue On-Premise para SQL HA
 
-### Estrategias de mitigación
+| Componente | Estrategia | Justificación Teórica |
+| :--- | :--- | :--- |
+| **Infraestructura** | Múltiples racks, fuentes de alimentación independientes, switches redundantes. | Eliminar SPOF en capa física; tolerar fallos de componentes individuales. |
+| **Almacenamiento** | SAN con controladores redundantes; o almacenamiento local con replicación síncrona (DRBD). | La capa de almacenamiento debe ser altamente disponible para evitar que una falla de disco afecte múltiples nodos. |
+| **Red** | NICs en bonding, switches en stack, rutas redundantes. | Tolerar fallos de red sin afectar comunicación entre nodos del clúster. |
+| **Orquestación de Failover** | Patroni (PostgreSQL), Orchestrator (MySQL), Clusterware propietario (Oracle Grid). | Automatizar detección de fallos y promoción de réplica con garantías de evitar split-brain mediante fencing. |
 
-- Usar `BEGIN` y `ROLLBACK` en entornos de prueba.
+### 3.5. Estrategias de Despliegue Cloud para SQL HA
 
-- Configurar `sql_safe_updates` en MySQL (requiere WHERE con key).
+| Servicio Gestionado | Arquitectura de HA | Garantías |
+| :--- | :--- | :--- |
+| **AWS RDS Multi-AZ** | Réplica síncrona en zona de disponibilidad (AZ) diferente; failover automático a réplica. | RPO = 0 (con sync replication); RTO de 60-120 segundos. |
+| **AWS Aurora** | Almacenamiento distribuido en 3 AZs con 6 réplicas; escrituras requieren 4 de 6 confirmaciones. | RPO = 0 (pérdida de datos solo por fallo catastrófico de AZs múltiples); failover en ~30 segundos. |
+| **Azure SQL Managed Instance** | Grupos de failover con réplica síncrona en región secundaria; failover automático. | RPO = 0 (modo síncrono); RTO configurable. |
+| **Google Cloud SQL (HA)** | Réplica síncrona en zona diferente; failover automático. | RPO = 0; RTO de minutos. |
 
-- En PostgreSQL, se puede usar `row_security` o triggers que impidan actualizaciones masivas.
+**Teoría de los "nueves" en cloud**: Los proveedores ofrecen SLA de 99.95% a 99.99% para servicios gestionados, respaldados por acuerdos de compensación. La responsabilidad de disponibilidad se comparte: el proveedor garantiza la infraestructura; el cliente configura correctamente la redundancia.
 
-- Auditoría de consultas: herramientas como pgaudit registran comandos peligrosos.
+---
 
-## Prevención mediante scripts de validación
+## 4. Alta Disponibilidad en Bases de Datos NoSQL
 
-Antes de ejecutar un script en producción, se debe:
+### 4.1. Fundamentos de HA en Sistemas NoSQL
 
-1.  Hacer una copia de seguridad.
+Los sistemas NoSQL adoptan filosofías de diseño que priorizan la **escalabilidad horizontal** y la **disponibilidad** sobre la consistencia fuerte, siguiendo el paradigma BASE (Basically Available, Soft state, Eventual consistency) en contraposición a ACID.
 
-2.  Ejecutar el script en un entorno de staging idéntico.
+### 4.2. Arquitecturas de HA por Tipo NoSQL
 
-3.  Usar herramientas de CI/CD con aprobación manual.
+| Tipo | Ejemplos | Arquitectura de HA | Fundamentos |
+| :--- | :--- | :--- | :--- |
+| **Clave-Valor** | Redis, Memcached | Redis Sentinel (monitoreo y failover), Redis Cluster (sharding + replicación), ElastiCache (multi-AZ) | **AP system** con failover automático; replicación asíncrona por defecto. Redis Cluster usa gossip protocol para detección de fallos. |
+| **Orientado a Documentos** | MongoDB, Couchbase | Replica sets (mínimo 3 nodos), elección automática de primario mediante protocolo de consenso; sharding para escalabilidad horizontal. | **CP system**: Consistencia configurable (write concern). Replica set con mayoría para escrituras. |
+| **Orientado a Columnas** | Cassandra, HBase | Replicación con factor configurable (típicamente 3); consistencia configurable por operación (ONE, QUORUM, ALL). | **AP system**: Diseñado para tolerar fallos de nodos y particiones de red. Usa gossip protocol para estado de nodos. |
+| **Orientado a Grafos** | Neo4j, Amazon Neptune | Replicación con primario/réplicas; failover automático en configuración de clúster. | Variantes según implementación; Neo4j Causal Cluster usa protocolo Raft para consenso. |
 
-4.  Incluir verificaciones de integridad (ej. contar filas afectadas).
+### 4.3. Teoría de Replicación en NoSQL
 
-# Mecanismos de Resiliencia y Recuperación ante Desastres (DRP)
+| Modelo de Replicación | Descripción | Ventajas | Desventajas |
+| :--- | :--- | :--- | :--- |
+| **Líder-Seguidor (Master-Slave)** | Un nodo primario acepta escrituras; réplicas se actualizan asíncronamente. | Simple; buena para lecturas escalables. | Punto único de fallo para escrituras; posible pérdida de datos. |
+| **Multilíder (Multi-Master)** | Múltiples nodos aceptan escrituras; resolución de conflictos necesaria. | Mayor disponibilidad de escritura; tolerancia a fallos de zona. | Complejidad de conflictos (ej. Last Write Wins, resolución por aplicación). |
+| **Replicación con Quórum** | Escrituras requieren confirmación de mayoría (N/2+1) de réplicas. | Consistencia configurable; balance entre disponibilidad y consistencia. | Mayor latencia; disponibilidad reducida si fallan más de la mitad de réplicas. |
+| **Replicación sin líder (Leaderless)** | Todos los nodos aceptan escrituras; lecturas consultan múltiples nodos y toman la versión más reciente. | Máxima disponibilidad; resiliencia extrema. | Consistencia eventual; necesidad de reparación de lecturas (read repair) y compacciones anti-entropía. |
 
-Un plan de recuperación ante desastres (DRP) garantiza que los datos puedan restaurarse después de un fallo catastrófico.
+### 4.4. Estrategias de Despliegue On-Premise para NoSQL HA
 
-## Rollback y Transacciones
+| Sistema | Configuración HA On-Premise | Principios |
+| :--- | :--- | :--- |
+| **Cassandra** | Factor de replicación 3 en 3 racks diferentes; consistencia QUORUM para operaciones críticas. | Tolerancia a fallos de rack completo; sin SPOF. Usa snitches para topología. |
+| **MongoDB** | Replica set con 3 nodos (primario, secundario, árbitro o secundario); nodos en racks diferentes. | Elección automática de primario con mayoría; failover en ~10-30 segundos. |
+| **Redis** | Redis Sentinel con 3 instancias sentinel; replicación asíncrona con failover automático. | Detección de fallos por consenso de sentinel; promoción automática de réplica. |
 
-Las transacciones permiten deshacer cambios si algo sale mal.
+### 4.5. Estrategias de Despliegue Cloud para NoSQL HA
 
-```sql
-BEGIN;
-UPDATE cuentas SET saldo = saldo - 100 WHERE id = 1;
-UPDATE cuentas SET saldo = saldo + 100 WHERE id = 2;
--- Si todo va bien:
-COMMIT;
--- Si ocurre un error:
-ROLLBACK;
-```
+| Servicio Gestionado | Arquitectura de HA | Características |
+| :--- | :--- | :--- |
+| **Amazon DynamoDB** | Almacenamiento distribuido automático en 3 AZs; replicación síncrona por defecto. | **AP system**: Consistencia configurable (eventual o fuerte). SLA 99.999% de disponibilidad. |
+| **MongoDB Atlas** | Clusters multi-AZ con replica set; failover automático. | Configurable por nivel; Global Clusters para escrituras multi-región. |
+| **Amazon ElastiCache (Redis)** | Multi-AZ con réplica en AZ secundaria; failover automático en < 2 minutos. | Réplica automática; backups automáticos para recuperación. |
+| **Azure Cosmos DB** | Distribución global con réplicas configurables; múltiples modelos de consistencia (fuerte, sesión, eventual). | **AP/CP configurable**: Latencia <10ms al 99% para lecturas/escrituras. SLA 99.999%. |
 
-Es crucial que las aplicaciones manejen correctamente las transacciones.
+---
 
-## Backups y Snapshots
+## 5. Alta Disponibilidad en Bases de Datos Vectoriales
 
-### Backups lógicos
+### 5.1. Fundamentos Teóricos de HA en Sistemas Vectoriales
 
-Consisten en volcados de datos en formato SQL o de texto. Ejemplo con `pg_dump`:
+Las bases de datos vectoriales constituyen una categoría emergente diseñada para almacenar, indexar y consultar *embeddings* de alta dimensionalidad. Su arquitectura de HA presenta desafíos únicos debido a:
 
-```bash
-pg_dump -U usuario -d mi_db > backup.sql
-```
+1. **Estructuras de índice en memoria**: Índices como HNSW (Hierarchical Navigable Small World) se construyen y mantienen típicamente en RAM para lograr búsquedas de baja latencia.
+2. **Alta dimensionalidad**: Los vectores típicamente tienen 384 a 1536 dimensiones, lo que dificulta la compresión y replicación eficiente.
+3. **Reconstrucción costosa**: La reconstrucción de índices tras un fallo puede tomar horas para colecciones de miles de millones de vectores.
 
-Ventajas: portabilidad, se puede restaurar en versiones diferentes. Desventajas: lentos para bases grandes.
+### 5.2. Arquitecturas de HA para Bases Vectoriales
 
-### Backups físicos (snapshots)
+| Modelo | Descripción | Sistemas que lo implementan | Fundamentos |
+| :--- | :--- | :--- | :--- |
+| **Replicación Líder-Seguidor** | Nodo primario acepta escrituras e indexación; réplicas se mantienen sincronizadas. | Milvus (replicación de segmentos), pgvector (replicación PostgreSQL nativa) | Similar a SQL; consistencia eventual en réplicas; failover requiere promoción. |
+| **Sharding con Replicación** | Datos particionados por clave (hash/rango); cada shard tiene réplicas. | Milvus (sharding por collection), Qdrant (sharding con replicación) | Escalabilidad horizontal + HA; cada shard tiene factor de replicación configurable. |
+| **Cloud-Native Distribuido** | Arquitectura de microservicios con almacenamiento separado (S3) e índices en memoria. | Pinecone, Weaviate (versión cloud) | Separación de cómputo (índices) y almacenamiento (objetos). Recuperación mediante recarga de índice desde almacenamiento persistente. |
+| **Multi-Región Activo-Activo** | Escrituras aceptadas en múltiples regiones con replicación de índices. | Pinecone (Enterprise), Milvus (Cross-Cluster Search) | Máxima disponibilidad global; complejidad de consistencia vectorial. |
 
-Capturas instantáneas del sistema de archivos o del almacenamiento. Ejemplo: snapshot de EBS en AWS. Son rápidos y consistentes, pero dependen del proveedor.
+### 5.3. Desafíos Específicos de HA en Sistemas Vectoriales
 
-### Backups incrementales
+| Desafío | Descripción | Estrategias de Mitigación |
+| :--- | :--- | :--- |
+| **Reconstrucción de índices** | La caída de un nodo requiere reconstruir el índice HNSW/IVF, operación costosa en CPU/memoria. | Almacenamiento persistente del índice en disco; checkpointing periódico; uso de índices *recoverable*. |
+| **Consistencia de embeddings** | Los vectores son generados por modelos de ML; cambios en el modelo requieren reindexación completa. | Versionado de embeddings; pipelines de reindexación asíncrona; tolerancia a versiones híbridas durante transiciones. |
+| **Latencia de failover** | Los índices en memoria no están disponibles durante la recuperación; failover no es instantáneo. | Réplicas cálidas (warm replicas) con índice cargado; failover con tiempo de conmutación en segundos, no milisegundos. |
+| **Consistencia eventual vs. búsqueda** | En réplicas asíncronas, un embedding recién insertado puede no estar visible en réplicas durante búsquedas. | Estrategias de *read-your-writes* dirigiendo lecturas al primario; consistencia configurable por operación. |
 
-Solo respaldan los cambios desde el último backup completo. Herramientas como pg_basebackup (PostgreSQL) o binlog (MySQL) permiten esto.
+### 5.4. Estrategias de Despliegue On-Premise para Bases Vectoriales
 
-## Point-in-Time Recovery (PITR)
+| Componente | Configuración HA | Fundamentos |
+| :--- | :--- | :--- |
+| **Milvus** | Clúster distribuido con componentes: Coordinadores (standby), Nodos de datos (con replicación de segmentos), Nodos de índice, Nodos de consulta (con réplicas). | Separación de responsabilidades (microservicios); cada componente puede escalar independientemente; replicación de segmentos con factor 2-3. |
+| **Qdrant (Self-Hosted)** | Clúster con sharding y replicación configurable; consenso mediante Raft para metadatos. | Almacenamiento de índices en disco con soporte para memoria; failover automático de shards. |
+| **pgvector (PostgreSQL + vector)** | Hereda arquitectura HA de PostgreSQL: replicación síncrona/asíncrona, Patroni, failover automático. | Consistencia ACID; RPO=0 con replicación síncrona; índices vectoriales (HNSW, IVFFlat) replicados como parte del WAL. |
 
-Permite restaurar la base a un momento exacto antes de un incidente. Requiere:
+### 5.5. Estrategias de Despliegue Cloud para Bases Vectoriales
 
-- Un backup completo.
+| Servicio | Arquitectura de HA | Garantías y Limitaciones |
+| :--- | :--- | :--- |
+| **Pinecone** | Servicio gestionado con replicación automática multi-AZ; índices distribuidos. | SLA de disponibilidad; failover automático sin intervención. No expone configuración de replicación. |
+| **Weaviate Cloud** | Clústeres gestionados con replicación automática; almacenamiento en objetos (S3) para persistencia. | Recuperación automática desde almacenamiento persistente; tiempo de recuperación proporcional al tamaño del índice. |
+| **Milvus (Zilliz Cloud)** | Servicio gestionado con configuración de factor de replicación y sharding; multi-AZ. | Consistencia configurable (fuerte/eventual); soporte para multi-región en niveles enterprise. |
+| **Amazon OpenSearch Serverless (Vector Engine)** | Servicio gestionado con índices vectoriales distribuidos; replicación automática multi-AZ. | Hereda arquitectura HA de OpenSearch; búsquedas vectoriales con índices HNSW; SLA 99.99%. |
 
-- Los archivos de log de transacciones (WAL en PostgreSQL, binlog en MySQL) desde ese backup hasta el momento deseado.
+---
 
-Ejemplo en PostgreSQL:
+## 6. Modelos Híbridos de Despliegue y HA
 
-1.  Configurar `wal_level = replica` y archiving.
+### 6.1. Fundamentos de la Arquitectura Híbrida para HA
 
-2.  Restaurar el backup base.
+La arquitectura híbrida on-premise/cloud para bases de datos se fundamenta en la optimización del *trade-off* entre control, latencia, costo y resiliencia. Teóricamente, responde a la necesidad de:
 
-3.  Aplicar WAL hasta el momento deseado con `recovery_target_time`.
+1. **Resiliencia ante desastres (Disaster Recovery)**: Extender la HA regional a HA global.
+2. **Elasticidad híbrida**: Usar cloud para absorber picos sin sobredimensionar infraestructura on-premise.
+3. **Soberanía de datos**: Mantener datos críticos on-premise mientras se aprovechan servicios cloud.
 
-## Ejemplo práctico: Restauración PITR en PostgreSQL
+### 6.2. Patrones de HA Híbrida
 
-```bash
-# 1. Backup base
-pg_basebackup -D /backup/base -F t -z -P
+| Patrón | Descripción | Arquitectura | Consideraciones Teóricas |
+| :--- | :--- | :--- | :--- |
+| **Pilot Light (Luz Piloto)** | Infraestructura mínima en cloud (réplica de datos) que puede expandirse rápidamente ante fallo on-premise. | Replicación asíncrona (CDC) desde on-prem a cloud; recursos cloud apagados o mínimos en estado normal. | RPO > 0 (minutos/horas); RTO bajo (minutos); costo optimizado. |
+| **Warm Standby** | Réplica activa en cloud que puede asumir carga con failover automático o manual. | Replicación síncrona o asíncrona con latencia controlada; cloud ejecuta réplica "caliente". | RPO = 0 con replicación síncrona; RTO segundos a minutos; costo mayor que pilot light. |
+| **Active-Active Multirregional** | Escrituras aceptadas tanto on-premise como en cloud simultáneamente. | Replicación bidireccional con resolución de conflictos; coordinación global. | Complejidad extrema; requiere resolución de conflictos (timestamp vectorial, CRDTs). Generalmente evitado excepto para sistemas diseñados desde origen. |
+| **Burst to Cloud** | Carga base on-premise; picos de demanda absorvidos por cloud. | Escrituras siempre en on-premise (maestro); lecturas escaladas a réplicas cloud bajo demanda. | Latencia adicional para escrituras; escalabilidad de lecturas elástica. |
 
-# 2. Configurar recovery.conf (en versiones antiguas) o postgresql.auto.conf
-# en postgresql.auto.conf:
-restore_command = 'cp /wal_archive/%f %p'
-recovery_target_time = '2025-03-20 14:30:00'
+### 6.3. Sincronización Híbrida: CDC y Replicación
 
-# 3. Iniciar PostgreSQL, que aplicará los WAL hasta ese momento.
-```
+La sincronización entre entornos on-premise y cloud es crítica para HA híbrida:
 
-# Desafíos en la Nube y Data Drift
+| Mecanismo | Descripción | Uso en HA Híbrida |
+| :--- | :--- | :--- |
+| **Change Data Capture (CDC)** | Captura cambios del log de transacciones (WAL/binlog) y los transmite a cloud. | Debezium + Kafka; AWS DMS; replicación continua para warm standby. |
+| **Replicación Nativa** | Mecanismos de replicación propios del motor de base de datos. | PostgreSQL logical replication cross-region; MongoDB Atlas (on-prem to cloud). |
+| **ETL Batch** | Movimiento programado de datos (ej. cada hora). | Solo para DR con RPO alto; no adecuado para HA en tiempo real. |
 
-## Latencia y Egreso
+### 6.4. Teoría de Disaster Recovery Híbrido
 
-En la nube, mover grandes volúmenes de datos entre regiones o fuera del proveedor tiene costos significativos (egress). Estrategias:
+| Modelo DR | RPO | RTO | Costo | Complejidad |
+| :--- | :--- | :--- | :--- | :--- |
+| **Backup y Restore** | Horas/Días | Días | Bajo | Baja |
+| **Pilot Light** | Minutos/Horas | Minutos | Medio | Media |
+| **Warm Standby** | Segundos (asíncrono) o 0 (síncrono) | Minutos | Medio-Alto | Media-Alta |
+| **Multi-Site Active-Active** | 0 | 0 (inmediato) | Alto | Alta |
 
-- Mantener los datos cerca de donde se procesan (misma región).
+---
 
-- Usar transferencias internas (por ejemplo, de S3 a EC2 sin costo).
+## 7. Marco Comparativo Integrado
 
-- Comprimir datos antes de transferir.
+### 7.1. Comparativa de Capacidades HA por Tipo de Base de Datos
 
-Ejemplo: mover 10 TB desde AWS a otra nube puede costar cientos de dólares.
+| Capacidad | SQL | NoSQL | Vectorial |
+| :--- | :--- | :--- | :--- |
+| **Consistencia fuerte** | Nativa (ACID) | Configurable (eventual por defecto) | Limitada (depende del motor) |
+| **Failover automático** | Sí (con orquestación) | Sí (nativo en clúster) | Parcial (requiere capa externa) |
+| **Replicación multirregional** | Sí (con latencia) | Sí (diseñado para ello) | Emergente (limitada) |
+| **RPO = 0** | Sí (replicación síncrona) | Limitado (requiere quórum) | Depende del motor subyacente |
+| **Escalabilidad horizontal de escritura** | Limitada (distribuido complejo) | Nativa | Limitada (sharding) |
+| **Tiempo de failover típico** | 30-120 segundos | 10-60 segundos | Variable (segundos a minutos) |
 
-## Data Drift (Deriva de Datos)
+### 7.2. Comparativa On-Premise vs. Cloud por Tipo
 
-En modelos de IA, el data drift ocurre cuando la distribución de los datos cambia con el tiempo, degradando el rendimiento. Es un \"error\" silencioso. Para detectarlo:
+| Aspecto | SQL On-Premise | SQL Cloud Gestionado | NoSQL On-Premise | NoSQL Cloud Gestionado | Vectorial On-Premise | Vectorial Cloud Gestionado |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Control** | Total | Limitado | Total | Limitado | Total | Limitado |
+| **Tiempo de implementación HA** | Semanas | Minutos | Semanas | Minutos | Días | Minutos |
+| **SLA garantizado** | Interno | 99.95-99.99% | Interno | 99.9-99.999% | Interno | 99.9-99.99% |
+| **Costo de HA** | CAPEX alto | OPEX por uso | CAPEX alto | OPEX por uso | CAPEX alto | OPEX por uso |
+| **Complejidad operativa** | Alta | Baja | Alta | Baja | Alta | Baja-Media |
+| **Recuperación ante desastre** | Segundo centro de datos | Multi-región nativo | Segundo centro de datos | Multi-región nativo | Backups externos | Multi-región emergente |
 
-- Monitorear estadísticas de los datos (media, desviación, etc.).
+---
 
-- Comparar distribuciones de entrenamiento vs. producción (test de Kolmogorov-Smirnov, etc.).
+## 8. Conclusiones Teóricas
 
-- Herramientas: Evidently, Great Expectations, WhyLabs.
+1. **La alta disponibilidad es una propiedad arquitectónica, no un añadido**: No puede postergarse ni añadirse sin rediseño fundamental. Requiere decisiones en capa de aplicación, infraestructura, red y almacenamiento.
 
-La gobernanza activa y el reentrenamiento periódico son clave.
+2. **No existe HA universal**: Cada tipo de base de datos (SQL, NoSQL, Vectorial) ofrece un conjunto diferente de garantías, y la elección debe basarse en los requisitos de consistencia, latencia y tolerancia a fallos de cada carga de trabajo.
 
-# Arquitecturas Híbridas: Integración de SQL, NoSQL y Vectorial
+3. **El teorema CAP sigue siendo fundamental**: La compensación entre consistencia y disponibilidad es inherente a los sistemas distribuidos. Los sistemas SQL priorizan consistencia; los NoSQL priorizan disponibilidad; los vectoriales están en evolución hacia modelos híbridos.
 
-En proyectos de IA a gran escala, un solo motor no es suficiente. Se despliega un ecosistema políglota.
+4. **La hibridación on-premise/cloud redefine HA**: Permite combinar la latencia mínima y control de on-premise con la elasticidad y resiliencia multirregional de cloud, pero introduce complejidad en sincronización y consistencia.
 
-## Capa Transaccional (SQL)
+5. **Las bases de datos vectoriales presentan desafíos únicos**: Su dependencia de índices en memoria y la alta dimensionalidad de los datos hacen que la HA sea más compleja que en sistemas tradicionales, requiriendo nuevas estrategias de replicación y recuperación.
 
-Motor principal para datos maestros, ACID, consistencia fuerte. Ejemplos: PostgreSQL, Oracle, SQL Server.
+6. **La gestión de fallos debe ser proactiva**: La HA efectiva requiere no solo mecanismos de recuperación, sino también monitoreo continuo, pruebas de failover regulares (chaos engineering) y políticas de RPO/RTO alineadas con el negocio.
 
-## Capa de Velocidad (NoSQL)
-
-Bases de datos en memoria o clave-valor para sesiones, caché, baja latencia. Ejemplos: Redis, Memcached.
-
-## Capa de Memoria Semántica (Vectorial)
-
-Almacena embeddings para búsqueda por similitud. Ejemplos: Milvus, Pinecone, pgvector.
-
-::: center
-:::
-
-## Orquestación de Persistencia Políglota
-
-### Contenedores (Docker)
-
-Cada motor se ejecuta en su contenedor, con volúmenes persistentes. Ejemplo docker-compose.yml:
-
-```bash
-version: '3'
-services:
-  postgres:
-    image: postgres:15
-    environment:
-      POSTGRES_PASSWORD: admin
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-  redis:
-    image: redis:7
-  milvus:
-    image: milvusdb/milvus:latest
-    ...
-volumes:
-  pgdata:
-```
-
-### Kubernetes
-
-Para orquestación a gran escala, se usan StatefulSets y Services.
-
-## Infraestructura como Código (IaC)
-
-Herramientas como Terraform o CloudFormation definen la infraestructura de forma declarativa.
-
-```bash
-# Ejemplo Terraform para AWS RDS
-resource "aws_db_instance" "postgres" {
-  allocated_storage = 20
-  engine            = "postgres"
-  instance_class     = "db.t3.micro"
-  username          = "admin"
-  password          = "password"
-  skip_final_snapshot = true
-}
-```
-
-Ventajas: replicable, versionable, evita errores manuales.
-
-## Aislamiento de Redes
-
-Usar VPCs, subredes privadas, grupos de seguridad para que los motores se comuniquen internamente sin exposición pública.
-
-## Gestión de Volúmenes Cruzados
-
-En entornos orquestados, los volúmenes deben ser compartidos o tener backups consistentes. Por ejemplo, usar PersistentVolumeClaims en Kubernetes.
-
-# Sincronización y Consistencia entre Motores
-
-El mayor desafío es mantener la coherencia entre la base transaccional y la vectorial.
-
-## Disparadores (Triggers) y CDC
-
-### Triggers en SQL
-
-Un trigger puede insertar un registro en una tabla de cambios, que luego un proceso externo (ej. Python) lee y actualiza la base vectorial.
-
-```sql
-CREATE TABLE cambios (
-    id SERIAL PRIMARY KEY,
-    tabla TEXT,
-    operacion CHAR(1),
-    data JSONB,
-    procesado BOOLEAN DEFAULT FALSE
-);
-
-CREATE OR REPLACE FUNCTION log_cambio() RETURNS TRIGGER AS $$
-BEGIN
-    INSERT INTO cambios (tabla, operacion, data) VALUES (TG_TABLE_NAME, TG_OP, row_to_json(NEW));
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trig_productos AFTER INSERT OR UPDATE OR DELETE ON productos
-FOR EACH ROW EXECUTE FUNCTION log_cambio();
-```
-
-Luego, un worker consulta `cambios` y actualiza la base vectorial.
-
-### Change Data Capture (CDC)
-
-Herramientas como Debezium capturan cambios directamente del log de transacciones (WAL, binlog) y los publican en Kafka. Luego, un consumidor (Kafka Connect) actualiza la base vectorial.
-
-::: center
-:::
-
-## Consistencia Eventual
-
-La replicación asíncrona introduce latencia: los cambios pueden tardar segundos en reflejarse en la base vectorial. Las aplicaciones deben tolerar esta eventual consistencia. Estrategias:
-
-- Marcar datos como \"no indexados\" hasta que se confirme la sincronización.
-
-- Usar un TTL en la caché.
-
-- Aceptar que las búsquedas pueden no incluir los datos más recientes (trade-off).
-
-# Ejercicios Resueltos
-
-## Ejercicio 1: Prevención de DROP accidental
-
-**Enunciado:** En PostgreSQL, crear un trigger que impida ejecutar DROP TABLE en una tabla crítica.
-
-**Solución:** No se puede evitar DROP directamente con un trigger (se ejecuta a nivel de DDL). En su lugar, se pueden revocar permisos:
-
-```sql
-REVOKE DROP ON TABLE productos FROM usuario;
-```
-
-O usar event triggers (PostgreSQL 9.3+) para capturar DDL:
-
-```sql
-CREATE OR REPLACE FUNCTION abort_drop() RETURNS event_trigger AS $$
-BEGIN
-  RAISE EXCEPTION 'No se permite DROP en esta base de datos';
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE EVENT TRIGGER abort_drop_trigger ON sql_drop
-  EXECUTE FUNCTION abort_drop();
-```
-
-(Nota: esto impide cualquier DROP, puede ser demasiado restrictivo.)
-
-## Ejercicio 2: Configurar Point-in-Time Recovery en PostgreSQL con Docker
-
-**Enunciado:** Levantar un contenedor PostgreSQL, configurar archiving WAL, simular un error y restaurar a un momento antes.
-
-**Solución:**
-
-```bash
-# 1. Crear red y volumen
-docker network create pitr-net
-docker volume create pgdata
-docker volume create walarchive
-
-# 2. Ejecutar PostgreSQL con configuración de archiving
-docker run -d --name pg-pitr \
-  --network pitr-net \
-  -e POSTGRES_PASSWORD=admin \
-  -e POSTGRES_DB=test \
-  -v pgdata:/var/lib/postgresql/data \
-  -v walarchive:/wal_archive \
-  postgres:15 \
-  -c wal_level=replica \
-  -c archive_mode=on \
-  -c archive_command='cp %p /wal_archive/%f' \
-  -c archive_timeout=60
-
-# 3. Crear datos y luego un punto de tiempo
-docker exec -it pg-pitr psql -U postgres -d test -c "CREATE TABLE datos (id INT); INSERT INTO datos VALUES (1); SELECT pg_switch_wal();"
-# Esperar un minuto
-docker exec -it pg-pitr psql -U postgres -d test -c "INSERT INTO datos VALUES (2); SELECT pg_switch_wal();"
-
-# 4. Simular un desastre (borrar la tabla)
-docker exec -it pg-pitr psql -U postgres -d test -c "DROP TABLE datos;"
-
-# 5. Detener el contenedor y restaurar
-docker stop pg-pitr
-# Crear un nuevo contenedor para restaurar
-docker run -d --name pg-restore \
-  --network pitr-net \
-  -v pgdata:/var/lib/postgresql/data \
-  -v walarchive:/wal_archive \
-  postgres:15 \
-  echo "restore"
-
-# En realidad, para restaurar se necesita un backup base y luego recovery.
-# Simplificamos: suponiendo que tenemos un backup base, copiamos los archivos.
-```
-
-Nota: Un ejemplo completo sería muy extenso; se sugiere usar herramientas como pg_basebackup.
-
-## Ejercicio 3: Integración de PostgreSQL con Redis mediante CDC simulado
-
-**Enunciado:** Simular que al insertar un producto en PostgreSQL, se actualiza una clave en Redis con el nombre del producto. Usar un trigger y un script Python.
-
-**Solución:**
-
-```sql
--- En PostgreSQL, tabla productos
-CREATE TABLE productos (id SERIAL PRIMARY KEY, nombre TEXT);
--- Tabla de cambios
-CREATE TABLE cambios_productos (
-    id SERIAL PRIMARY KEY,
-    producto_id INT,
-    nombre TEXT,
-    operacion CHAR(1),
-    procesado BOOLEAN DEFAULT FALSE
-);
-
-CREATE OR REPLACE FUNCTION log_producto() RETURNS TRIGGER AS $$
-BEGIN
-    IF TG_OP = 'INSERT' THEN
-        INSERT INTO cambios_productos (producto_id, nombre, operacion) VALUES (NEW.id, NEW.nombre, 'I');
-    ELSIF TG_OP = 'UPDATE' THEN
-        INSERT INTO cambios_productos (producto_id, nombre, operacion) VALUES (NEW.id, NEW.nombre, 'U');
-    ELSIF TG_OP = 'DELETE' THEN
-        INSERT INTO cambios_productos (producto_id, nombre, operacion) VALUES (OLD.id, OLD.nombre, 'D');
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trig_productos AFTER INSERT OR UPDATE OR DELETE ON productos
-FOR EACH ROW EXECUTE FUNCTION log_producto();
-```
-
-Script Python:
-
-```python
-import psycopg2
-import redis
-import time
-
-conn_pg = psycopg2.connect(dbname="test", user="postgres")
-cur_pg = conn_pg.cursor()
-r = redis.Redis(host='localhost', port=6379, decode_responses=True)
-
-while True:
-    cur_pg.execute("SELECT id, producto_id, nombre, operacion FROM cambios_productos WHERE procesado = FALSE LIMIT 1")
-    row = cur_pg.fetchone()
-    if row:
-        cambio_id, prod_id, nombre, op = row
-        if op in ('I', 'U'):
-            r.set(f"producto:{prod_id}", nombre)
-        elif op == 'D':
-            r.delete(f"producto:{prod_id}")
-        cur_pg.execute("UPDATE cambios_productos SET procesado = TRUE WHERE id = %s", (cambio_id,))
-        conn_pg.commit()
-        print(f"Sincronizado {prod_id}")
-    time.sleep(1)
-```
-
-## Ejercicio 4: Despliegue de arquitectura híbrida con Docker Compose
-
-**Enunciado:** Crear un docker-compose.yml que levante PostgreSQL, Redis y una aplicación Python que los use.
-
-**Solución:**
-
-```bash
-version: '3'
-services:
-  postgres:
-    image: postgres:15
-    environment:
-      POSTGRES_PASSWORD: admin
-      POSTGRES_DB: test
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    networks:
-      - app-net
-
-  redis:
-    image: redis:7
-    networks:
-      - app-net
-
-  app:
-    build: ./app
-    depends_on:
-      - postgres
-      - redis
-    environment:
-      POSTGRES_HOST: postgres
-      REDIS_HOST: redis
-    networks:
-      - app-net
-
-networks:
-  app-net:
-    driver: bridge
-
-volumes:
-  pgdata:
-```
-
-Con un `Dockerfile` para la app Python que ejecute el script de sincronización.
-
-## Ejercicio 5: Detección de data drift con Python
-
-**Enunciado:** Comparar la distribución de una variable en un conjunto de entrenamiento y en producción usando el test de Kolmogorov-Smirnov.
-
-**Solución:**
-
-```python
-import numpy as np
-from scipy.stats import ks_2samp
-
-# Datos de entrenamiento (ejemplo)
-train = np.random.normal(100, 15, 1000)
-# Datos de producción reciente
-prod = np.random.normal(105, 18, 500)
-
-stat, p_value = ks_2samp(train, prod)
-alpha = 0.05
-if p_value < alpha:
-    print("Se detecta data drift (p=%f)" % p_value)
-else:
-    print("No hay evidencia de drift")
-```

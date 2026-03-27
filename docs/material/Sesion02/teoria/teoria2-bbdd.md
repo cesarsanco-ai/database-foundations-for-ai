@@ -1,4 +1,6 @@
-
+---
+layout: default
+---
 ## Sesión 2
 # MODELAMIENTO DE DATOS
 ## De la realidad del negocio al esquema físico

@@ -1,567 +1,413 @@
 
-## Sesión 9
-# DATA WAREHOUSING, PIPELINES Y PROCESAMIENTO
-## Arquitecturas, capas, ETL/ELT, batch/streaming y gobernanza
+## Sesión 10
+# BIG DATA Y FORMATOS DE ALTO RENDIMIENTO
+## Principios, almacenamiento, procesamiento y casos reales
 
 **Autor:** Carlos César Sánchez Coronel  
 **Fecha:** 2026
 
 ---
 
-# Introducción
+# Introducción al Big Data
 
-En las sesiones anteriores hemos cubierto desde la captura de datos hasta los paradigmas de procesamiento. Ahora nos adentramos en el corazón de la arquitectura de datos moderna: el \*\*data warehouse\*\* y los \*\*pipelines\*\* que lo alimentan. Esta sesión integra conceptos de almacenamiento, procesamiento batch y streaming, y las diferentes capas que componen un ecosistema analítico. Comprender estas ideas es esencial para diseñar soluciones escalables y eficientes que soporten desde reportes empresariales hasta modelos de inteligencia artificial.
+El término **Big Data** se refiere a conjuntos de datos cuyo tamaño, velocidad o variedad exceden la capacidad de las herramientas tradicionales para capturarlos, gestionarlos y procesarlos en un tiempo razonable. No es solo una cuestión de volumen, sino de cómo extraer valor de ellos. En esta sesión exploraremos los conceptos fundamentales, las tecnologías de almacenamiento optimizado, las plataformas de procesamiento distribuido y las arquitecturas modernas como el Lakehouse, con ejemplos concretos de su aplicación en el mundo real, incluyendo el contexto peruano y latinoamericano.
 
-## Objetivos de la sesión
+## Las 5 V del Big Data
 
-- Definir y diferenciar Data Warehouse, Data Mart, Data Lake y Lakehouse.
+Inicialmente se definieron 3 V, pero hoy se habla de 5 o más:
 
-- Comprender los procesos ETL y ELT, sus diferencias y cuándo aplicarlos.
+1.  **Volumen**: Cantidad masiva de datos generados (terabytes, petabytes, exabytes).
 
-- Distinguir entre procesamiento batch y streaming, con herramientas y casos de uso.
+2.  **Velocidad**: Rapidez con la que se generan y deben procesarse (ej. sensores IoT, transacciones bancarias).
 
-- Conocer técnicas de carga incremental y actualización de datos.
+3.  **Variedad**: Diferentes formatos (estructurados, semiestructurados, no estructurados).
 
-- Identificar las capas típicas en un data warehouse (raw, staging, integración, datamart).
+4.  **Veracidad**: Calidad y confiabilidad de los datos.
 
-- Entender el papel de los metadatos y la gobernanza.
+5.  **Valor**: Capacidad de transformar los datos en beneficios para el negocio.
 
-- Explorar la integración con herramientas de visualización y costos asociados.
+## ¿Cuándo una solución es Big Data?
 
-- Dimensionar almacenamiento y servidores de forma aproximada.
+No todo proyecto con muchos datos es Big Data. Se considera Big Data cuando las herramientas convencionales (una sola máquina, bases de datos relacionales) no pueden manejar la carga y se requiere procesamiento distribuido (múltiples nodos). Ejemplos típicos:
 
-- Analizar arquitecturas híbridas (SQL + NoSQL) y la convivencia de múltiples motores.
+- Redes sociales: millones de publicaciones diarias (Twitter, Facebook).
 
-- Definir conceptos de pipelines, jobs, tareas y orquestación.
+- IoT: millones de sensores enviando lecturas cada segundo.
 
-# Fundamentos de Almacenamiento Analítico
+- Finanzas: transacciones bursátiles en tiempo real.
 
-## Data Warehouse (DW)
+- Ciencia: secuenciación genética, astronomía.
 
-Un data warehouse es un repositorio centralizado que almacena datos estructurados, provenientes de múltiples fuentes, optimizado para consultas analíticas (OLAP). Se caracteriza por:
+# Almacenamiento Optimizado para Big Data
 
-- **Orientado a temas**: Organizado por entidades de negocio (ventas, clientes, productos).
+En Big Data, los datos no siempre residen en tablas de bases de datos tradicionales. Se utilizan formatos de archivo especialmente diseñados para ser eficientes en espacio y velocidad de lectura.
 
-- **Integrado**: Datos de diversas fuentes se limpian y unifican.
+## Apache Parquet
 
-- **No volátil**: Una vez cargados, los datos no se modifican (solo se añaden).
+Parquet es un formato columnar de código abierto. Almacena los datos por columnas en lugar de por filas, lo que permite:
 
-- **Histórico**: Almacena series temporales para análisis de tendencias.
+- Lecturas eficientes de subconjuntos de columnas (solo se leen las necesarias).
 
-Ejemplos: Amazon Redshift, Google BigQuery, Snowflake, SQL Server Data Warehouse.
+- Alta compresión (los datos de una misma columna suelen ser similares).
 
-## Data Mart
+- Esquemas evolutivos (se pueden añadir columnas).
 
-Un data mart es un subconjunto del data warehouse, orientado a un área de negocio específica (ventas, marketing). Puede ser dependiente (se alimenta del DW) o independiente (fuente propia).
+Es el formato nativo de herramientas como Apache Spark, y es ampliamente usado en data lakes (S3, HDFS).
+
+## Apache ORC
+
+Optimized Row Columnar (ORC) es otro formato columnar, similar a Parquet, desarrollado originalmente por Hive. Ofrece características como índices internos y estadísticas para acelerar consultas.
+
+## Apache Avro
+
+Avro es un formato binario orientado a filas, con un esquema definido en JSON. Es ideal para serialización en sistemas de mensajería como Kafka, ya que es compacto y rápido. Soporta evolución de esquema (compatible hacia adelante/atrás).
+
+## Comparativa de Formatos
+
+::: center
+  **Formato**   **Tipo**   **Compresión**       **Uso típico**             **Evolución**
+  ------------- ---------- -------------------- -------------------------- ---------------
+  Parquet       Columnar   Alta (por columna)   Análisis, data lakes       Sí
+  ORC           Columnar   Alta                 Hive, Hadoop               Sí
+  Avro          Fila       Media                Streaming, serialización   Sí
+  JSON          Texto      Baja                 APIs, documentos           No
+  CSV           Texto      Baja                 Intercambio simple         No
+:::
+
+## Ejemplo: Lectura de Parquet con Spark
+
+```python
+from pyspark.sql import SparkSession
+
+spark = SparkSession.builder.appName("lectura").getOrCreate()
+df = spark.read.parquet("s3://mi-bucket/ventas/")
+df.filter(df.fecha >= "2025-01-01").groupBy("producto").sum("monto").show()
+```
+
+# Data Lakes, Data Warehouses y Lakehouses
 
 ## Data Lake
 
-Un data lake almacena datos en bruto en su formato original (estructurados, semiestructurados, no estructurados). Es un repositorio de bajo costo (generalmente en sistemas de archivos como S3, HDFS) que permite guardar grandes volúmenes sin transformar. Ideal para exploración y ciencia de datos.
+Un data lake es un repositorio que almacena datos en su formato original (crudo) a gran escala. Suele basarse en sistemas de archivos distribuidos como HDFS o almacenamiento en la nube (S3, ADLS). Ventajas:
+
+- Bajo costo.
+
+- Almacena cualquier tipo de dato (estructurado, semiestructurado, no estructurado).
+
+- Ideal para ciencia de datos y exploración.
+
+Desventajas:
+
+- Puede convertirse en un "data swamp" si no hay gobernanza.
+
+- Las consultas son lentas si no se usan herramientas adecuadas.
+
+## Data Warehouse
+
+Un data warehouse almacena datos estructurados, modelados y optimizados para consultas analíticas (OLAP). Ejemplos: Amazon Redshift, Google BigQuery, Snowflake. Ventajas:
+
+- Alto rendimiento en consultas.
+
+- Gobernanza y calidad de datos.
+
+- Ideal para reporting y BI.
+
+Desventajas:
+
+- Costo más elevado.
+
+- Menos flexible para datos no estructurados.
 
 ## Lakehouse
 
-El concepto lakehouse fusiona lo mejor de ambos mundos: la flexibilidad y bajo costo del data lake con las capacidades de gestión y rendimiento del data warehouse. Plataformas como Databricks (sobre Delta Lake) o Apache Iceberg implementan esta arquitectura, permitiendo transacciones ACID, evolución de esquema y consultas eficientes sobre datos en formato abierto (Parquet).
-
-::: center
-  **Característica**      **Data Warehouse**       **Data Lake**               **Lakehouse**
-  ----------------------- ------------------------ --------------------------- -------------------------
-  Formato de datos        Estructurado             Cualquier formato           Abierto (Parquet, etc.)
-  Esquema                 Fijo (schema-on-write)   Flexible (schema-on-read)   Evolutivo
-  Transacciones ACID      Sí                       Limitado                    Sí
-  Rendimiento analítico   Alto                     Bajo/Medio                  Alto
-  Costo                   Alto                     Bajo                        Medio
-:::
-
-# Procesos ETL vs ELT
-
-## ETL (Extract, Transform, Load)
-
-Es el enfoque tradicional: los datos se extraen de las fuentes, se transforman en un servidor intermedio (staging) y luego se cargan en el data warehouse.
+El concepto **Lakehouse** (acuñado por Databricks) busca combinar lo mejor de ambos: almacenamiento tipo data lake (bajo costo, formato abierto) con capacidades de gestión y rendimiento de data warehouse (transacciones ACID, evolución de esquema, optimización de consultas). Se implementa sobre formatos como Delta Lake, Apache Iceberg o Apache Hudi.
 
 ::: center
 :::
 
-### Ventajas
+### Delta Lake
 
-- Control total sobre la transformación.
+Delta Lake es una capa de almacenamiento de código abierto que aporta ACID, versionado de datos (time travel) y manejo de metadatos escalable sobre Parquet. Es el núcleo de Databricks.
 
-- Adecuado para datos estructurados y limpieza pesada.
+### Apache Iceberg
 
-- Menor carga en el data warehouse.
+Iceberg es otra tabla de formato abierto diseñada para grandes conjuntos de datos, con soporte en Spark, Flink, Trino, etc. Ofrece evolución de esquema segura y particionado oculto.
 
-### Desventajas
+## Databricks: La plataforma Lakehouse
 
-- Requiere infraestructura de transformación separada.
+Databricks es una plataforma unificada de análisis de datos que integra:
 
-- Mayor latencia (los datos no están disponibles hasta que termina la transformación).
+- Motor de procesamiento Apache Spark optimizado (hasta 50x más rápido).
 
-## ELT (Extract, Load, Transform)
+- Capa de almacenamiento Delta Lake.
 
-Con el poder de cómputo de los data warehouses modernos (Snowflake, BigQuery, Redshift), se popularizó ELT: los datos se cargan primero en el DW y luego se transforman dentro de él.
+- Entorno de notebooks colaborativos.
 
-::: center
-:::
+- Soporte para machine learning (MLflow) y SQL.
 
-### Ventajas
+Es ampliamente usada en empresas de todo el mundo para proyectos de Big Data e IA.
 
-- Simplicidad: menos herramientas, todo en el DW.
+# Procesamiento Distribuido: Frameworks
 
-- Aprovecha la escalabilidad del DW.
+Para procesar volúmenes masivos de datos, se requiere computación paralela en clústeres de máquinas. Los principales frameworks son:
 
-- Mayor agilidad: los datos crudos están disponibles rápidamente.
+## Apache Spark
 
-### Desventajas
+Spark es el motor más popular. Permite procesamiento batch, streaming, SQL, machine learning y graph en un mismo entorno. Utiliza memoria (cuando es posible) para acelerar las operaciones. Ofrece APIs en Scala, Python, Java, R.
 
-- Costo de almacenamiento y cómputo en el DW (puede ser alto).
+- **Resilient Distributed Datasets (RDD)**: estructura fundamental.
 
-- No ideal para datos no estructurados (aunque algunos DW soportan JSON).
+- **DataFrames**: abstracción similar a tablas, con optimizaciones.
 
-## Cuándo usar cada uno
+- **Spark SQL**: consultas SQL sobre DataFrames.
 
-- **ETL**: Cuando se necesita transformaciones muy complejas con datos sensibles, o se trabaja con fuentes que no soportan descarga masiva.
+- **Structured Streaming**: procesamiento en tiempo real con API de DataFrames.
 
-- **ELT**: Cuando el DW es lo suficientemente potente, se busca agilidad y se trabaja con grandes volúmenes (cloud).
+## Apache Flink
 
-Hoy en día, la tendencia es ELT en la nube, pero ETL sigue vivo en entornos on-premise o con herramientas como Informatica, Talend.
+Flink es un motor de procesamiento de streaming nativo, con baja latencia y capacidad de estado. Es ideal para aplicaciones que requieren resultados en milisegundos.
 
-# Procesamiento Batch vs Streaming
+## Apache Hadoop MapReduce
 
-## Batch (Lotes)
+El precursor, pero hoy en desuso para la mayoría de aplicaciones debido a su alta latencia (escritura intermedia a disco) y complejidad.
 
-El procesamiento batch trabaja con datos acumulados durante un período (horas, días). Se ejecuta en intervalos programados. Es el enfoque tradicional para reportes diarios, facturación, etc.
-
-### Herramientas comunes
-
-- Apache Spark (batch y streaming).
-
-- Hadoop MapReduce.
-
-- Scripts programados con cron, Airflow.
-
-### Ejemplo
-
-El cierre diario de un banco: todas las transacciones del día se procesan en la madrugada para actualizar saldos y generar reportes.
-
-## Streaming (Tiempo Real)
-
-El procesamiento en streaming maneja eventos conforme ocurren, con latencias de milisegundos a segundos. Es crítico para detección de fraude, monitoreo, recomendaciones en tiempo real.
-
-### Herramientas clave
-
-- Apache Kafka (plataforma de streaming).
-
-- Apache Flink (procesamiento con estado).
-
-- Spark Structured Streaming.
-
-- AWS Kinesis, Google Pub/Sub.
-
-### Ejemplo
-
-Detección de fraudes: cada transacción se analiza al instante comparando con patrones históricos.
-
-## Arquitecturas Lambda y Kappa
-
-- **Lambda**: Combina batch y streaming; dos capas que procesan los mismos datos y se unen en la capa de servicio. Compleja de mantener.
-
-- **Kappa**: Todo se procesa como streaming; los datos batch se tratan como un caso particular de streaming (reprocesamiento). Más simple.
+## Comparativa Spark vs Flink
 
 ::: center
+  **Característica**         **Spark**                                          **Flink**
+  -------------------------- -------------------------------------------------- ------------------
+  Modelo                     Micro-batches (por defecto) o streaming continuo   Streaming nativo
+  Latencia                   Segundos (micro-batches)                           Milisegundos
+  Procesamiento con estado   Sí (checkpoints)                                   Sí (muy robusto)
+  Ecosistema                 Muy amplio (SQL, ML, Graph)                        En crecimiento
+  Facilidad de uso           Alta                                               Media
 :::
 
-# Técnicas de Carga Incremental
+# Arquitecturas Cloud, Híbridas y On-Premise
 
-En lugar de recargar todo el data warehouse cada vez, se utilizan cargas incrementales para actualizar solo los datos nuevos o modificados.
+## Cloud (Nube)
 
-## Marcas de agua (Watermarks)
+Los proveedores cloud ofrecen servicios gestionados de Big Data:
 
-Se guarda la fecha/hora de la última carga y se extraen registros posteriores.
+- **AWS**: EMR (Spark, Hadoop), Kinesis (streaming), Athena (consultas SQL sobre S3), Redshift (data warehouse).
 
-## CDC (Change Data Capture)
+- **Google Cloud**: Dataproc (Spark/Hadoop), Pub/Sub, BigQuery.
 
-Como vimos en la sesión 8, CDC captura cambios en las fuentes y los aplica al DW. Herramientas como Debezium + Kafka permiten streaming de cambios.
+- **Azure**: HDInsight, Event Hubs, Synapse.
 
-## MERGE (UPSERT)
+Ventajas: escalabilidad elástica, pago por uso, menor mantenimiento.
 
-En SQL, se puede usar `MERGE` o `INSERT ON CONFLICT` para actualizar filas existentes e insertar nuevas.
+## On-Premise (Local)
 
-```sql
--- PostgreSQL
-INSERT INTO destino (id, valor, fecha_actualizacion)
-SELECT id, valor, now() FROM origen
-ON CONFLICT (id) DO UPDATE SET valor = EXCLUDED.valor, fecha_actualizacion = EXCLUDED.fecha_actualizacion;
-```
+La empresa instala y gestiona su propio clúster (Hadoop, Spark) en sus servidores. Ventajas: control total, seguridad (datos no salen de la empresa). Desventajas: alta inversión inicial (CapEx), complejidad operativa.
 
-## Ejemplo: Carga incremental diaria
+## Híbrida
 
-1.  Obtener la fecha máxima del DW: `SELECT MAX(fecha) FROM ventas_dw;`
+Combinación de ambos: algunos datos y procesos en la nube, otros en local. Por ejemplo, un data lake en la nube y procesamiento crítico on-premise, o viceversa.
 
-2.  Extraer de la fuente: `SELECT * FROM ventas_source WHERE fecha > :ultima_fecha;`
+## Escalabilidad y Concurrencia
 
-3.  Cargar en el DW.
+En Big Data, la escalabilidad horizontal (añadir más nodos) es clave. La computación paralela permite dividir el trabajo entre muchos servidores. Conceptos importantes:
 
-# Capas en un Data Warehouse
+- **Sharding**: dividir los datos en fragmentos (shards) distribuidos.
 
-Un DW bien diseñado suele organizarse en capas (layers) que facilitan el mantenimiento y la comprensión.
+- **Replicación**: copiar datos en varios nodos para tolerancia a fallos.
 
-## Capa Raw (Bronze)
+- **Balanceo de carga**: distribuir las consultas entre nodos.
 
-Almacena los datos tal como llegan de las fuentes, sin transformar. Puede estar en un data lake o en tablas staging. Sirve como respaldo y para reprocesamiento.
+# Casos de Uso Reales
 
-## Capa Staging (Silver)
+## Redes Sociales (Twitter)
 
-Datos limpios, validados y unificados. Se aplican transformaciones ligeras (tipos de datos, eliminación de duplicados). Aún no está modelado para análisis.
+Twitter genera cientos de millones de tweets al día. Utilizan Hadoop y Spark para análisis de tendencias, detección de spam, y recomendaciones. Los datos se almacenan en formatos como Parquet en un data lake.
 
-## Capa de Integración / Core (Gold)
+## Internet de las Cosas (IoT)
 
-Datos modelados dimensionalmente (hechos y dimensiones) o en 3FN, listos para el negocio. Es la capa que consultan las herramientas de BI.
+Empresas como Petrobras (Brasil) usan IoT en plataformas petroleras. Miles de sensores envían lecturas cada segundo. Los datos se procesan en tiempo real con Kafka y Flink para detectar anomalías y prevenir fallos.
 
-## Capa de Data Marts
+## Finanzas (Bancos)
 
-Subconjuntos de la capa Gold orientados a áreas específicas (ventas, marketing). Pueden ser vistas o tablas físicas.
+Un banco en Perú procesa millones de transacciones diarias. Utilizan CDC (Debezium) para capturar cambios en sus bases de datos transaccionales, los envían a Kafka, y luego Spark los transforma y carga en un data warehouse (Redshift) para análisis de fraude y reportes regulatorios.
+
+## Retail (Comercio Electrónico)
+
+Falabella (Chile) usa Big Data para personalización de ofertas. Los clics de los usuarios se capturan en tiempo real, se unen con datos históricos y se alimentan modelos de recomendación (machine learning) en Databricks.
+
+## Telecomunicaciones
+
+Una operadora móvil en Latinoamérica analiza registros de llamadas (CDRs) para optimizar la red y detectar patrones de fraude. Volúmenes de varios terabytes diarios procesados con Spark.
+
+## Big Data en Perú
+
+En Perú, sectores como banca, retail y telecomunicaciones están adoptando Big Data. Ejemplos:
+
+- BCP: uso de data lakes y machine learning para segmentación de clientes.
+
+- Interbank: analítica en tiempo real de transacciones.
+
+- Entel: procesamiento de datos de red para mejorar calidad de servicio.
+
+El crecimiento del cloud (AWS en Lima) está facilitando la adopción.
+
+# Computación Paralela y Concurrente
+
+## Conceptos Fundamentales
+
+- **Paralelismo**: ejecución simultánea de múltiples tareas en diferentes núcleos/máquinas.
+
+- **Concurrencia**: capacidad de manejar múltiples tareas al mismo tiempo (no necesariamente en paralelo).
+
+- **Cluster**: conjunto de máquinas que trabajan juntas.
+
+- **Nodo**: una máquina del clúster.
+
+- **Task**: unidad de trabajo (por ejemplo, procesar una partición de datos).
+
+## Modelos de Particionamiento
+
+Para distribuir datos, se usan técnicas como:
+
+- **Rango**: dividir por rangos de valores (ej. fechas).
+
+- **Hash**: aplicar función hash a una clave.
+
+- **Lista**: por categorías (ej. región).
+
+El particionamiento debe balancear la carga y permitir consultas eficientes.
+
+## Ejemplo: Sharding en Cassandra
+
+En Cassandra, la clave de partición determina el nodo donde se almacena la fila. Las consultas deben incluir la clave de partición para ser eficientes.
+
+# Herramientas y Plataformas Adicionales
+
+## Apache Kafka
+
+Plataforma de streaming para la ingesta y distribución de eventos en tiempo real. Actúa como cola distribuida y duradera. Se integra con Spark, Flink, etc.
+
+## Apache Airflow
+
+Orquestador de workflows. Permite programar y monitorizar pipelines complejos (DAGs). Es el estándar para orquestación ETL/ELT.
+
+## Trino (antes Presto)
+
+Motor de consultas SQL distribuido que puede consultar datos directamente en data lakes (S3, HDFS) en formatos como Parquet. Muy rápido para análisis ad-hoc.
+
+## Apache Hive
+
+Data warehouse sobre Hadoop que traduce SQL a MapReduce o Spark. Hoy menos usado.
+
+## Apache HBase
+
+Base de datos NoSQL columnar sobre HDFS, para acceso aleatorio en tiempo real.
+
+## Elasticsearch
+
+Motor de búsqueda y analítica, usado para logs y datos de texto.
+
+## Tabla Resumen
 
 ::: center
+  **Herramienta**   **Función principal**
+  ----------------- -----------------------------------------------
+  Apache Spark      Procesamiento distribuido (batch y streaming)
+  Apache Flink      Procesamiento streaming de baja latencia
+  Apache Kafka      Mensajería y streaming de eventos
+  Apache Airflow    Orquestación de pipelines
+  Trino             Consultas SQL sobre data lakes
+  Elasticsearch     Búsqueda y análisis de texto
+  Databricks        Plataforma unificada Lakehouse
+  AWS EMR           Clústeres gestionados de Hadoop/Spark
+  Google BigQuery   Data warehouse serverless
 :::
-
-# Metadatos y Gobernanza
-
-Los metadatos son datos sobre los datos: origen, transformaciones, significados, calidad. Son esenciales para la gobernanza.
-
-## Tipos de metadatos
-
-- **Técnicos**: esquemas, tipos de datos, particiones, estadísticas.
-
-- **De negocio**: definiciones, reglas de cálculo, propietarios.
-
-- **Operacionales**: logs de ejecución, tiempos de carga.
-
-## Herramientas de catálogo
-
-- Apache Atlas, Amundsen, DataHub.
-
-- Catálogos nativos de nube (AWS Glue, Google Data Catalog).
-
-## Linaje de datos
-
-El linaje (data lineage) muestra el flujo de los datos desde su origen hasta su consumo. Es clave para auditoría y solución de problemas. Se puede implementar con herramientas especializadas o mediante metadatos.
-
-# Integración con Herramientas de Visualización
-
-Los datos del data warehouse se consumen a través de herramientas de Business Intelligence (BI).
-
-## Herramientas populares
-
-- Power BI, Tableau, Looker, Qlik.
-
-- Conexiones nativas a los principales DW (BigQuery, Redshift, Snowflake).
-
-- Uso de conectores ODBC/JDBC.
-
-## Rendimiento y costos
-
-- Las consultas de BI pueden ser costosas si no están optimizadas.
-
-- Se recomienda usar agregaciones precalculadas, vistas materializadas.
-
-- Algunos DW ofrecen caché de resultados (BigQuery, Snowflake).
-
-## Ejemplo: Power BI conectado a Snowflake
-
-1.  Configurar el conector de Snowflake en Power BI.
-
-2.  Importar o usar DirectQuery.
-
-3.  Crear dashboard con medidas DAX.
-
-Costos aproximados: Snowflake cobra por almacenamiento y cómputo (por segundo). Power BI tiene licencias por usuario.
-
-# Dimensionamiento de Almacenamiento y Servidores
-
-Estimar el tamaño de un data warehouse es crucial para presupuestar y diseñar.
-
-## Factores a considerar
-
-- Volumen diario de datos.
-
-- Retención histórica.
-
-- Compresión (Parquet, columnar).
-
-- Índices y particionamiento.
-
-- Replicación y backups.
-
-### Ejemplo de cálculo
-
-Una empresa genera 100 GB de datos al día. Se retienen 5 años.
-
-- Datos diarios: 100 GB.
-
-- Datos anuales: 100 GB \* 365 = 36.5 TB.
-
-- 5 años: 182.5 TB.
-
-- Con compresión columnar (factor 5:1): 3̃6.5 TB.
-
-- Más espacio para índices, staging, etc.: 50 TB.
-
-## Costos aproximados en la nube
-
-- Almacenamiento en S3:  \$0.023/GB-mes. 50 TB = \$1,150/mes.
-
-- Computo en Redshift: desde \$0.25/hora por nodo.
-
-- Snowflake: almacenamiento similar, cómputo por segundo (créditos).
-
-Estos costos son orientativos y varían por región y tipo de instancia.
-
-# Arquitecturas Híbridas: SQL y NoSQL
-
-En proyectos reales, conviven múltiples motores. Cada uno se usa para lo que mejor sabe hacer.
-
-## Casos de uso combinados
-
-- **PostgreSQL (OLTP)** + **MongoDB** (catálogo de productos flexible) + **Elasticsearch** (búsqueda) + **Redshift** (análisis).
-
-- **Cassandra** (escritura masiva) + **Spark** (procesamiento) + **PostgreSQL** (reportes).
-
-## Sincronización entre motores
-
-- CDC desde la base transaccional a Kafka, luego a Elasticsearch y al DW.
-
-- Herramientas como Debezium, Kafka Connect.
-
-- Batch periódicos con scripts.
-
-## Ejemplo: E-commerce
-
-1.  Pedidos en PostgreSQL.
-
-2.  Productos y reviews en MongoDB.
-
-3.  Búsqueda con Elasticsearch.
-
-4.  Análisis de ventas en Snowflake (carga diaria desde PostgreSQL).
-
-# Pipelines, Jobs y Orquestación
-
-Un pipeline de datos es una serie de pasos que transforman y mueven datos. Los pipelines se ejecutan mediante jobs (tareas) y son orquestados por herramientas.
-
-## Definiciones
-
-- **Pipeline**: Flujo completo de datos (extracción, transformación, carga).
-
-- **Job**: Unidad de trabajo dentro del pipeline (por ejemplo, una tarea de Spark).
-
-- **Task**: Paso individual (ejecutar un script, una consulta SQL).
-
-- **DAG**: Directed Acyclic Graph, la representación de dependencias entre tareas.
-
-## Orquestadores populares
-
-- **Apache Airflow**: El más usado. Define DAGs en Python.
-
-- **Prefect**, **Dagster**: Alternativas modernas.
-
-- **AWS Step Functions**, **Google Cloud Composer** (Airflow gestionado).
-
-- **Apache Oozie** (Hadoop, en desuso).
-
-### Ejemplo de DAG en Airflow
-
-```python
-from airflow import DAG
-from airflow.operators.python_operator import PythonOperator
-from datetime import datetime
-
-def extraer():
-    # código para extraer datos
-    pass
-
-def transformar():
-    # código para transformar
-    pass
-
-def cargar():
-    # código para cargar
-    pass
-
-with DAG('etl_diario', start_date=datetime(2025,1,1), schedule_interval='@daily') as dag:
-    t1 = PythonOperator(task_id='extraer', python_callable=extraer)
-    t2 = PythonOperator(task_id='transformar', python_callable=transformar)
-    t3 = PythonOperator(task_id='cargar', python_callable=cargar)
-    t1 >> t2 >> t3
-```
-
-## Dónde se ejecutan los pipelines
-
-- En servidores virtuales (EC2, VMs).
-
-- En clústeres gestionados (EMR, Databricks).
-
-- En servicios serverless (AWS Glue, Google Dataflow).
 
 # Ejercicios Resueltos
 
-## Ejercicio 1: Diseño de capas para un DW de ventas
+## Ejercicio 1: Elección de formato
 
-**Enunciado:** Una tienda online quiere construir un data warehouse. Proponga un diseño de capas (raw, staging, core) y las transformaciones típicas en cada una.
+**Enunciado:** Una empresa necesita almacenar logs de servidores (texto) para análisis posteriores. ¿Qué formato recomendaría y por qué?
 
-**Solución:**
+**Solución:** Recomendaría Parquet, ya que permite compresión y consultas eficientes sobre campos específicos (timestamp, nivel de log). Además, se puede usar con Spark para procesar grandes volúmenes. Alternativamente, si se requiere ingestión en tiempo real, podrían usar Avro para Kafka y luego convertirlos a Parquet para almacenamiento.
 
-- **Raw**: Se almacenan los archivos CSV/JSON de ventas, productos, clientes tal como llegan del sistema transaccional. Particionado por fecha.
+## Ejercicio 2: Diseño de un data lake
 
-- **Staging**: Se leen los raw, se asignan tipos de datos correctos, se eliminan duplicados, se unifican formatos de fechas. Se guardan en tablas temporales o en Parquet.
-
-- **Core**: Se construyen tablas de hechos (ventas) y dimensiones (cliente, producto, tiempo) aplicando modelado dimensional. Se aplican SCD tipo 2 para dimensiones cambiantes.
-
-## Ejercicio 2: Implementar carga incremental con SQL
-
-**Enunciado:** Escribir una consulta SQL que actualice la tabla `dw_ventas` con los datos de `stg_ventas` del día, usando MERGE.
+**Enunciado:** Diseñar la estructura de carpetas para un data lake en S3 que almacena ventas diarias, clientes y productos.
 
 **Solución:**
 
-```sql
-MERGE INTO dw_ventas AS target
-USING stg_ventas AS source
-ON target.id = source.id
-WHEN MATCHED THEN
-    UPDATE SET target.monto = source.monto, target.fecha_actualizacion = CURRENT_TIMESTAMP
-WHEN NOT MATCHED THEN
-    INSERT (id, fecha, monto, fecha_actualizacion)
-    VALUES (source.id, source.fecha, source.monto, CURRENT_TIMESTAMP);
-```
+    s3://mi-lake/
+      raw/
+        ventas/
+          year=2025/
+            month=03/
+              day=15/
+                ventas_20250315.csv
+              day=16/
+                ...
+        clientes/
+          clientes_20250315.csv
+        productos/
+          productos.csv
+      staging/
+        ventas_clean.parquet
+        clientes_clean.parquet
+      analytics/
+        ventas_diarias.parquet
 
-## Ejercicio 3: Estimar costo de almacenamiento
+Particionar por fecha facilita consultas posteriores y evolución.
 
-**Enunciado:** Una empresa genera 500 GB de datos al día. Retiene 3 años. Estimar el almacenamiento necesario con compresión 4:1 y costo mensual en S3 (a \$0.023/GB).
+## Ejercicio 3: Contar palabras con Spark
 
-**Solución:**
-
-- Datos diarios: 500 GB.
-
-- Anual: 500 GB \* 365 = 182.5 TB.
-
-- 3 años: 547.5 TB.
-
-- Con compresión 4:1: 136.9 TB.
-
-- Espacio adicional (10%): 150.6 TB.
-
-- Costo mensual: 150.6 \* 1024 GB/TB \* 0.023 = 150.6 \* 23.552 ≈ \$3,546/mes.
-
-## Ejercicio 4: Definir un pipeline con Airflow
-
-**Enunciado:** Crear un DAG de Airflow con tres tareas: extraer de API, transformar con Spark, cargar en Redshift.
+**Enunciado:** Escribir un script en PySpark que cuente las palabras más frecuentes en un conjunto de archivos de texto.
 
 **Solución:**
 
 ```python
-from airflow import DAG
-from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
-from airflow.providers.amazon.aws.operators.redshift import RedshiftSQLOperator
-from airflow.operators.python import PythonOperator
-from datetime import datetime
-import requests
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import explode, split, col
 
-def extraer_api():
-    response = requests.get('https://api.ejemplo.com/data')
-    with open('/tmp/data.json', 'w') as f:
-        f.write(response.text)
-
-with DAG('pipeline_ventas', start_date=datetime(2025,1,1), schedule='@daily') as dag:
-    extraer = PythonOperator(task_id='extraer', python_callable=extraer_api)
-    transformar = SparkSubmitOperator(
-        task_id='transformar',
-        application='/path/to/spark_job.py',
-        conn_id='spark_default'
-    )
-    cargar = RedshiftSQLOperator(
-        task_id='cargar',
-        sql='CALL cargar_ventas();',
-        redshift_conn_id='redshift_default'
-    )
-    extraer >> transformar >> cargar
+spark = SparkSession.builder.appName("wordcount").getOrCreate()
+df = spark.read.text("s3://bucket/textos/*.txt")
+words = df.select(explode(split(col("value"), "\s+")).alias("word"))
+counts = words.groupBy("word").count().orderBy(col("count").desc())
+counts.show(10)
 ```
 
-# Glosario de Términos
+## Ejercicio 4: Procesamiento streaming con Spark
 
-Batch
+**Enunciado:** Leer un stream de Kafka con eventos de clics y contar los clics por minuto.
 
-:   Procesamiento por lotes en intervalos programados.
+**Solución:**
 
-CDC
+```python
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import window, col
 
-:   Change Data Capture, captura de cambios en tiempo real.
+spark = SparkSession.builder.appName("streaming").getOrCreate()
+df = spark.readStream.format("kafka") \
+    .option("kafka.bootstrap.servers", "localhost:9092") \
+    .option("subscribe", "clics") \
+    .load()
+# Asumimos que el valor es JSON con timestamp y usuario
+from pyspark.sql.types import StructType, StringType, TimestampType
+schema = StructType().add("usuario", StringType()).add("timestamp", TimestampType())
+clics = df.selectExpr("CAST(value AS STRING)").select(from_json("value", schema).alias("data")).select("data.*")
+counts = clics.groupBy(window("timestamp", "1 minute"), col("usuario")).count()
+query = counts.writeStream.outputMode("complete").format("console").start()
+query.awaitTermination()
+```
 
-Data Lake
+## Ejercicio 5: Dimensionamiento de clúster
 
-:   Repositorio de datos en bruto.
+**Enunciado:** Estimar el número de nodos necesarios para procesar 10 TB de datos diarios con Spark, asumiendo que cada nodo tiene 64 GB de RAM y 8 cores, y que el trabajo requiere 4 horas.
 
-Data Mart
+**Solución:**
 
-:   Subconjunto del DW para un área específica.
+- Supongamos que Spark puede procesar 1 TB por hora por cada 10 cores (depende del tipo de trabajo). Con 8 cores por nodo, 0.8 TB/hora/nodo.
 
-Data Warehouse
+- Para 10 TB en 4 horas, se necesitan 10 / 4 = 2.5 TB/hora.
 
-:   Almacén de datos optimizado para análisis.
+- Nodos necesarios: 2.5 / 0.8 ≈ 3.125, es decir, 4 nodos.
 
-DAG
+Este cálculo es muy aproximado; en la práctica se hacen pruebas de rendimiento.
 
-:   Directed Acyclic Graph, representación de dependencias.
-
-ELT
-
-:   Extract, Load, Transform (cargar primero, transformar después).
-
-ETL
-
-:   Extract, Transform, Load (transformar antes de cargar).
-
-Job
-
-:   Unidad de trabajo en un pipeline.
-
-Lakehouse
-
-:   Fusión de data lake y data warehouse.
-
-Linaje
-
-:   Trazabilidad del origen y transformaciones de los datos.
-
-Merge
-
-:   Operación que inserta o actualiza según exista.
-
-Metadatos
-
-:   Datos sobre los datos.
-
-Orquestación
-
-:   Coordinación de tareas en un pipeline.
-
-Pipeline
-
-:   Flujo completo de procesamiento de datos.
-
-Streaming
-
-:   Procesamiento continuo en tiempo real.
-
-# Referencias {#referencias .unnumbered}
-
-- Kimball, R., & Ross, M. (2013). *The Data Warehouse Toolkit*. 3rd ed. Wiley.
-
-- Inmon, W. H. (2005). *Building the Data Warehouse*. 4th ed. Wiley.
-
-- Kleppmann, M. (2017). *Designing Data-Intensive Applications*. O'Reilly.
-
-- Documentación de Apache Airflow: <https://airflow.apache.org/>
-
-- Documentación de Snowflake: <https://docs.snowflake.com/>
-
-- Documentación de AWS Redshift: <https://docs.aws.amazon.com/redshift/>
-
-- Databricks Lakehouse: <https://databricks.com/product/data-lakehouse>

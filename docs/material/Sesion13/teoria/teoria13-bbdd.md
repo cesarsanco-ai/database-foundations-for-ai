@@ -1,735 +1,203 @@
 
-## Sesión 13
-# DESPLIEGUE Y ALTA DISPONIBILIDAD
-## Contenedores, orquestación, replicación, migración y estrategias HA
-
-**Autor:** Carlos César Sánchez Coronel  
-**Fecha:** 2026
+# Arquitecturas Híbridas de Datos
 
 ---
 
-# Introducción
+## 1. Introducción: La Evolución del Paradigma de Datos
 
-En las sesiones anteriores hemos cubierto desde los fundamentos del modelado hasta las bases de datos vectoriales. Ahora nos enfocamos en cómo llevar estos sistemas a producción: cómo desplegarlos de manera confiable, escalable y con alta disponibilidad. Esta sesión aborda el uso de contenedores (Docker) para estandarizar entornos, orquestación con Kubernetes para gestionar clústeres, estrategias de alta disponibilidad (réplicas, failover, clustering), y la migración de bases de datos entre sistemas y entornos (on-premise a nube). También veremos herramientas específicas de cada motor para replicación y alta disponibilidad, así como balanceadores de carga. Todo ello con ejemplos prácticos y ejercicios resueltos.
+En las últimas décadas, la gestión de datos ha transitado desde modelos centralizados y rígidos hacia ecosistemas distribuidos, heterogéneos y altamente especializados. Este cambio responde a tres fuerzas principales:
 
-## Objetivos de la sesión
+1. **El crecimiento exponencial del volumen de datos** (Big Data), impulsado por la digitalización de procesos, el Internet de las Cosas (IoT) y la interacción social.
+2. **La diversidad de tipos de datos**, que ha roto los esquemas tradicionales fila-columna, dando lugar a formatos semiestructurados (JSON, XML), no estructurados (texto, imágenes) y vectoriales (embeddings).
+3. **La demanda de procesamiento en tiempo real y cognición aumentada**, donde la Inteligencia Artificial (IA) y los modelos de lenguaje de gran tamaño (LLMs) requieren acceso a datos con latencia mínima y contextos semánticos ricos.
 
-- Comprender la importancia de la contenedorización para bases de datos.
+Este marco teórico establece las bases conceptuales para comprender la organización, el almacenamiento y el acceso a los datos, integrando la infraestructura física (hardware), los modelos de despliegue (on-premise, cloud, híbrido) y la arquitectura de sistemas (políglota).
 
-- Aprender a desplegar SGBD en Docker y configurar persistencia.
+---
 
-- Conocer los conceptos básicos de Kubernetes aplicados a bases de datos.
+## 2. Fundamentos Epistemológicos del Dato
 
-- Diferenciar estrategias de alta disponibilidad: réplicas de lectura, failover, clustering.
+### 2.1. La Jerarquía Dato – Información – Conocimiento
 
-- Configurar replicación en motores populares (PostgreSQL, MySQL).
+La pirámide DIKW (Data, Information, Knowledge, Wisdom) constituye el modelo teórico fundamental para comprender el valor ascendente de los datos.
 
-- Entender el balanceo de carga para bases de datos.
+| Nivel | Definición | Caracterización Teórica |
+| :--- | :--- | :--- |
+| **Dato** | Símbolo, signo o registro sin procesar. | Carece de contexto; es la unidad mínima de significado potencial. Su valor es simbólico y dependiente de la sintaxis. |
+| **Información** | Dato procesado, estructurado y contextualizado. | Responde a preguntas básicas (quién, qué, cuándo, dónde). Emerge de la relación entre datos y su interpretación. |
+| **Conocimiento** | Información internalizada, validada y aplicable. | Incorpora experiencia, patrones y reglas. Permite la predicción y la acción. Es el resultado de procesos de aprendizaje y razonamiento. |
+| **Sabiduría** | Conocimiento aplicado con juicio ético y contextual. | Nivel superior que integra valores, consecuencias a largo plazo y toma de decisiones informada. |
 
-- Analizar opciones en la nube (RDS, Cloud SQL) y comparar con on-premise.
+**Implicación teórica**: En los sistemas de bases de datos, el objetivo no es solo almacenar datos (el nivel más bajo), sino facilitar la transformación eficiente de datos en información (mediante consultas) y en conocimiento (mediante analítica e IA).
 
-- Planificar y ejecutar migraciones de bases de datos entre distintos motores o entornos.
+### 2.2. Taxonomía de los Datos según su Estructura
 
-- Realizar ejercicios prácticos paso a paso.
+La estructura de los datos determina las estrategias de almacenamiento, indexación y consulta. La teoría de sistemas de bases de datos reconoce tres categorías fundamentales:
 
-# Contenedores y Bases de Datos
+| Categoría | Características | Formalización |
+| :--- | :--- | :--- |
+| **Estructurados** | Esquema predefinido, típicamente relacional. | Modelo relacional (Codd, 1970): tablas, tuplas, dominios, claves, integridad referencial. |
+| **Semiestructurados** | Organización flexible con marcadores; no requiere esquema fijo. | Modelo de datos orientado a documentos, árboles (XML), grafos (JSON-LD). |
+| **No estructurados** | Ausencia de organización predefinida. | Procesamiento mediante técnicas de NLP, visión por computadora, análisis de señales. |
 
-## ¿Por qué contenedores?
+**Teoría subyacente**: La imposibilidad de un único modelo de datos que sea óptimo para todos los casos (impedance mismatch) ha llevado al surgimiento de arquitecturas *políglotas persistentes* (Fowler, 2011), donde múltiples motores especializados coexisten.
 
-Los contenedores (Docker) permiten empaquetar una aplicación con todas sus dependencias, garantizando que se ejecute de la misma manera en cualquier entorno. Para bases de datos, los contenedores facilitan:
+### 2.3. Formatos de Almacenamiento y Codificación
 
-- Entornos de desarrollo y prueba idénticos a producción.
+La representación física de los datos se rige por principios de eficiencia, interoperabilidad y evolución del esquema.
 
-- Rápido aprovisionamiento y desmontaje.
+| Formato | Modelo de Almacenamiento | Fundamentos Teóricos |
+| :--- | :--- | :--- |
+| **CSV** | Orientado a filas, sin esquema. | Simplicidad sintáctica; intercambio universal. Limitaciones en compresión y acceso aleatorio. |
+| **JSON** | Jerárquico, basado en documentos. | Modelo de objetos anidados; soporte nativo en lenguajes dinámicos. |
+| **Avro** | Binario, orientado a filas con esquema embebido. | Evolución del esquema (compatibilidad hacia adelante/atrás); ideal para serialización en sistemas de mensajería. |
+| **Parquet** | Orientado a columnas. | Basado en el modelo de almacenamiento columnar (Copeland & Kernighan, 1989). Permite proyección de columnas (solo leer subconjuntos), compresión por dominio y codificación Run-Length Encoding (RLE). |
 
-- Aislamiento de recursos.
+**Principio teórico**: La elección del formato implica un trade-off entre *velocidad de escritura* (orientado a filas), *velocidad de lectura analítica* (orientado a columnas) y *flexibilidad del esquema*.
 
-- Integración con pipelines CI/CD.
+---
 
-## Dockerizando una Base de Datos
+## 3. Fundamentos de Infraestructura Física
 
-### Ejemplo: PostgreSQL en Docker
+### 3.1. Jerarquía de Memoria y Principio de Localidad
 
-```bash
-# Descargar imagen oficial
-docker pull postgres:15
+El rendimiento de los sistemas de bases de datos está determinado por la jerarquía de memoria, descrita por el modelo de von Neumann y extendido en la teoría de sistemas de almacenamiento.
 
-# Ejecutar contenedor con variables de entorno y volumen persistente
-docker run -d \
-  --name mi-postgres \
-  -e POSTGRES_PASSWORD=mi_password \
-  -e POSTGRES_USER=usuario \
-  -e POSTGRES_DB=mi_db \
-  -v pgdata:/var/lib/postgresql/data \
-  -p 5432:5432 \
-  postgres:15
-```
+| Nivel | Tecnología | Latencia | Capacidad | Principio de Localidad |
+| :--- | :--- | :--- | :--- | :--- |
+| **Registros / Caché CPU** | SRAM | ~1 ns | KB | Localidad temporal de instrucciones y datos frecuentes. |
+| **Memoria Principal (RAM)** | DRAM | ~100 ns | GB – TB | **Buffer Pool**: caché de páginas de datos. Maximizar *cache hit ratio*. |
+| **Almacenamiento Persistente** | NVMe/SSD, HDD | 20 µs – 10 ms | TB – PB | Localidad espacial: lectura secuencial o acceso indexado. |
+| **Almacenamiento en Red** | SAN, NAS | +0.5 ms | PB – EB | Abstacción de almacenamiento compartido; latencia adicional por red. |
 
-Explicación:
+**Teoría fundamental**: El principio de localidad (temporal y espacial) justifica la existencia de *cachés* y *buffer pools*. Un sistema de base de datos eficiente maximiza la probabilidad de que los datos solicitados residan en RAM antes que en disco.
 
-- `-d`: modo detached (fondo).
+### 3.2. Complejidad Computacional de los Métodos de Acceso
 
-- `--name`: nombre del contenedor.
+La teoría de estructuras de datos y algoritmos proporciona las bases para evaluar la eficiencia de los métodos de búsqueda.
 
-- `-e`: variables de entorno para configurar usuario, contraseña y base de datos inicial.
+| Método | Estructura | Complejidad (peor caso) | Fundamento Teórico |
+| :--- | :--- | :--- | :--- |
+| **Table Scan** | Recorrido secuencial | O(n) | Acceso lineal; inevitable cuando no existen índices o la selectividad es baja. |
+| **B-Tree Index** | Árbol balanceado | O(log n) | Basado en árboles B y B+ (Bayer & McCreight, 1972). Mantiene orden y equilibrio dinámico. Ideal para búsquedas por igualdad y rango. |
+| **Hash Index** | Tabla hash | O(1) promedio | Función hash determinística; limitado a búsquedas por igualdad exacta. |
+| **Índices Vectoriales (ANN)** | HNSW, IVF | O(log n) aproximado | Búsqueda aproximada del vecino más cercano (Approximate Nearest Neighbor). Sacrifica precisión por velocidad en espacios de alta dimensionalidad. |
 
-- `-v pgdata:/var/lib/postgresql/data`: volumen persistente (en este caso, un volumen nombrado) para que los datos sobrevivan al contenedor.
+**Teorema fundamental**: El costo de los índices es una compensación entre velocidad de lectura (beneficio) y sobrecarga de escritura (costo). El diseño físico óptimo debe maximizar el beneficio neto según el perfil de la carga de trabajo.
 
-- `-p 5432:5432`: mapea el puerto del contenedor al host.
+---
 
-### Volúmenes en Docker
+## 4. Modelos de Despliegue: On-Premise, Cloud e Híbrido
 
-Es crucial usar volúmenes para persistir datos. Tipos:
+### 4.1. Definiciones y Caracterización Teórica
 
-- **Volúmenes nombrados**: gestionados por Docker, ubicados en `/var/lib/docker/volumes/`. Ejemplo: `-v pgdata:/var/lib/postgresql/data`.
+| Modelo | Definición | Marco Teórico |
+| :--- | :--- | :--- |
+| **On-Premise** | Infraestructura física ubicada en las instalaciones de la organización, administrada completamente por el equipo interno. | Modelo de *capital expenditure* (CAPEX). Proporciona control total pero rigidez en escalabilidad. Alineado con requisitos de soberanía de datos y regulaciones estrictas (ej. GDPR, DORA). |
+| **Cloud (IaaS/PaaS)** | Infraestructura virtualizada proporcionada por terceros (AWS, Azure, GCP) bajo modelo de pago por uso. | Modelo de *operational expenditure* (OPEX). Escalabilidad elástica horizontal y vertical. Basado en principios de computación utilitaria y virtualización. |
+| **Híbrido** | Combinación de entornos on-premise y cloud, con integración de datos, orquestación y políticas de gobierno unificadas. | Modelo que optimiza el *trade-off* entre control, costo y elasticidad. Permite *workload portability* y *disaster recovery* distribuido. |
 
-- **Bind mounts**: mapean un directorio del host. Ejemplo: `-v /ruta/en/host:/var/lib/postgresql/data`.
+### 4.2. Fundamentos de la Arquitectura Híbrida
 
-Recomendación: usar volúmenes nombrados para producción, ya que Docker los gestiona mejor.
+La arquitectura híbrida se sustenta en tres pilares teóricos:
 
-### Redes en Docker
+1. **Persistencia Políglota (Polyglot Persistence)** : Propuesta por Martin Fowler, sostiene que en sistemas complejos es óptimo utilizar múltiples motores de bases de datos especializados (SQL, NoSQL, Vectorial) en lugar de un único motor universal.
 
-Para que múltiples contenedores se comuniquen, se crean redes personalizadas.
+2. **Separación de Responsabilidades**: Cada componente del ecosistema asume una función específica:
+   - **SQL (Transaccional)**: Consistencia ACID, integridad referencial, datos maestros.
+   - **NoSQL (Velocidad)**: Alta concurrencia, baja latencia, escalabilidad horizontal.
+   - **Vectorial (Semántica)**: Búsqueda por similitud, embeddings, memoria aumentada para IA.
 
-```bash
-# Crear red
-docker network create mi-red
+3. **Sincronización Asíncrona y Consistencia Eventual**: Inspirado en el teorema CAP (Consistency, Availability, Partition Tolerance), los sistemas híbridos suelen priorizar disponibilidad y tolerancia a particiones, aceptando consistencia eventual entre réplicas y capas. La sincronización se realiza mediante mecanismos como Change Data Capture (CDC) y colas de mensajería (Kafka).
 
-# Ejecutar contenedor en esa red
-docker run -d --name postgres --network mi-red -e POSTGRES_PASSWORD=... postgres
+### 4.3. Integración On-Premise con Cloud
 
-# Otro contenedor (ej. aplicación) en la misma red puede acceder usando el nombre del contenedor como hostname
-```
+La integración se estructura en capas conceptuales:
 
-### Consideraciones de Rendimiento
+| Capa | Componentes | Fundamento |
+| :--- | :--- | :--- |
+| **Conectividad** | VPN, Direct Connect, ExpressRoute | Establece un canal privado, seguro y de baja latencia entre entornos. |
+| **Orquestación** | Kubernetes (híbrido), Terraform, Azure Arc | Unifica la gestión de recursos, permitiendo despliegues consistentes y políticas unificadas. |
+| **Sincronización de Datos** | CDC (Debezium), Replicación transaccional, ETL/ELT batch | Garantiza que los datos en cloud sean una representación actualizada (con latencia controlada) de los datos on-premise. |
+| **Gobernanza** | Catálogos de datos unificados, políticas de data residency, linaje distribuido | Asegura que el cumplimiento normativo se mantiene incluso cuando los datos cruzan fronteras físicas. |
 
-Ejecutar bases de datos en contenedores tiene overhead mínimo si se configuran correctamente. Sin embargo, en producción se recomienda:
+---
 
-- Usar volúmenes rápidos (SSD).
+## 5. El Paradigma IA-Bases de Datos
 
-- Limitar recursos con flags como `--memory` y `--cpus`.
+### 5.1. Fundamentos de la Integración IA-Datos
 
-- Ajustar parámetros del kernel según necesidades (ej. `shared_buffers` en PostgreSQL).
+La inteligencia artificial moderna, en particular los modelos de lenguaje de gran tamaño (LLMs), ha redefinido la relación entre aplicaciones y sistemas de almacenamiento.
 
-## Orquestación con Kubernetes
+**Problema fundamental**: Los LLMs tienen una *ventana de contexto* finita (memoria a corto plazo) y no pueden retener bases de datos completas en su memoria paramétrica.
 
-Kubernetes (K8s) es el estándar para orquestar contenedores. Para bases de datos, Kubernetes ofrece:
+**Solución teórica**: **Retrieval-Augmented Generation (RAG)** – un patrón arquitectónico que externaliza la memoria del modelo hacia una base de datos vectorial.
 
-- Despliegues declarativos (Deployments, StatefulSets).
+### 5.2. Arquitectura RAG
 
-- Auto-escalado.
+| Componente | Función | Fundamento |
+| :--- | :--- | :--- |
+| **Embedding Model** | Convierte texto en vectores de alta dimensionalidad. | Basado en representaciones distribuidas (Word2Vec, BERT). Captura semántica en espacios continuos. |
+| **Base de Datos Vectorial** | Almacena e indexa embeddings para búsqueda por similitud. | Utiliza índices ANN (HNSW, IVF) que sacrifican precisión exacta por velocidad, fundamentados en teoría de espacios métricos y cuantización vectorial. |
+| **Orquestador RAG** | Combina consulta, contexto recuperado y prompt. | Gestiona el flujo de información entre el modelo generativo y la fuente de datos externa. |
+| **LLM** | Genera respuesta fundamentada en el contexto provisto. | Utiliza el contexto recuperado como *grounding* para reducir alucinaciones. |
 
-- Balanceo de carga interno (Services).
+### 5.3. Implicaciones Teóricas
 
-- Auto-reparación (reinicio de contenedores fallidos).
+1. **La base de datos como memoria externa**: Las bases de datos vectoriales funcionan como una memoria asociativa que complementa la memoria paramétrica del modelo.
+2. **Latencia como factor crítico**: La experiencia del usuario depende tanto de la velocidad del LLM como de la latencia de la consulta vectorial y transaccional.
+3. **Alucinaciones como fallo sistémico**: Desde una perspectiva teórica, las alucinaciones en sistemas RAG no son solo fallos del modelo, sino fallos en la recuperación de datos (recuperación incompleta o desactualizada).
 
-### StatefulSets para Bases de Datos
+---
 
-A diferencia de Deployments, StatefulSet garantiza identidades estables (nombres de host persistentes) y orden en el despliegue/escalado. Es la opción recomendada para bases de datos.
+## 6. Marco de Gobernanza y Ética
 
-### Ejemplo: PostgreSQL en Kubernetes
+### 6.1. Fundamentos de Gobernanza de Datos
 
-Archivo YAML para un StatefulSet:
+La gobernanza se define como el ejercicio de autoridad y control sobre la gestión de datos (DAMA-DMBOK). Sus dimensiones teóricas incluyen:
 
-```bash
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: postgres
-spec:
-  serviceName: postgres
-  replicas: 1
-  selector:
-    matchLabels:
-      app: postgres
-  template:
-    metadata:
-      labels:
-        app: postgres
-    spec:
-      containers:
-      - name: postgres
-        image: postgres:15
-        env:
-        - name: POSTGRES_PASSWORD
-          value: "mi_password"
-        - name: POSTGRES_USER
-          value: "usuario"
-        - name: POSTGRES_DB
-          value: "mi_db"
-        ports:
-        - containerPort: 5432
-        volumeMounts:
-        - name: pgdata
-          mountPath: /var/lib/postgresql/data
-  volumeClaimTemplates:
-  - metadata:
-      name: pgdata
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      resources:
-        requests:
-          storage: 10Gi
-```
+| Dimensión | Descripción |
+| :--- | :--- |
+| **Lineaje (Data Lineage)** | Trazabilidad del origen, transformaciones y flujo de los datos. Permite auditoría, depuración y evaluación de impacto. |
+| **Calidad de Datos** | Precisión, completitud, consistencia, actualidad, validez. Medida mediante métricas y reglas de validación. |
+| **Seguridad y Privacidad** | Control de acceso, cifrado, anonimización. Sustentado en normativas como GDPR, CCPA, HIPAA. |
+| **Custodia (Stewardship)** | Asignación de responsabilidades sobre conjuntos de datos específicos. |
 
-Este YAML define un StatefulSet que crea un PersistentVolumeClaim por cada réplica, asegurando almacenamiento persistente. Luego se necesita un Service para acceder:
+### 6.2. Ética de Datos e IA
 
-```bash
-apiVersion: v1
-kind: Service
-metadata:
-  name: postgres
-spec:
-  selector:
-    app: postgres
-  ports:
-  - port: 5432
-    targetPort: 5432
-```
+La ética aplicada a sistemas de datos se fundamenta en principios de:
 
-### Operadores para Bases de Datos en Kubernetes
+- **Transparencia**: Los modelos y procesos deben ser explicables (XAI – Explainable AI).
+- **Equidad**: Los sesgos históricos presentes en los datos no deben ser perpetuados o amplificados por algoritmos.
+- **Privacidad por diseño**: La protección de datos personales debe integrarse desde la fase de arquitectura.
+- **Responsabilidad**: Debe existir una cadena clara de responsabilidad por las decisiones automatizadas.
 
-Para gestionar bases de datos de manera más avanzada (backups, replicación automática), existen operadores como:
+---
 
-- **PostgreSQL Operator** (Crunchy Data, Zalando).
+## 7. Síntesis: Un Modelo Integrado
 
-- **MySQL Operator** (Oracle).
+La siguiente tabla sintetiza los niveles conceptuales del marco teórico presentado:
 
-- **Cassandra Operator** (DataStax).
+| Nivel | Dimensiones | Fundamentos Teóricos |
+| :--- | :--- | :--- |
+| **Semántico** | Dato – Información – Conocimiento – Sabiduría | Pirámide DIKW; hermenéutica de la información. |
+| **Estructural** | Estructurado – Semiestructurado – No estructurado | Taxonomía de modelos de datos; poliglotismo. |
+| **Físico** | Jerarquía de memoria – Métodos de acceso – Formatos | Principio de localidad; complejidad algorítmica; modelos de almacenamiento. |
+| **Arquitectónico** | On-Premise – Cloud – Híbrido | Modelos de despliegue; CAP theorem; consistencia eventual. |
+| **Funcional** | SQL – NoSQL – Vectorial | Persistencia políglota; separación de responsabilidades; RAG. |
+| **Gobernanza** | Lineaje – Calidad – Seguridad – Ética | DAMA-DMBOK; principios FAIR (Findable, Accessible, Interoperable, Reusable). |
 
-Estos operadores extienden Kubernetes para manejar tareas complejas.
+---
 
-# Estrategias de Alta Disponibilidad (HA)
+## 8. Conclusiones Teóricas
 
-La alta disponibilidad busca minimizar el tiempo de inactividad de un sistema. En bases de datos, las estrategias comunes son:
+1. **No existe un modelo único óptimo**: La diversidad de datos, requisitos de rendimiento y restricciones normativas exige arquitecturas poliglotas que combinen motores especializados.
 
-## Réplicas de Lectura
+2. **El hardware es determinante**: La jerarquía de memoria y los índices definen límites físicos que condicionan la viabilidad de los algoritmos, incluida la IA.
 
-Consisten en tener una o más copias (réplicas) de la base de datos principal que reciben los cambios en tiempo real (o casi). Las consultas de solo lectura pueden dirigirse a las réplicas, descargando al nodo principal.
+3. **La hibridación on-premise/cloud es la evolución natural**: Permite equilibrar control (soberanía de datos, latencia crítica) con elasticidad (picos de demanda, innovación ágil).
 
-### Beneficios
+4. **La IA externaliza su memoria en bases de datos**: El paradigma RAG redefine la base de datos como un componente activo de la cognición artificial, no solo como un repositorio pasivo.
 
-- Escalabilidad horizontal de lecturas.
+5. **La gobernanza no es opcional**: En entornos híbridos y con IA, el linaje, la calidad y la ética son condiciones necesarias para la confianza y el cumplimiento normativo.
 
-- Aislamiento de cargas: consultas analíticas pesadas no afectan al transaccional.
-
-- Mayor disponibilidad: si el principal falla, una réplica puede promoverse.
-
-### Implementaciones comunes
-
-- **PostgreSQL**: Replicación física (streaming replication) o lógica.
-
-- **MySQL**: Replicación asíncrona (binlog) o semisíncrona.
-
-- **MongoDB**: Réplicas (replica sets).
-
-## Failover
-
-El failover es el proceso de conmutar automáticamente a un nodo secundario cuando el principal falla. Puede ser:
-
-- **Manual**: Un administrador promueve la réplica.
-
-- **Automático**: Un sistema de monitoreo detecta la falla y ejecuta la promoción (ej. Patroni, Orchestrator, MHA).
-
-### Consideraciones
-
-- Tiempo de detección y promoción (RTO).
-
-- Posible pérdida de datos (RPO) si la replicación es asíncrona.
-
-- Split-brain: evitar que dos nodos se consideren principales simultáneamente.
-
-## Clustering
-
-Un cluster de bases de datos puede ser:
-
-- **Activo-Pasivo**: Un nodo activo, otro(s) pasivo(s) que toman el control si falla el activo. Ejemplo: PostgreSQL con Patroni + etcd.
-
-- **Activo-Activo**: Todos los nodos aceptan escrituras, con mecanismos de resolución de conflictos. Ejemplo: MySQL Cluster (NDB), Oracle RAC.
-
-## Balanceo de Carga
-
-Para distribuir el tráfico entre réplicas o nodos, se utilizan balanceadores:
-
-- **ProxySQL**: balanceo para MySQL, con enrutamiento basado en consultas.
-
-- **HAProxy**: balanceo TCP genérico, puede usarse para PostgreSQL o MySQL.
-
-- **pgpool-II**: balanceo y pooling para PostgreSQL.
-
-# Replicación en Motores Específicos
-
-## PostgreSQL: Streaming Replication
-
-Configuración básica (asíncrona):
-
-1.  En el primario, crear usuario de replicación:
-
-    ``` {.sql language="SQL"}
-    CREATE USER replicator WITH REPLICATION ENCRYPTED PASSWORD 'password';
-    ```
-
-2.  Editar `postgresql.conf`:
-
-    ``` {.Bash language="Bash"}
-    wal_level = replica
-    max_wal_senders = 5
-    wal_keep_size = 1GB
-    ```
-
-3.  En `pg_hba.conf` permitir conexiones de replicación:
-
-    ``` {.Bash language="Bash"}
-    host replication replicator 192.168.1.0/24 md5
-    ```
-
-4.  Reiniciar PostgreSQL.
-
-5.  En el secundario, realizar un backup base:
-
-    ``` {.Bash language="Bash"}
-    pg_basebackup -h primario -D /var/lib/postgresql/data -U replicator -v -P --wal-method=stream
-    ```
-
-6.  Crear archivo `standby.signal` y configurar `postgresql.auto.conf` con la conexión al primario:
-
-    ``` {.Bash language="Bash"}
-    primary_conninfo = 'host=primario port=5432 user=replicator password=password'
-    ```
-
-7.  Iniciar el secundario.
-
-Para failover automático se puede usar Patroni o repmgr.
-
-## MySQL: Group Replication
-
-Group Replication proporciona replicación multi-maestro con detección automática de fallos. Ejemplo de configuración (InnoDB Cluster):
-
-1.  Configurar cada nodo con un server_id único y habilitar GTID.
-
-2.  Instalar plugin:
-
-    ``` {.sql language="SQL"}
-    INSTALL PLUGIN group_replication SONAME 'group_replication.so';
-    ```
-
-3.  Configurar variables (seed, credenciales, etc.).
-
-4.  Iniciar Group Replication en cada nodo.
-
-Para simplificar, se puede usar MySQL InnoDB Cluster con MySQL Shell.
-
-## MongoDB: Replica Sets
-
-Un replica set es un grupo de servidores mongod con un primario y varios secundarios. Configuración básica:
-
-1.  Iniciar cada mongod con la opción `--replSet "miSet"`.
-
-2.  Conectarse a uno y ejecutar:
-
-    ``` {.JavaScript language="JavaScript"}
-    rs.initiate()
-    rs.add("host2:27017")
-    rs.add("host3:27017")
-    ```
-
-El failover es automático: si el primario cae, los secundarios eligen uno nuevo.
-
-## Oracle: Data Guard
-
-Oracle Data Guard mantiene una base de datos standby (física o lógica). Puede ser síncrona (protección máxima) o asíncrona. La conmutación puede ser manual o automática con Fast-Start Failover.
-
-## SQL Server: Always On Availability Groups
-
-Always On permite grupos de disponibilidad con réplicas síncronas o asíncronas, con failover automático si se usa un cluster de Windows.
-
-# Balanceo de Carga Práctico
-
-### Ejemplo con HAProxy para PostgreSQL
-
-Configuración de HAProxy (archivo `/etc/haproxy/haproxy.cfg`):
-
-```bash
-frontend pgsql
-    bind *:5432
-    default_backend pgsql_backend
-
-backend pgsql_backend
-    balance roundrobin
-    option pgsql-check user haproxy
-    server pg1 192.168.1.10:5432 check
-    server pg2 192.168.1.11:5432 check
-    server pg3 192.168.1.12:5432 check
-```
-
-Se necesita un usuario `haproxy` en PostgreSQL para las comprobaciones de salud.
-
-### ProxySQL para MySQL
-
-ProxySQL permite enrutamiento basado en consultas y pooling de conexiones. Configuración básica:
-
-```sql
-INSERT INTO mysql_servers (hostgroup_id, hostname, port) VALUES (10, '192.168.1.10', 3306);
-INSERT INTO mysql_servers (hostgroup_id, hostname, port) VALUES (10, '192.168.1.11', 3306);
-INSERT INTO mysql_users (username, password, default_hostgroup) VALUES ('app', 'pass', 10);
-LOAD MYSQL SERVERS TO RUNTIME;
-SAVE MYSQL SERVERS TO DISK;
-```
-
-# Despliegue en la Nube vs On-Premise
-
-## Servicios Gestionados (PaaS)
-
-- **AWS RDS**: Soporta múltiples motores, replicación, backups automáticos, failover multi-AZ.
-
-- **Google Cloud SQL**: PostgreSQL, MySQL, SQL Server con alta disponibilidad.
-
-- **Azure SQL Database**: Base de datos como servicio, escalable.
-
-Ventajas: menor overhead administrativo, escalado sencillo, alta disponibilidad integrada. Desventajas: menos control, posible vendor lock-in, costos.
-
-## On-Premise
-
-La empresa gestiona su propio hardware y software. Ventajas: control total, cumplimiento de normativas estrictas. Desventajas: inversión inicial, mantenimiento.
-
-## Modelo Híbrido
-
-Combinar recursos on-premise con nube, por ejemplo, para disaster recovery (DR) o picos de carga.
-
-## Migración a la Nube
-
-Pasos típicos:
-
-1.  Evaluación de la base de datos (tamaño, complejidad, dependencias).
-
-2.  Elección del servicio objetivo (RDS, Cloud SQL, etc.).
-
-3.  Migración de datos: herramientas como AWS DMS (Database Migration Service), mysqldump + import, pg_dump + pg_restore.
-
-4.  Pruebas de rendimiento y funcionalidad.
-
-5.  Corte de producción.
-
-### Ejemplo: Migrar PostgreSQL local a AWS RDS
-
-```bash
-# Dump de la base local
-pg_dump -U usuario -h localhost mi_db > mi_db.sql
-
-# Restaurar en RDS (previamente crear instancia)
-psql -U usuario -h mi-instance.rds.amazonaws.com -d mi_db < mi_db.sql
-```
-
-Para migraciones sin downtime, se puede usar AWS DMS con replicación continua.
-
-# Ejercicios Resueltos
-
-## Ejercicio 1: Desplegar PostgreSQL con Docker y configurar persistencia
-
-**Enunciado:** Crear un contenedor PostgreSQL con un volumen persistente, crear una base de datos y una tabla, insertar datos, detener el contenedor, volver a iniciarlo y comprobar que los datos persisten.
-
-**Solución:**
-
-```bash
-# 1. Crear volumen
-docker volume create pgdata
-
-# 2. Ejecutar contenedor
-docker run -d --name postgres1 \
-  -e POSTGRES_PASSWORD=admin \
-  -e POSTGRES_USER=admin \
-  -e POSTGRES_DB=testdb \
-  -v pgdata:/var/lib/postgresql/data \
-  -p 5432:5432 \
-  postgres:15
-
-# 3. Conectar y crear tabla
-docker exec -it postgres1 psql -U admin -d testdb
-# Dentro de psql:
-CREATE TABLE personas (id SERIAL, nombre TEXT);
-INSERT INTO personas (nombre) VALUES ('Ana'), ('Luis');
-SELECT * FROM personas;
-\q
-
-# 4. Detener y eliminar contenedor
-docker stop postgres1
-docker rm postgres1
-
-# 5. Crear nuevo contenedor con el mismo volumen
-docker run -d --name postgres2 \
-  -e POSTGRES_PASSWORD=admin \
-  -e POSTGRES_USER=admin \
-  -e POSTGRES_DB=testdb \
-  -v pgdata:/var/lib/postgresql/data \
-  -p 5432:5432 \
-  postgres:15
-
-# 6. Verificar datos
-docker exec -it postgres2 psql -U admin -d testdb -c "SELECT * FROM personas;"
-# Deberían aparecer Ana y Luis
-```
-
-## Ejercicio 2: Configurar replicación PostgreSQL con dos contenedores Docker
-
-**Enunciado:** En una misma máquina, levantar dos contenedores PostgreSQL (primario y réplica) y configurar streaming replication asíncrona.
-
-**Solución:**
-
-```bash
-# Red común
-docker network create pg-net
-
-# Primario
-docker run -d --name pg-primary \
-  --network pg-net \
-  -e POSTGRES_PASSWORD=admin \
-  -e POSTGRES_USER=admin \
-  -e POSTGRES_DB=testdb \
-  -v pg-primary-data:/var/lib/postgresql/data \
-  postgres:15
-
-# Configurar primario
-docker exec -it pg-primary bash
-# Editar postgresql.conf (usar echo o sed)
-echo "wal_level = replica" >> /var/lib/postgresql/data/postgresql.conf
-echo "max_wal_senders = 5" >> /var/lib/postgresql/data/postgresql.conf
-echo "wal_keep_size = 1GB" >> /var/lib/postgresql/data/postgresql.conf
-# En pg_hba.conf permitir replicación desde la red
-echo "host replication all 172.16.0.0/12 md5" >> /var/lib/postgresql/data/pg_hba.conf
-exit
-docker restart pg-primary
-
-# Crear usuario replicador
-docker exec -it pg-primary psql -U admin -c "CREATE USER replicator WITH REPLICATION ENCRYPTED PASSWORD 'replica';"
-
-# En la réplica, hacer basebackup
-docker run -d --name pg-replica \
-  --network pg-net \
-  -v pg-replica-data:/var/lib/postgresql/data \
-  postgres:15 echo "Esperando"
-docker exec -it pg-replica bash
-# Limpiar datos por defecto
-rm -rf /var/lib/postgresql/data/*
-# Realizar backup
-pg_basebackup -h pg-primary -U replicator -D /var/lib/postgresql/data -v -P --wal-method=stream
-# Crear archivo standby.signal
-touch /var/lib/postgresql/data/standby.signal
-# Configurar primary_conninfo
-echo "primary_conninfo = 'host=pg-primary user=replicator password=replica'" >> /var/lib/postgresql/data/postgresql.auto.conf
-exit
-# Iniciar réplica (reiniciar contenedor)
-docker stop pg-replica
-docker start pg-replica
-
-# Verificar en primario:
-docker exec -it pg-primary psql -U admin -c "SELECT * FROM pg_stat_replication;"
-# Debería mostrar la réplica
-```
-
-## Ejercicio 3: Failover manual en PostgreSQL con réplica
-
-**Enunciado:** Simular la caída del primario y promover la réplica a nuevo primario.
-
-**Solución:** Continuando del ejercicio anterior:
-
-```bash
-# Detener primario
-docker stop pg-primary
-
-# En la réplica, promover
-docker exec -it pg-replica bash
-# Crear archivo de trigger (si se usa trigger_file) o simplemente eliminar standby.signal
-rm /var/lib/postgresql/data/standby.signal
-# También se puede usar pg_ctl promote (pero dentro del contenedor no está el comando fácilmente). Alternativa: reiniciar sin standby.
-# Para PostgreSQL 12+, con promote:
-# En el contenedor, ejecutar:
-pg_ctl promote -D /var/lib/postgresql/data
-# Pero requiere que el proceso esté corriendo. Normalmente se usa:
-docker exec -it pg-replica pg_ctl promote -D /var/lib/postgresql/data
-# (si pg_ctl está en PATH, lo está)
-# Ahora pg-replica es primario
-
-# Verificar que acepta escrituras
-docker exec -it pg-replica psql -U admin -d testdb -c "INSERT INTO personas (nombre) VALUES ('Nuevo');"
-```
-
-Para failover automático, se usarían herramientas como Patroni o repmgr.
-
-## Ejercicio 4: Migrar base de datos MySQL local a AWS RDS
-
-**Enunciado:** Simular la migración de una base de datos MySQL desde un contenedor local a una instancia RDS (usar MySQL local como si fuera RDS).
-
-**Solución:**
-
-```bash
-# Levantar MySQL local (simula origen)
-docker run -d --name mysql-origen \
-  -e MYSQL_ROOT_PASSWORD=root \
-  -e MYSQL_DATABASE=ventas \
-  -p 3306:3306 \
-  mysql:8
-
-# Crear datos de ejemplo
-docker exec -it mysql-origen mysql -uroot -proot -e "USE ventas; CREATE TABLE productos (id INT AUTO_INCREMENT PRIMARY KEY, nombre VARCHAR(100)); INSERT INTO productos (nombre) VALUES ('Laptop'), ('Mouse');"
-
-# Levantar otro MySQL local como destino (simula RDS)
-docker run -d --name mysql-destino \
-  -e MYSQL_ROOT_PASSWORD=root \
-  -e MYSQL_DATABASE=ventas \
-  -p 3307:3306 \
-  mysql:8
-
-# Migración con mysqldump
-mysqldump -h127.0.0.1 -P3306 -uroot -proot ventas > ventas.sql
-mysql -h127.0.0.1 -P3307 -uroot -proot ventas < ventas.sql
-
-# Verificar
-mysql -h127.0.0.1 -P3307 -uroot -proot -e "SELECT * FROM ventas.productos;"
-```
-
-Para una migración real a RDS, se usarían los endpoints de AWS y las credenciales correspondientes.
-
-## Ejercicio 5: Configurar HAProxy para balancear entre dos réplicas de PostgreSQL
-
-**Enunciado:** Tener dos contenedores PostgreSQL (réplicas) y un HAProxy que balancee las conexiones de solo lectura entre ellas.
-
-**Solución:**
-
-```bash
-# Asumimos que ya hay dos réplicas (pg-replica1, pg-replica2) funcionando, y un primario aparte.
-# Crear red
-docker network create ha-net
-# Conectar los contenedores a la red (si no lo están)
-docker network connect ha-net pg-replica1
-docker network connect ha-net pg-replica2
-
-# Ejecutar HAProxy
-docker run -d --name haproxy \
-  --network ha-net \
-  -p 5432:5432 \
-  -v $(pwd)/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro \
-  haproxy:latest
-
-# Archivo haproxy.cfg:
-cat > haproxy.cfg <<EOF
-global
-    log stdout format raw local0
-
-defaults
-    log global
-    option tcplog
-    timeout connect 5s
-    timeout client 1m
-    timeout server 1m
-
-frontend pgsql
-    bind *:5432
-    default_backend pgsql_backend
-
-backend pgsql_backend
-    balance roundrobin
-    option pgsql-check user haproxy
-    server pg1 pg-replica1:5432 check
-    server pg2 pg-replica2:5432 check
-EOF
-
-# En cada réplica, crear usuario haproxy
-docker exec -it pg-replica1 psql -U admin -c "CREATE USER haproxy;"
-docker exec -it pg-replica2 psql -U admin -c "CREATE USER haproxy;"
-
-# Probar conexión a HAProxy
-psql -h127.0.0.1 -p5432 -U admin -d testdb -c "SELECT inet_server_addr();"
-# Debería alternar entre las IPs de las réplicas
-```
-
-# Glosario de Términos
-
-Contenedor
-
-:   Entorno aislado que ejecuta una aplicación con sus dependencias.
-
-Docker
-
-:   Plataforma de contenedores.
-
-Volumen
-
-:   Mecanismo para persistir datos en Docker.
-
-Kubernetes
-
-:   Orquestador de contenedores.
-
-StatefulSet
-
-:   Recurso de Kubernetes para aplicaciones con estado.
-
-Replicación
-
-:   Copia de datos de un servidor a otro.
-
-Réplica de lectura
-
-:   Copia de la base de datos que acepta consultas de solo lectura.
-
-Failover
-
-:   Conmutación automática a un nodo secundario ante fallo del primario.
-
-Cluster
-
-:   Conjunto de servidores que trabajan juntos.
-
-Balanceo de carga
-
-:   Distribución del tráfico entre varios servidores.
-
-ProxySQL
-
-:   Balanceador y proxy para MySQL.
-
-HAProxy
-
-:   Balanceador TCP/HTTP de alto rendimiento.
-
-pgpool-II
-
-:   Middleware para PostgreSQL con balanceo y pooling.
-
-Patroni
-
-:   Herramienta para alta disponibilidad de PostgreSQL.
-
-AWS RDS
-
-:   Servicio de base de datos relacional gestionado de Amazon.
-
-Migración
-
-:   Proceso de trasladar datos de un sistema a otro.
-
-RTO
-
-:   Recovery Time Objective, tiempo máximo permitido para recuperar el servicio.
-
-RPO
-
-:   Recovery Point Objective, pérdida máxima de datos aceptable.
-
-# Referencias {#referencias .unnumbered}
-
-- Documentación de Docker: <https://docs.docker.com/>
-
-- Documentación de Kubernetes: <https://kubernetes.io/docs/>
-
-- PostgreSQL Streaming Replication: <https://www.postgresql.org/docs/current/warm-standby.html>
-
-- MySQL Group Replication: <https://dev.mysql.com/doc/refman/8.0/en/group-replication.html> MongoDB Replica Sets: <https://docs.mongodb.com/manual/replication/>
-
-- AWS Database Migration Service: <https://aws.amazon.com/dms/>
-
-- Patroni: <https://patroni.readthedocs.io/>
-
-- ProxySQL: <https://proxysql.com/>
-
-- HAProxy: <https://www.haproxy.org/>
