@@ -7,7 +7,7 @@ layout: default
 
 ## 🎯 Objetivo de la Sesión
 
-Profundizar en los conceptos de la semana mediante el material teórico, diapositivas y laboratorios en Jupyter.
+Comprender el poder del Big Data y su ecosistema.
 
 ***
 
@@ -15,11 +15,9 @@ Profundizar en los conceptos de la semana mediante el material teórico, diaposi
 
 Material de apoyo y referencias de la semana.
 
-* 🖼️ **Slides de Clase (PDF):** [PPT10-BBDD.pdf](../material/Sesion10/slides/PPT10-BBDD.pdf)
-
-* 📝 **Quick Reference:** [CheatSheet](../material/Sesion10/cheatsheet/cheatsheet.md)
-
-* 📎 **Anexo Técnico:** [Material Complementario](../material/Sesion10/anexo/anexo.md)
+* 🖼️ **Clase:** [Clase09-BBDD](../material/Sesion09/teoria/teoria9-bbdd.md)
+ 
+* 📝 **Quick Reference:** [CheatSheet](../material/Sesion01/cheatsheet/cheatsheet.md)
 
 ***
 
@@ -27,8 +25,8 @@ Material de apoyo y referencias de la semana.
 
 *Nivel: Intermedio* ⭐⭐⭐
 
-* 📓 **Notebook Fundamentos:** [Notebook 1](https://github.com/cesarsanco-ai/database-foundations-for-ai/blob/main/docs/material/Sesion10/practica/SESION10-NTB1-BBDD.ipynb)
-* 📓 **Notebook Aplicaciones:** [Notebook 2](https://github.com/cesarsanco-ai/database-foundations-for-ai/blob/main/docs/material/Sesion10/practica/SESION10-NTB2-BBDD.ipynb)
+* 📓 **Lab 1:** [Laboratorio 1](../material/Sesion09/practica/SESION9-LAB1-BBDD.md) 
+* 📓 **Lab 2:** [Laboratorio 2](../material/Sesion09/practica/SESION9-LAB2-BBDD.md)
 
 ***
 

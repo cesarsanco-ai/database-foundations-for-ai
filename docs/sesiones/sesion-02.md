@@ -15,7 +15,7 @@ Realizar modelamiento de datos siguiendo las buenas practicas.
 
 Material de apoyo y referencias de la semana.
 
-* 🖼️ **Slides de Clase (PDF):** [Clase02-BBDD](../material/Sesion02/teoria/teoria2-bbdd.md)
+* 🖼️ **Clase:** [Clase02-BBDD](../material/Sesion02/teoria/teoria2-bbdd.md)
 
 * 📝 **Quick Reference:** [CheatSheet](../material/Sesion02/cheatsheet/cheatsheet.md)
 

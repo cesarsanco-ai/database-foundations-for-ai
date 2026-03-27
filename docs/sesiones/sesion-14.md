@@ -2,12 +2,12 @@
 layout: default
 ---
 
-# Sesion 14: Arquitecturas avanzadas
+# Sesion 14: Despliegue y Alta disponibilidad
 [⬅️ Volver al Índice](../index.md)
 
 ## 🎯 Objetivo de la Sesión
 
-Profundizar en los conceptos de la semana mediante el material teórico, diapositivas y laboratorios en Jupyter.
+Realizar despliegue de Base de datos en la nube.
 
 ***
 
@@ -15,11 +15,9 @@ Profundizar en los conceptos de la semana mediante el material teórico, diaposi
 
 Material de apoyo y referencias de la semana.
 
-* 🖼️ **Slides de Clase (PDF):** [PPT14-BBDD.pdf](../material/Sesion14/slides/PPT14-BBDD.pdf)
-
+* 🖼️ **Clase:** [Clase01-BBDD](../material/Sesion14/teoria/teoria14-bbdd.md)
+ 
 * 📝 **Quick Reference:** [CheatSheet](../material/Sesion14/cheatsheet/cheatsheet.md)
-
-* 📎 **Anexo Técnico:** [Material Complementario](../material/Sesion14/anexo/anexo.md)
 
 ***
 
@@ -27,8 +25,8 @@ Material de apoyo y referencias de la semana.
 
 *Nivel: Intermedio* ⭐⭐⭐
 
-* 📓 **Notebook Fundamentos:** [Notebook 1](https://github.com/cesarsanco-ai/database-foundations-for-ai/blob/main/docs/material/Sesion14/practica/SESION14-NTB1-BBDD.ipynb)
-* 📓 **Notebook Aplicaciones:** [Notebook 2](https://github.com/cesarsanco-ai/database-foundations-for-ai/blob/main/docs/material/Sesion14/practica/SESION14-NTB2-BBDD.ipynb)
+* 📓 **Lab 1:** [Laboratorio 1](../material/Sesion14/practica/SESION14-LAB1-BBDD.md) 
+* 📓 **Lab 2:** [Laboratorio 2](../material/Sesion14/practica/SESION14-LAB2-BBDD.md)
 
 ***
 

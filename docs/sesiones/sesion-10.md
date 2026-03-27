@@ -15,11 +15,9 @@ Conocer el ecosistema Cloud en Base de datos.
 
 Material de apoyo y referencias de la semana.
 
-* 🖼️ **Slides de Clase (PDF):** [PPT15-BBDD.pdf](../material/Sesion15/slides/PPT15-BBDD.pdf)
-
-* 📝 **Quick Reference:** [CheatSheet](../material/Sesion15/cheatsheet/cheatsheet.md)
-
-* 📎 **Anexo Técnico:** [Material Complementario](../material/Sesion15/anexo/anexo.md)
+* 🖼️ **Clase:** [Clase10-BBDD](../material/Sesion10/teoria/teoria10-bbdd.md)
+ 
+* 📝 **Quick Reference:** [CheatSheet](../material/Sesion10/cheatsheet/cheatsheet.md)
 
 ***
 
@@ -27,8 +25,8 @@ Material de apoyo y referencias de la semana.
 
 *Nivel: Intermedio* ⭐⭐⭐
 
-* 📓 **Notebook Fundamentos:** [Notebook 1](https://github.com/cesarsanco-ai/database-foundations-for-ai/blob/main/docs/material/Sesion15/practica/SESION15-NTB1-BBDD.ipynb)
-* 📓 **Notebook Aplicaciones:** [Notebook 2](https://github.com/cesarsanco-ai/database-foundations-for-ai/blob/main/docs/material/Sesion15/practica/SESION15-NTB2-BBDD.ipynb)
+* 📓 **Lab 1:** [Laboratorio 1](../material/Sesion10/practica/SESION10-LAB1-BBDD.md) 
+* 📓 **Lab 2:** [Laboratorio 2](../material/Sesion10/practica/SESION10-LAB2-BBDD.md)
 
 ***
 

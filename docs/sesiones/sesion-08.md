@@ -7,7 +7,7 @@ layout: default
 
 ## 🎯 Objetivo de la Sesión
 
-Profundizar en los conceptos de la semana mediante el material teórico, diapositivas y laboratorios en Jupyter.
+Comprender el pipeline de datos, ETL y ELT.
  
 ***
 
@@ -15,11 +15,9 @@ Profundizar en los conceptos de la semana mediante el material teórico, diaposi
 
 Material de apoyo y referencias de la semana.
 
-* 🖼️ **Slides de Clase (PDF):** [PPT09-BBDD.pdf](../material/Sesion09/slides/PPT09-BBDD.pdf)
-
-* 📝 **Quick Reference:** [CheatSheet](../material/Sesion09/cheatsheet/cheatsheet.md)
-
-* 📎 **Anexo Técnico:** [Material Complementario](../material/Sesion09/anexo/anexo.md)
+* 🖼️ **Clase:** [Clase08-BBDD](../material/Sesion08/teoria/teoria8-bbdd.md)
+ 
+* 📝 **Quick Reference:** [CheatSheet](../material/Sesion08/cheatsheet/cheatsheet.md)
 
 ***
 
@@ -27,8 +25,8 @@ Material de apoyo y referencias de la semana.
 
 *Nivel: Intermedio* ⭐⭐⭐
 
-* 📓 **Notebook Fundamentos:** [Notebook 1](https://github.com/cesarsanco-ai/database-foundations-for-ai/blob/main/docs/material/Sesion09/practica/SESION9-NTB1-BBDD.ipynb)
-* 📓 **Notebook Aplicaciones:** [Notebook 2](https://github.com/cesarsanco-ai/database-foundations-for-ai/blob/main/docs/material/Sesion09/practica/SESION9-NTB2-BBDD.ipynb)
+* 📓 **Lab 1:** [Laboratorio 1](../material/Sesion08/practica/SESION8-LAB1-BBDD.md) 
+* 📓 **Lab 2:** [Laboratorio 2](../material/Sesion08/practica/SESION8-LAB2-BBDD.md)
 
 ***
 

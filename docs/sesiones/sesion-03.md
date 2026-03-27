@@ -2,12 +2,12 @@
 layout: default
 ---
 
-# Sesion 3: Estructura de datos en Base de Datos
+# Sesion 3: Normalización
 [⬅️ Volver al Índice](../index.md)
 
 ## 🎯 Objetivo de la Sesión
 
-Profundizar en los conceptos de la semana mediante el material teórico, diapositivas y laboratorios en Jupyter.
+Comprender el proceso de normalizacion en las bases de datos relacionales.
 
 ***
 
@@ -15,11 +15,9 @@ Profundizar en los conceptos de la semana mediante el material teórico, diaposi
 
 Material de apoyo y referencias de la semana.
 
-* 🖼️ **Slides de Clase (PDF):** [PPT03-BBDD.pdf](../material/Sesion03/slides/PPT03-BBDD.pdf)
+* 🖼️ **Clase:** [Clase03-BBDD](../material/Sesion03/teoria/teoria3-bbdd.md)
 
 * 📝 **Quick Reference:** [CheatSheet](../material/Sesion03/cheatsheet/cheatsheet.md)
-
-* 📎 **Anexo Técnico:** [Material Complementario](../material/Sesion03/anexo/anexo.md)
 
 ***
 
@@ -27,8 +25,8 @@ Material de apoyo y referencias de la semana.
 
 *Nivel: Intermedio* ⭐⭐⭐
 
-* 📓 **Notebook Fundamentos:** [Notebook 1](https://github.com/cesarsanco-ai/database-foundations-for-ai/blob/main/docs/material/Sesion03/practica/SESION3-NTB1-BBDD.ipynb)
-* 📓 **Notebook Aplicaciones:** [Notebook 2](https://github.com/cesarsanco-ai/database-foundations-for-ai/blob/main/docs/material/Sesion03/practica/SESION3-NTB2-BBDD.ipynb)
+* 📓 **Lab 1:** [Laboratorio 1](../material/Sesion03/practica/SESION3-LAB1-BBDD.md) 
+* 📓 **Lab 2:** [Laboratorio 2](../material/Sesion03/practica/SESION3-LAB2-BBDD.xlsx)
 
 ***
 

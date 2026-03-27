@@ -2,12 +2,12 @@
 layout: default
 ---
 
-# Sesion 5: SQL - Parte 1
+# Sesion 5: SQL - Parte 2
 [⬅️ Volver al Índice](../index.md)
 
 ## 🎯 Objetivo de la Sesión
 
-Profundizar en los conceptos de la semana mediante el material teórico, diapositivas y laboratorios en Jupyter.
+Continuar con el aprendizaje de SQL y funciones avanzadas.
 
 ***
 
@@ -15,11 +15,9 @@ Profundizar en los conceptos de la semana mediante el material teórico, diaposi
 
 Material de apoyo y referencias de la semana.
 
-* 🖼️ **Slides de Clase (PDF):** [PPT05-BBDD.pdf](../material/Sesion05/slides/PPT05-BBDD.pdf)
-
+* 🖼️ **Clase:** [Clase05-BBDD](../material/Sesion05/teoria/teoria5-bbdd.md)
+ 
 * 📝 **Quick Reference:** [CheatSheet](../material/Sesion05/cheatsheet/cheatsheet.md)
-
-* 📎 **Anexo Técnico:** [Material Complementario](../material/Sesion05/anexo/anexo.md)
 
 ***
 
@@ -27,8 +25,8 @@ Material de apoyo y referencias de la semana.
 
 *Nivel: Intermedio* ⭐⭐⭐
 
-* 📓 **Notebook Fundamentos:** [Notebook 1](https://github.com/cesarsanco-ai/database-foundations-for-ai/blob/main/docs/material/Sesion05/practica/SESION5-NTB1-BBDD.ipynb)
-* 📓 **Notebook Aplicaciones:** [Notebook 2](https://github.com/cesarsanco-ai/database-foundations-for-ai/blob/main/docs/material/Sesion05/practica/SESION5-NTB2-BBDD.ipynb)
+* 📓 **Lab 1:** [Laboratorio 1](../material/Sesion05/practica/SESION5-LAB1-BBDD.md) 
+* 📓 **Lab 2:** [Laboratorio 2](../material/Sesion05/practica/SESION5-LAB2-BBDD.md)
 
 ***
 

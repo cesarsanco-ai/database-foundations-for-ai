@@ -7,7 +7,7 @@ layout: default
 
 ## 🎯 Objetivo de la Sesión
 
-Profundizar en los conceptos de la semana mediante el material teórico, diapositivas y laboratorios en Jupyter.
+Comprender la programación en el servidor y las diferentes formas de hacerlo.
 
 ***
 
@@ -15,11 +15,9 @@ Profundizar en los conceptos de la semana mediante el material teórico, diaposi
 
 Material de apoyo y referencias de la semana.
 
-* 🖼️ **Slides de Clase (PDF):** [PPT07-BBDD.pdf](../material/Sesion07/slides/PPT07-BBDD.pdf)
-
+* 🖼️ **Clase:** [Clase07-BBDD](../material/Sesion07/teoria/teoria7-bbdd.md)
+ 
 * 📝 **Quick Reference:** [CheatSheet](../material/Sesion07/cheatsheet/cheatsheet.md)
-
-* 📎 **Anexo Técnico:** [Material Complementario](../material/Sesion07/anexo/anexo.md)
 
 ***
 
@@ -27,8 +25,8 @@ Material de apoyo y referencias de la semana.
 
 *Nivel: Intermedio* ⭐⭐⭐
 
-* 📓 **Notebook Fundamentos:** [Notebook 1](https://github.com/cesarsanco-ai/database-foundations-for-ai/blob/main/docs/material/Sesion07/practica/SESION7-NTB1-BBDD.ipynb)
-* 📓 **Notebook Aplicaciones:** [Notebook 2](https://github.com/cesarsanco-ai/database-foundations-for-ai/blob/main/docs/material/Sesion07/practica/SESION7-NTB2-BBDD.ipynb)
+* 📓 **Lab 1:** [Laboratorio 1](../material/Sesion07/practica/SESION7-LAB1-BBDD.md) 
+* 📓 **Lab 2:** [Laboratorio 2](../material/Sesion07/practica/SESION7-LAB2-BBDD.md)
 
 ***
 

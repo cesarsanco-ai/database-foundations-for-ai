@@ -2,12 +2,12 @@
 layout: default
 ---
 
-# Sesion 13: Despliegue y Alta Disponibilidad
+# Sesion 13: Arquitecturas hibridas
 [⬅️ Volver al Índice](../index.md)
 
 ## 🎯 Objetivo de la Sesión
 
-Profundizar en los conceptos de la semana mediante el material teórico, diapositivas y laboratorios en Jupyter.
+Conocer las arquitecturas hibridas de bases de datos en diferentes escenarios.
 
 ***
 
@@ -15,11 +15,9 @@ Profundizar en los conceptos de la semana mediante el material teórico, diaposi
 
 Material de apoyo y referencias de la semana.
 
-* 🖼️ **Slides de Clase (PDF):** [PPT13-BBDD.pdf](../material/Sesion13/slides/PPT13-BBDD.pdf)
-
+* 🖼️ **Clase:** [Clase01-BBDD](../material/Sesion13/teoria/teoria13-bbdd.md)
+ 
 * 📝 **Quick Reference:** [CheatSheet](../material/Sesion13/cheatsheet/cheatsheet.md)
-
-* 📎 **Anexo Técnico:** [Material Complementario](../material/Sesion13/anexo/anexo.md)
 
 ***
 
@@ -27,8 +25,8 @@ Material de apoyo y referencias de la semana.
 
 *Nivel: Intermedio* ⭐⭐⭐
 
-* 📓 **Notebook Fundamentos:** [Notebook 1](https://github.com/cesarsanco-ai/database-foundations-for-ai/blob/main/docs/material/Sesion13/practica/SESION13-NTB1-BBDD.ipynb)
-* 📓 **Notebook Aplicaciones:** [Notebook 2](https://github.com/cesarsanco-ai/database-foundations-for-ai/blob/main/docs/material/Sesion13/practica/SESION13-NTB2-BBDD.ipynb)
+* 📓 **Lab 1:** [Laboratorio 1](../material/Sesion13/practica/SESION13-LAB1-BBDD.md) 
+* 📓 **Lab 2:** [Laboratorio 2](../material/Sesion13/practica/SESION13-LAB2-BBDD.md)
 
 ***
 
