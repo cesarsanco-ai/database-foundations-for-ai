@@ -1,9 +1,8 @@
+---
+layout: default
+---
 
 # Optimización de Consultas en SQL
-
-## Enfoque en PostgreSQL: Índices, Métricas y Rendimiento
-
----
 
 ## 🎯 Objetivo
 

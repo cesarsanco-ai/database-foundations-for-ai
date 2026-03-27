@@ -1,12 +1,8 @@
-
-## Sesión 4
-# MANIPULACIÓN DE DATOS Y LÓGICA DE CONJUNTOS
-## DML, JOINs, Subconsultas, CTEs y Optimización en SQL
-
-**Autor:** Carlos César Sánchez Coronel  
-**Fecha:** 2026
-
 ---
+layout: default
+---
+
+# MANIPULACIÓN DE DATOS Y CONSULTAS BASICAS EN SQL
 
 # Introducción a la Manipulación de Datos
 

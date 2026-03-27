@@ -3,14 +3,6 @@ layout: default
 ---
 # EL UNIVERSO DEL DATO
 
-Por CARLOS CÉSAR SÁNCHEZ CORONEL
-
-2026
-
----
-
-# Capítulo 1
-
 # Fundamentos y Soporte Físico
 
 ## 1.1. Semana 1: El Universo del Dato y la Infraestructura Física

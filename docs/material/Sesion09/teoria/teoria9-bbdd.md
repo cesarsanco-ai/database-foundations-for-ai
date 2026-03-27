@@ -1,14 +1,11 @@
-
-## Sesión 10
-# BIG DATA Y FORMATOS DE ALTO RENDIMIENTO
-## Principios, almacenamiento, procesamiento y casos reales
-
-**Autor:** Carlos César Sánchez Coronel  
-**Fecha:** 2026
-
+---
+layout: default
 ---
 
-# Introducción al Big Data
+# BIG DATA Y FORMATOS DE ALTO RENDIMIENTO
+
+
+## Introducción al Big Data
 
 El término **Big Data** se refiere a conjuntos de datos cuyo tamaño, velocidad o variedad exceden la capacidad de las herramientas tradicionales para capturarlos, gestionarlos y procesarlos en un tiempo razonable. No es solo una cuestión de volumen, sino de cómo extraer valor de ellos. En esta sesión exploraremos los conceptos fundamentales, las tecnologías de almacenamiento optimizado, las plataformas de procesamiento distribuido y las arquitecturas modernas como el Lakehouse, con ejemplos concretos de su aplicación en el mundo real, incluyendo el contexto peruano y latinoamericano.
 

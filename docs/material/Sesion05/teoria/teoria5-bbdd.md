@@ -1,12 +1,8 @@
-
-## Sesión 5
-# ANÁLISIS AVANZADO Y TRANSFORMACIÓN DE DATOS
-## Agregaciones, Ventanas, Limpieza y Técnicas ETL con SQL
-
-**Autor:** Carlos César Sánchez Coronel  
-**Fecha:** 2026
-
 ---
+layout: default
+---
+
+# ANÁLISIS AVANZADO Y TRANSFORMACIÓN DE DATOS
 
 # Introducción
 

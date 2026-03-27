@@ -1,16 +1,10 @@
-
-## Sesión 11
+---
+layout: default
+---
 
 # NoSQL
 
-## Tipos, Casos de Uso, Integración con IA y Despliegue en la Nube
-
-**Autor:** Carlos César Sánchez Coronel
-**Fecha:** 2026
-
----
-
-# Introducción a NoSQL
+## Introducción a NoSQL
 
 Las bases de datos relacionales (SQL) han dominado el mundo de los datos durante décadas. Sin embargo, con la llegada de aplicaciones web a gran escala, big data y la necesidad de flexibilidad, surgieron las bases de datos **NoSQL (Not Only SQL)**. Estas bases de datos están diseñadas para:
 

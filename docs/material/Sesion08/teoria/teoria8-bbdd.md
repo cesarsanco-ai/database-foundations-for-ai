@@ -1,14 +1,10 @@
-
-## Sesión 8
-# PIPELINES
-
-
-**Autor:** Carlos César Sánchez Coronel  
-**Fecha:** 2026
-
+---
+layout: default
 ---
 
-# Introducción
+# PIPELINES DE DATOS
+
+## Introducción
 
 En las sesiones anteriores hemos cubierto desde la captura de datos hasta los paradigmas de procesamiento. Ahora nos adentramos en el corazón de la arquitectura de datos moderna: el \*\*data warehouse\*\* y los \*\*pipelines\*\* que lo alimentan. Esta sesión integra conceptos de almacenamiento, procesamiento batch y streaming, y las diferentes capas que componen un ecosistema analítico. Comprender estas ideas es esencial para diseñar soluciones escalables y eficientes que soporten desde reportes empresariales hasta modelos de inteligencia artificial.
 

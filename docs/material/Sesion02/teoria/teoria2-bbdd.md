@@ -2,14 +2,8 @@
 layout: default
 ---
 ## Sesión 2
+
 # MODELAMIENTO DE DATOS
-## De la realidad del negocio al esquema físico
-
-**Autor:** Carlos César Sánchez Coronel  
-**Fecha:** 2026
-
-
----
 
 ## Introducción al Modelamiento de Datos
 

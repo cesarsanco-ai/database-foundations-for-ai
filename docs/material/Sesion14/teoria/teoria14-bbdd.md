@@ -1,3 +1,6 @@
+---
+layout: default
+---
 # Despliegue y Alta Disponibilidad 
 
 

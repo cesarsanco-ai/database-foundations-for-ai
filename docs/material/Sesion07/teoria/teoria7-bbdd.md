@@ -1,24 +1,20 @@
-
-## Sesión 7
-# PROGRAMACIÓN EN EL SERVIDOR Y OBJETOS DE BASE DE DATOS
-## Vistas, Funciones, Procedimientos, Triggers y su integración con sistemas reales
-
-**Autor:** Carlos César Sánchez Coronel  
-**Fecha:** 2026
-
+---
+layout: default
 ---
 
-# Introducción
+# PROGRAMACIÓN EN EL SERVIDOR Y OBJETOS DE BASE DE DATOS
+
+## Introducción
 
 En las sesiones anteriores hemos aprendido a modelar bases de datos, manipular datos con DML, y realizar análisis avanzados con agregaciones y ventanas. Ahora es el momento de llevar la lógica al servidor: los SGBD modernos permiten programar directamente dentro de la base de datos mediante vistas, funciones, procedimientos almacenados y disparadores (triggers). Esto no solo reduce la latencia de red al ejecutar código cerca de los datos, sino que también centraliza las reglas de negocio, mejora la seguridad y facilita el mantenimiento.
 
 En esta sesión exploraremos en profundidad cada uno de estos objetos, con ejemplos prácticos inspirados en casos reales: generación de tickets en gasolineras, procesos de auditoría en el sector bancario, integración con sistemas externos (como aplicaciones móviles o consolas), y comparativas entre los principales motores (PostgreSQL, MySQL, SQL Server, Oracle). También abordaremos la optimización de código, el manejo de permisos y cómo estos objetos se ejecutan en entornos productivos.
 
-# Vistas (Views)
+## Vistas (Views)
 
 Una vista es una tabla virtual basada en el resultado de una consulta. No almacena datos físicamente (excepto las vistas materializadas), sino que presenta los datos de una o más tablas de forma personalizada.
 
-## Vistas Simples
+### Vistas Simples
 
 Las vistas simples se crean con una consulta SELECT y se pueden usar como si fueran tablas.
 

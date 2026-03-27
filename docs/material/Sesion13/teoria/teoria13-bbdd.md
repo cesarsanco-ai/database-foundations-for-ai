@@ -1,7 +1,7 @@
-
-# Arquitecturas Híbridas de Datos
-
 ---
+layout: default
+---
+# Arquitecturas Híbridas de Datos
 
 ## 1. Introducción: La Evolución del Paradigma de Datos
 

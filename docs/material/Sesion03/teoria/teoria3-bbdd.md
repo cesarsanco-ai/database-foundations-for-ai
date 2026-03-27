@@ -1,8 +1,7 @@
-# Sesión 3 – Normalización e Integridad en SQL
-
-**Autor:** Carlos César Sánchez Coronel  
-
 ---
+layout: default
+---
+# Normalización
 
 ## 1. Introducción: ¿Por qué normalizar?
 

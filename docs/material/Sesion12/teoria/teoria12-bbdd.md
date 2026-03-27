@@ -1,14 +1,12 @@
-
-## Sesión 12
-# BASES DE DATOS VECTORIALES Y RAG
-## Fundamentos, tecnologías y aplicaciones en IA
-
-**Autor:** Carlos César Sánchez Coronel  
-**Fecha:** 2026
-
+---
+layout: default
 ---
 
-# Introducción a las Bases de Datos Vectoriales
+# BASES DE DATOS VECTORIALES Y RAG
+
+
+
+## Introducción a las Bases de Datos Vectoriales
 
 Las bases de datos tradicionales (SQL y NoSQL) están optimizadas para búsquedas por coincidencia exacta de valores o rangos. Sin embargo, en el contexto de la inteligencia artificial, necesitamos buscar por **similitud semántica**: encontrar elementos que sean conceptualmente similares, aunque no compartan palabras clave exactas. Por ejemplo, buscar \"mascota felina\" y querer obtener resultados sobre \"gatos\". Aquí es donde entran las **bases de datos vectoriales**.
 

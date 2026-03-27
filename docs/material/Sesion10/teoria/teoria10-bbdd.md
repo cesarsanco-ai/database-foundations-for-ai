@@ -1,10 +1,8 @@
-
-# **Teoría: Cloud Databases (Bases de Datos en la Nube)**
-
-**Autor:** Carlos César Sánchez Coronel
-**Fecha:** 2026
-
 ---
+layout: default
+---
+# Cloud Databases 
+
 
 ## 1. Introducción
 
