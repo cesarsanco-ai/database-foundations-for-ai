@@ -23,8 +23,8 @@ Cada sesión incluye material teórico, notebooks de práctica (SQL/Python), eje
 | 10 | [Cloud Database](sesiones/sesion-15.md) |
 | 11 | [NoSQL](sesiones/sesion-11.md) |
 | 12 | [Base de Dato Vectorial](sesiones/sesion-12.md) |
-| 13 | [Despliegue y Alta Disponibilidad](sesiones/sesion-13.md) |
-| 14 | [Arquitectura Híbrida](sesiones/sesion-14.md) |
+| 13 | [Arquitecturas Híbridas](sesiones/sesion-14.md) |
+| 14 | [Despliegue y Alta Disponibilidad](sesiones/sesion-13.md) |
 
 > **Nota:** Se recomienda dominio básico de Python y familiaridad con entornos de datos para el desarrollo de los laboratorios.
 
