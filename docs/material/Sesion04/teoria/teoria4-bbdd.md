@@ -2,11 +2,9 @@
 layout: default
 ---
 
-# MANIPULACIÓN DE DATOS Y CONSULTAS BASICAS EN SQL
+# SQL - PARTE 1
 
-# Introducción a la Manipulación de Datos
-
-En las sesiones anteriores hemos aprendido a modelar bases de datos, normalizar y definir estructuras. Ahora es el momento de interactuar con los datos: insertarlos, consultarlos, modificarlos y eliminarlos. El lenguaje SQL (Structured Query Language) es el estándar para estas tareas. En esta sesión nos centraremos en el sublenguaje DML (Data Manipulation Language) y en las operaciones de conjuntos que nos permiten combinar información de múltiples tablas: los JOINs. También exploraremos cómo el motor de base de datos interpreta y ejecuta nuestras consultas, qué sucede a nivel hardware, y cómo escribir SQL eficiente. Dominar estos conceptos es fundamental para cualquier profesional que trabaje con datos, ya que constituyen la base de cualquier análisis, informe o aplicación, y son temas recurrentes en entrevistas técnicas nacionales e internacionales.
+En las sesiones anteriores hemos aprendido a modelar bases de datos, normalizar y definir estructuras. Ahora es el momento de interactuar con los datos: insertarlos, consultarlos, modificarlos y eliminarlos. El lenguaje SQL (Structured Query Language) es el estándar para estas tareas. En esta sesión nos centraremos en el sublenguaje DML (Data Manipulation Language) y en las operaciones de conjuntos que nos permiten combinar información de múltiples tablas: los JOINs. También exploraremos cómo el motor de base de datos interpreta y ejecuta nuestras consultas, qué sucede a nivel hardware, y cómo escribir SQL eficiente. 
 
 ## El Lenguaje SQL y sus Sublenguajes
 
@@ -23,8 +21,6 @@ SQL se divide en varios sublenguajes según su función:
 En esta sesión profundizaremos en DML, con especial énfasis en SELECT y JOINs.
 
 # Lenguaje SQL: Sublenguajes y Operaciones Fundamentales
-
-El lenguaje SQL se divide en varios sublenguajes según la naturaleza de las operaciones. Conocer cada uno y sus comandos es esencial para cualquier profesional de bases de datos, ya que permite definir estructuras, manipular datos, controlar permisos y gestionar transacciones. En este capítulo exploraremos los cuatro sublenguajes principales: DDL, DML, DCL y TCL, con ejemplos prácticos y casos de uso que suelen aparecer en entrevistas técnicas.
 
 ## DDL (Data Definition Language)
 
@@ -44,12 +40,6 @@ CREATE TABLE clientes (
 );
 ```
 
-También se pueden crear índices, vistas, etc.:
-
-```sql
-CREATE INDEX idx_ciudad ON clientes(ciudad);
-CREATE VIEW clientes_madrid AS SELECT * FROM clientes WHERE ciudad = 'Madrid';
-```
 
 ### ALTER
 
@@ -126,11 +116,7 @@ ORDER BY columna
 LIMIT n;
 ```
 
-Ejemplo:
 
-```sql
-SELECT nombre, email FROM clientes WHERE ciudad = 'Barcelona' ORDER BY nombre;
-```
 
 ### INSERT
 
@@ -170,7 +156,7 @@ Sin WHERE, elimina todas las filas (pero la tabla sigue existiendo). Para vaciad
 
 ### MERGE (UPSERT)
 
-Algunos motores (SQL Server, Oracle, PostgreSQL con ON CONFLICT) permiten insertar o actualizar según exista o no la fila. Es muy útil en sincronización de datos.
+Combina insercion y actualizacion en una sola operacion. Algunos motores (SQL Server, Oracle, PostgreSQL con ON CONFLICT) permiten insertar o actualizar según exista o no la fila. Es muy útil en sincronización de datos.
 
 ```sql
 -- PostgreSQL
@@ -204,10 +190,6 @@ Revoca permisos previamente otorgados.
 ```sql
 REVOKE DELETE ON clientes FROM analista;
 ```
-
-### Casos de Uso en Entrevistas
-
-En entrevistas suelen preguntar cómo se gestionan los permisos en entornos multi-rol, o cómo asegurar que un usuario solo pueda leer datos. También es común preguntar sobre el principio de mínimo privilegio.
 
 ## TCL (Transaction Control Language)
 
@@ -255,224 +237,503 @@ ROLLBACK TO SAVEPOINT despues_de_restar;
 COMMIT;
 ```
 
-### Propiedades ACID
 
-Las transacciones garantizan las propiedades ACID (Atomicidad, Consistencia, Aislamiento, Durabilidad), tema recurrente en entrevistas. Es importante saber explicarlas con ejemplos.
 
-## Comparativa entre Sublenguajes
 
-A modo de resumen, la siguiente tabla muestra los comandos principales de cada sublenguaje:
 
-::: center
-  **Sublenguaje**   **Comandos principales**                **Uso**
-  ----------------- --------------------------------------- -------------------------
-  DDL               CREATE, ALTER, DROP, TRUNCATE           Definir estructura
-  DML               SELECT, INSERT, UPDATE, DELETE, MERGE   Manipular datos
-  DCL               GRANT, REVOKE                           Controlar permisos
-  TCL               BEGIN, COMMIT, ROLLBACK, SAVEPOINT      Gestionar transacciones
-:::
+---
 
-## Ejercicios Resueltos Integradores
+## El Lenguaje SQL y sus Sublenguajes
 
-A continuación, ejercicios que combinan varios sublenguajes.
+SQL se divide en varios sublenguajes según su función. Conocer cada uno es esencial para entender el alcance del lenguaje:
 
-### Ejercicio 1: Creación y manipulación
+| Sublenguaje | Comandos principales | Propósito |
+|-------------|---------------------|-----------|
+| **DDL** (Data Definition Language) | CREATE, ALTER, DROP, TRUNCATE | Definir y modificar la estructura de objetos |
+| **DML** (Data Manipulation Language) | SELECT, INSERT, UPDATE, DELETE | Manipular los datos almacenados |
+| **DCL** (Data Control Language) | GRANT, REVOKE | Controlar permisos y accesos |
+| **TCL** (Transaction Control Language) | BEGIN, COMMIT, ROLLBACK | Gestionar transacciones |
 
-**Enunciado:** Crear una tabla `productos` con columnas id, nombre, precio, stock. Insertar tres productos. Actualizar el precio de uno. Eliminar un producto. Finalmente, otorgar permisos de SELECT a un usuario.
+En esta sesión nos enfocaremos principalmente en **DML**, con especial énfasis en la sentencia **SELECT** y las operaciones de **JOIN**.
 
-**Solución:**
+---
+
+## Introducción a PostgreSQL
+
+### 1.2 Tipos de Datos en PostgreSQL
+
+PostgreSQL ofrece una amplia variedad de tipos de datos. Conocerlos es fundamental para diseñar esquemas adecuados.
+
+#### Tipos Numéricos
+
+| Tipo | Descripción | Rango / Precisión | Ejemplo |
+|------|-------------|-------------------|---------|
+| `SMALLINT` | Entero pequeño | -32,768 a 32,767 | `edad SMALLINT` |
+| `INTEGER` | Entero estándar | -2.1e9 a 2.1e9 | `id INTEGER` |
+| `BIGINT` | Entero grande | -9.2e18 a 9.2e18 | `transacciones BIGINT` |
+| `DECIMAL(p,s)` | Número decimal exacto | Precisión definida | `precio DECIMAL(10,2)` |
+| `NUMERIC(p,s)` | Sinónimo de DECIMAL | Precisión definida | `saldo NUMERIC(12,2)` |
+| `REAL` | Punto flotante (4 bytes) | 6 decimales | `temperatura REAL` |
+| `DOUBLE PRECISION` | Punto flotante (8 bytes) | 15 decimales | `coordenada DOUBLE` |
+| `SERIAL` | Auto-incremental | Entero | `id SERIAL PRIMARY KEY` |
+| `BIGSERIAL` | Auto-incremental grande | Bigint | `id BIGSERIAL` |
 
 ```sql
--- DDL
+-- Ejemplos de tipos numéricos
 CREATE TABLE productos (
     id SERIAL PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL,
-    precio DECIMAL(10,2) CHECK (precio > 0),
-    stock INT DEFAULT 0
+    nombre VARCHAR(100),
+    precio DECIMAL(10,2) NOT NULL,  -- hasta 99,999,999.99
+    stock INTEGER DEFAULT 0,
+    peso REAL,
+    sku BIGINT UNIQUE
 );
-
--- DML
-INSERT INTO productos (nombre, precio, stock) VALUES
-('Laptop', 1200.00, 10),
-('Mouse', 25.50, 50),
-('Teclado', 45.00, 30);
-
-UPDATE productos SET precio = 1150.00 WHERE nombre = 'Laptop';
-
-DELETE FROM productos WHERE nombre = 'Mouse';
-
--- DCL
-GRANT SELECT ON productos TO analista;
 ```
 
-### Ejercicio 2: Transacción con error
+#### Tipos de Texto
 
-**Enunciado:** Realizar una transferencia bancaria entre dos cuentas, asegurando que si una operación falla, ninguna se aplique. Usar transacciones.
-
-**Solución:**
+| Tipo | Descripción | Longitud | Ejemplo |
+|------|-------------|----------|---------|
+| `CHAR(n)` | Longitud fija, rellena con espacios | fija | `codigo CHAR(10)` |
+| `VARCHAR(n)` | Longitud variable con límite | hasta n | `nombre VARCHAR(100)` |
+| `TEXT` | Longitud variable ilimitada | ilimitada | `descripcion TEXT` |
 
 ```sql
-BEGIN;
-UPDATE cuentas SET saldo = saldo - 500 WHERE id = 1;
-UPDATE cuentas SET saldo = saldo + 500 WHERE id = 2;
--- Si todo va bien
-COMMIT;
--- Si ocurre un error antes del COMMIT, se puede hacer ROLLBACK
+-- Ejemplos de tipos texto
+CREATE TABLE articulos (
+    titulo VARCHAR(200) NOT NULL,
+    contenido TEXT,
+    codigo_barras CHAR(13)  -- exactamente 13 caracteres
+);
 ```
 
-### Ejercicio 3: Permisos y seguridad
+#### Tipos de Fecha y Hora
 
-**Enunciado:** Crear un usuario 'lector' que solo pueda hacer SELECT en la tabla `clientes`, y un usuario 'editor' que pueda INSERT, UPDATE y DELETE. Implementar los comandos DCL.
-
-**Solución:**
+| Tipo | Descripción | Ejemplo |
+|------|-------------|---------|
+| `DATE` | Solo fecha (año-mes-día) | `'2024-01-15'` |
+| `TIME` | Solo hora | `'14:30:00'` |
+| `TIMESTAMP` | Fecha y hora sin zona horaria | `'2024-01-15 14:30:00'` |
+| `TIMESTAMPTZ` | Fecha y hora con zona horaria | `'2024-01-15 14:30:00-03'` |
+| `INTERVAL` | Intervalo de tiempo | `INTERVAL '1 day'` |
 
 ```sql
--- Crear usuarios (en PostgreSQL)
-CREATE USER lector WITH PASSWORD 'pass1';
-CREATE USER editor WITH PASSWORD 'pass2';
-
--- Otorgar permisos
-GRANT SELECT ON clientes TO lector;
-GRANT SELECT, INSERT, UPDATE, DELETE ON clientes TO editor;
-
--- Revocar permisos si es necesario
-REVOKE DELETE ON clientes FROM editor;
+-- Ejemplos de tipos fecha/hora
+CREATE TABLE eventos (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(100),
+    fecha_inicio DATE,
+    hora_evento TIME,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    duracion INTERVAL
+);
 ```
 
-## Conclusión
-
-Dominar los cuatro sublenguajes de SQL es fundamental para cualquier profesional de datos. No solo se trata de escribir consultas, sino de entender cómo definir estructuras robustas (DDL), manipular datos eficientemente (DML), controlar accesos (DCL) y garantizar la integridad transaccional (TCL). Estos conceptos son evaluados constantemente en entrevistas técnicas y son la base para construir sistemas de bases de datos seguros, escalables y confiables.
-
-# El Proceso Interno de una Consulta SQL
-
-Para escribir SQL eficiente, es crucial entender cómo el motor procesa una consulta. No basta con saber la sintaxis; hay que comprender el flujo lógico y físico.
-
-## Orden Lógico de Ejecución de una Consulta
-
-Aunque escribimos SELECT \... FROM \... WHERE \... GROUP BY \... HAVING \... ORDER BY \... LIMIT, el motor ejecuta en un orden diferente. El orden lógico (conceptual) es:
-
-1.  **FROM y JOINs**: Se construye el conjunto de datos base (producto cartesiano de las tablas involucradas, aplicando las condiciones de JOIN).
-
-2.  **WHERE**: Se filtran las filas según las condiciones.
-
-3.  **GROUP BY**: Se agrupan las filas.
-
-4.  **HAVING**: Se filtran los grupos.
-
-5.  **SELECT**: Se evalúan las expresiones de las columnas, incluyendo funciones de agregación.
-
-6.  **ORDER BY**: Se ordena el resultado.
-
-7.  **LIMIT / OFFSET**: Se recorta el resultado.
-
-Este orden es importante porque, por ejemplo, no se puede usar un alias de SELECT en WHERE (porque WHERE se ejecuta antes). Tampoco se pueden usar funciones de ventana en WHERE por la misma razón.
-
-### Ejemplo
+#### Tipos Booleanos
 
 ```sql
-SELECT nombre, salario, salario * 12 AS salario_anual
-FROM empleados
-WHERE salario > 3000
-ORDER BY salario_anual;
+-- Tipo BOOLEAN: TRUE, FALSE, NULL
+CREATE TABLE configuraciones (
+    usuario_id INTEGER,
+    activo BOOLEAN DEFAULT TRUE,
+    notificaciones BOOLEAN NOT NULL DEFAULT FALSE
+);
 ```
 
-Aquí, el alias `salario_anual` se puede usar en ORDER BY porque se calcula antes de ordenar, pero no se podría usar en WHERE.
+#### Tipos Especiales en PostgreSQL
 
-## El Camino Físico: De la Consulta al Hardware
-
-Cuando ejecutamos una consulta, ocurren múltiples etapas:
-
-### Parsing (Análisis Sintáctico)
-
-El motor verifica que la consulta sea sintácticamente correcta y que las tablas y columnas existan. Genera un árbol de consulta.
-
-### Optimización
-
-El optimizador (basado en costos, CBO) genera varios planes de ejecución posibles y estima su costo (en términos de E/S, CPU, memoria). Considera:
-
-- Estadísticas de las tablas (número de filas, distribución de valores, histogramas).
-
-- Existencia de índices.
-
-- Métodos de acceso (seq scan, index scan, bitmap scan).
-
-- Algoritmos de JOIN (nested loop, hash join, merge join).
-
-Elige el plan de menor costo estimado.
-
-### Ejecución
-
-El plan se ejecuta, interactuando con el buffer cache y el almacenamiento. Si los datos están en caché (buffer pool), se evita E/S a disco. De lo contrario, se leen páginas del disco.
-
-### Retorno de Resultados
-
-Las filas resultantes se envían al cliente, posiblemente en lotes.
-
-### Hardware Involucrado
-
-- **CPU**: Procesa las condiciones, cálculos, agregaciones.
-
-- **RAM (Buffer Pool)**: Almacena páginas de datos e índices recientemente usados.
-
-- **Disco (SSD/HDD)**: Si hay cache miss, se lee de disco.
-
-- **Red**: Transmite los resultados al cliente.
-
-En entrevistas, preguntan cómo optimizar: reducir E/S, usar índices, evitar ordenamientos innecesarios, etc.
-
-## EXPLAIN: La Herramienta Clave
-
-Para entender el plan de ejecución, usamos `EXPLAIN` (y `EXPLAIN ANALYZE` para ejecutar realmente y ver tiempos).
+| Tipo | Descripción | Ejemplo |
+|------|-------------|---------|
+| `JSON` | Almacena JSON válido | `'{"clave": "valor"}'` |
+| `JSONB` | JSON binario (más eficiente) | `'{"preferencias": {"tema": "oscuro"}}'` |
+| `UUID` | Identificador único universal | `gen_random_uuid()` |
+| `ARRAY` | Arreglo de elementos | `textos TEXT[]` |
+| `ENUM` | Tipo enumerado | `CREATE TYPE estado AS ENUM ('activo', 'inactivo')` |
 
 ```sql
-EXPLAIN (ANALYZE, BUFFERS) SELECT * FROM clientes WHERE ciudad = 'Madrid';
+-- Ejemplos de tipos especiales
+CREATE TABLE usuarios_avanzados (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    metadata JSONB,
+    etiquetas TEXT[],
+    preferencias JSONB DEFAULT '{"tema": "claro"}'::JSONB
+);
 ```
 
-Muestra el plan, costos estimados, filas reales, tiempo, y accesos a buffers (caché vs disco). Es esencial en entrevistas para demostrar capacidad de diagnóstico.
+### 1.3 Restricciones de Integridad (Constraints)
 
-# Joins: Combinando Tablas
-
-Las bases de datos relacionales se basan en la normalización, que distribuye la información en múltiples tablas relacionadas mediante claves. Para recuperar datos que están dispersos, necesitamos combinar tablas mediante JOINs. Un JOIN combina filas de dos o más tablas basándose en una condición relacionada.
-
-## Producto Cartesiano y JOIN
-
-Si escribimos:
+Las restricciones garantizan la calidad e integridad de los datos:
 
 ```sql
-SELECT * FROM A, B;
+CREATE TABLE pedidos (
+    id SERIAL PRIMARY KEY,                    -- PRIMARY KEY
+    usuario_id INTEGER NOT NULL,              -- NOT NULL
+    email VARCHAR(100) UNIQUE,                -- UNIQUE
+    fecha DATE DEFAULT CURRENT_DATE,
+    total DECIMAL(10,2) CHECK (total >= 0),   -- CHECK
+    estado VARCHAR(20) DEFAULT 'pendiente',
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id)  -- FOREIGN KEY
+);
 ```
 
-Obtenemos el producto cartesiano (todas las combinaciones de filas de A con B). Esto rara vez es útil. Los JOINs añaden una condición para filtrar las combinaciones relevantes.
+---
 
-## Tipos de JOIN
+## Módulo 2: Consultas Fundamentales (SELECT Básico)
 
-Existen varios tipos, que se ilustran con diagramas de Venn (aunque hay que tener cuidado porque los conjuntos no son exactamente así, son ilustrativos).
+### 2.1 Sintaxis Básica SELECT
 
-### INNER JOIN
-
-Devuelve solo las filas que tienen correspondencia en ambas tablas.
-
-::: center
-:::
-
-Sintaxis:
+La sentencia SELECT recupera datos de una o más tablas.
 
 ```sql
+-- Seleccionar todas las columnas
+SELECT * FROM usuarios;
+
+-- Seleccionar columnas específicas
+SELECT nombre, email FROM usuarios;
+
+-- Seleccionar con condiciones
+SELECT nombre, edad FROM usuarios WHERE edad >= 18;
+```
+
+### 2.2 Alias (AS) para Columnas y Tablas
+
+Los alias permiten renombrar columnas o tablas en los resultados:
+
+```sql
+-- Alias para columna
+SELECT nombre AS "Nombre Completo", email AS Correo FROM usuarios;
+
+-- Alias para tabla (útil en JOINs)
+SELECT u.nombre, u.email 
+FROM usuarios AS u
+WHERE u.activo = true;
+
+-- El AS es opcional
+SELECT u.nombre, u.email 
+FROM usuarios u;
+```
+
+### 2.3 Operadores Aritméticos
+
+```sql
+-- Operadores básicos: +, -, *, /, % (módulo)
+SELECT 
+    nombre,
+    precio,
+    precio * 1.21 AS precio_con_iva,
+    precio * 0.10 AS descuento,
+    stock - vendidos AS stock_disponible
+FROM productos;
+```
+
+### 2.4 Concatenación de Strings (||)
+
+```sql
+-- Concatenar con ||
+SELECT nombre || ' ' || apellido AS nombre_completo 
+FROM usuarios;
+
+-- Concatenar con texto fijo
+SELECT 'Usuario: ' || nombre || ' (ID: ' || id || ')' AS descripcion 
+FROM usuarios;
+```
+
+### 2.5 DISTINCT para Eliminar Duplicados
+
+```sql
+-- Obtener valores únicos
+SELECT DISTINCT ciudad FROM usuarios;
+
+-- Combinaciones únicas
+SELECT DISTINCT ciudad, pais FROM usuarios;
+
+-- Contar valores distintos
+SELECT COUNT(DISTINCT ciudad) FROM usuarios;
+```
+
+### 2.6 LIMIT y OFFSET para Paginación
+
+```sql
+-- Limitar resultados
+SELECT * FROM usuarios LIMIT 10;
+
+-- Paginación: saltar 20 registros y mostrar 10
+SELECT * FROM usuarios LIMIT 10 OFFSET 20;
+
+-- Combinar con ORDER BY para paginación consistente
+SELECT * FROM usuarios 
+ORDER BY id 
+LIMIT 10 OFFSET 20;
+```
+
+---
+
+## Módulo 3: Filtrado de Datos (WHERE)
+
+### 3.1 Operadores de Comparación
+
+| Operador | Significado |
+|----------|-------------|
+| `=` | Igual |
+| `<>` o `!=` | Diferente |
+| `>` | Mayor que |
+| `<` | Menor que |
+| `>=` | Mayor o igual |
+| `<=` | Menor o igual |
+
+```sql
+-- Ejemplos
+SELECT * FROM usuarios WHERE edad = 25;
+SELECT * FROM productos WHERE precio <> 0;
+SELECT * FROM pedidos WHERE total > 1000;
+SELECT * FROM empleados WHERE salario >= 5000;
+```
+
+### 3.2 BETWEEN para Rangos
+
+```sql
+-- Edad entre 18 y 30 años (inclusive)
+SELECT * FROM usuarios 
+WHERE edad BETWEEN 18 AND 30;
+
+-- Fechas en un rango
+SELECT * FROM pedidos 
+WHERE fecha BETWEEN '2024-01-01' AND '2024-12-31';
+
+-- Equivalente sin BETWEEN
+SELECT * FROM usuarios 
+WHERE edad >= 18 AND edad <= 30;
+```
+
+### 3.3 IN para Múltiples Valores
+
+```sql
+-- Ciudades específicas
+SELECT * FROM usuarios 
+WHERE ciudad IN ('Madrid', 'Barcelona', 'Valencia');
+
+-- IDs específicos
+SELECT * FROM pedidos 
+WHERE estado IN ('completado', 'enviado');
+
+-- Equivalente con OR
+SELECT * FROM usuarios 
+WHERE ciudad = 'Madrid' OR ciudad = 'Barcelona' OR ciudad = 'Valencia';
+
+-- NOT IN (excluir valores)
+SELECT * FROM usuarios 
+WHERE ciudad NOT IN ('Madrid', 'Barcelona');
+```
+
+### 3.4 LIKE y Patrones (%, _)
+
+`LIKE` permite búsquedas con patrones:
+
+| Comodín | Significado | Ejemplo |
+|---------|-------------|---------|
+| `%` | Cualquier secuencia de caracteres | `'%gmail%'` contiene "gmail" |
+| `_` | Un solo carácter | `'___'` exactamente 3 caracteres |
+
+```sql
+-- Empieza con 'A'
+SELECT * FROM usuarios WHERE nombre LIKE 'A%';
+
+-- Termina con 'ez'
+SELECT * FROM usuarios WHERE nombre LIKE '%ez';
+
+-- Contiene 'mar' en cualquier posición
+SELECT * FROM usuarios WHERE email LIKE '%mar%';
+
+-- Nombre de exactamente 5 letras
+SELECT * FROM usuarios WHERE nombre LIKE '_____';
+
+-- Email que termina en gmail.com
+SELECT * FROM usuarios WHERE email LIKE '%@gmail.com';
+
+-- ILIKE (insensible a mayúsculas/minúsculas) - PostgreSQL
+SELECT * FROM usuarios WHERE nombre ILIKE '%martin%';
+```
+
+### 3.5 IS NULL / IS NOT NULL
+
+```sql
+-- Usuarios sin teléfono registrado
+SELECT * FROM usuarios WHERE telefono IS NULL;
+
+-- Usuarios con email registrado
+SELECT * FROM usuarios WHERE email IS NOT NULL;
+
+-- Combinado con otros filtros
+SELECT * FROM usuarios 
+WHERE telefono IS NULL 
+AND activo = true;
+```
+
+### 3.6 Operadores Lógicos (AND, OR, NOT)
+
+```sql
+-- AND: todas las condiciones deben cumplirse
+SELECT * FROM usuarios 
+WHERE edad >= 18 
+AND edad <= 30 
+AND ciudad = 'Madrid';
+
+-- OR: al menos una condición debe cumplirse
+SELECT * FROM usuarios 
+WHERE ciudad = 'Madrid' 
+OR ciudad = 'Barcelona' 
+OR ciudad = 'Valencia';
+
+-- NOT: negación
+SELECT * FROM usuarios 
+WHERE NOT ciudad = 'Madrid';
+
+-- Combinación compleja
+SELECT * FROM pedidos 
+WHERE (estado = 'pendiente' OR estado = 'procesando')
+AND total > 500
+AND fecha >= '2024-01-01'
+AND NOT cliente_id IS NULL;
+```
+
+---
+
+## Módulo 4: Ordenamiento y Funciones Básicas
+
+### 4.1 ORDER BY
+
+Ordena los resultados según una o más columnas:
+
+```sql
+-- Orden ascendente (por defecto)
+SELECT * FROM usuarios ORDER BY nombre;
+
+-- Orden descendente
+SELECT * FROM usuarios ORDER BY edad DESC;
+
+-- Múltiples columnas
+SELECT * FROM usuarios 
+ORDER BY ciudad ASC, nombre ASC;
+
+-- Orden con NULLS FIRST/LAST (PostgreSQL)
+SELECT * FROM usuarios 
+ORDER BY telefono NULLS LAST;
+```
+
+### 4.2 Funciones de Texto
+
+| Función | Descripción | Ejemplo |
+|---------|-------------|---------|
+| `UPPER(texto)` | Convertir a mayúsculas | `UPPER('hola') → 'HOLA'` |
+| `LOWER(texto)` | Convertir a minúsculas | `LOWER('HOLA') → 'hola'` |
+| `LENGTH(texto)` | Longitud del texto | `LENGTH('hola') → 4` |
+| `TRIM(texto)` | Eliminar espacios | `TRIM(' hola ') → 'hola'` |
+| `SUBSTRING(texto, inicio, largo)` | Extraer parte | `SUBSTRING('hola', 2, 2) → 'ol'` |
+| `REPLACE(texto, buscar, reemplazar)` | Reemplazar texto | `REPLACE('hola', 'o', 'a') → 'hala'` |
+| `POSITION(subtexto IN texto)` | Posición de subtexto | `POSITION('l' IN 'hola') → 3` |
+| `CONCAT(texto1, texto2)` | Concatenar | `CONCAT('hola', ' mundo')` |
+
+```sql
+-- Ejemplos prácticos
+SELECT 
+    nombre,
+    UPPER(nombre) AS nombre_mayusculas,
+    LOWER(email) AS email_minusculas,
+    LENGTH(TRIM(nombre)) AS longitud_nombre,
+    SUBSTRING(email, POSITION('@' IN email) + 1) AS dominio,
+    REPLACE(telefono, ' ', '') AS telefono_sin_espacios
+FROM usuarios;
+```
+
+### 4.3 Funciones de Fecha
+
+| Función | Descripción | Ejemplo |
+|---------|-------------|---------|
+| `NOW()` | Fecha y hora actual | `NOW()` |
+| `CURRENT_DATE` | Fecha actual | `CURRENT_DATE` |
+| `CURRENT_TIME` | Hora actual | `CURRENT_TIME` |
+| `EXTRACT(part FROM fecha)` | Extraer parte de fecha | `EXTRACT(YEAR FROM fecha)` |
+| `DATE_PART('part', fecha)` | Extraer parte de fecha | `DATE_PART('month', fecha)` |
+| `AGE(fecha1, fecha2)` | Diferencia entre fechas | `AGE('2024-12-31', '2024-01-01')` |
+| `DATE_TRUNC('part', fecha)` | Truncar fecha | `DATE_TRUNC('month', fecha)` |
+| `fecha + INTERVAL` | Sumar intervalo | `fecha + INTERVAL '1 month'` |
+
+```sql
+-- Ejemplos prácticos
+SELECT 
+    nombre,
+    fecha_registro,
+    EXTRACT(YEAR FROM fecha_registro) AS año_registro,
+    EXTRACT(MONTH FROM fecha_registro) AS mes_registro,
+    EXTRACT(DOW FROM fecha_registro) AS dia_semana,  -- 0=domingo
+    DATE_PART('quarter', fecha_registro) AS trimestre,
+    AGE(NOW(), fecha_registro) AS tiempo_registrado,
+    fecha_registro + INTERVAL '1 year' AS fecha_aniversario
+FROM usuarios;
+
+-- Filtrar por año usando EXTRACT
+SELECT * FROM pedidos 
+WHERE EXTRACT(YEAR FROM fecha) = 2024;
+```
+
+---
+
+## Módulo 5: Introducción a JOINs
+
+Las bases de datos relacionales se basan en la normalización, que distribuye la información en múltiples tablas relacionadas mediante claves. Para recuperar datos que están dispersos, necesitamos combinar tablas mediante **JOINs**. Un JOIN combina filas de dos o más tablas basándose en una condición relacionada.
+
+### 5.1 Producto Cartesiano (CROSS JOIN)
+
+El producto cartesiano combina cada fila de la primera tabla con cada fila de la segunda tabla. Si la tabla A tiene N filas y la tabla B tiene M filas, el resultado tendrá N × M filas.
+
+```sql
+-- Producto cartesiano explícito
+SELECT * FROM usuarios CROSS JOIN pedidos;
+
+-- Producto cartesiano implícito (sin condición)
+SELECT * FROM usuarios, pedidos;
+```
+
+**⚠️ Advertencia:** El producto cartesiano raramente es útil por sí solo y puede generar resultados muy grandes. Siempre debe usarse con una condición de JOIN.
+
+### 5.2 INNER JOIN
+
+El **INNER JOIN** devuelve solo las filas que tienen correspondencia en ambas tablas. Es el tipo de JOIN más común.
+
+```sql
+-- Sintaxis explícita (recomendada)
 SELECT columnas
 FROM tablaA
 INNER JOIN tablaB ON tablaA.clave = tablaB.clave;
+
+-- Sintaxis implícita (menos recomendada)
+SELECT columnas
+FROM tablaA, tablaB
+WHERE tablaA.clave = tablaB.clave;
 ```
 
-También se puede usar la palabra clave `JOIN` a secas (por defecto es INNER).
+#### Ejemplo
 
-### LEFT JOIN (o LEFT OUTER JOIN)
+```sql
+-- Obtener mensajes con el nombre del usuario que los envió
+SELECT m.id, u.nombre, m.contenido, m.modalidad, m.enviado_en
+FROM mensajes m
+INNER JOIN usuarios u ON m.remitente_id = u.id;
 
-Devuelve todas las filas de la tabla izquierda, y las coincidentes de la derecha. Si no hay coincidencia, las columnas de la derecha son NULL.
+-- Obtener sesiones con información del usuario
+SELECT s.id, u.nombre, s.canal, s.iniciada_en, s.ultima_actividad
+FROM sesiones s
+INNER JOIN usuarios u ON s.usuario_id = u.id;
 
-::: center
-:::
+-- Obtener logs con el mensaje asociado (JOIN de 2 tablas)
+SELECT l.modulo, l.tiempo_ejecucion_ms, l.exito, m.contenido
+FROM logs_ejecucion l
+INNER JOIN mensajes m ON l.mensaje_id = m.id;
+```
 
-Sintaxis:
+### 5.3 LEFT JOIN (LEFT OUTER JOIN)
+
+El **LEFT JOIN** devuelve **todas** las filas de la tabla izquierda, y las filas coincidentes de la tabla derecha. Si no hay coincidencia, las columnas de la tabla derecha se rellenan con NULL.
 
 ```sql
 SELECT columnas
@@ -480,507 +741,195 @@ FROM tablaA
 LEFT JOIN tablaB ON tablaA.clave = tablaB.clave;
 ```
 
-### RIGHT JOIN
+#### Ejemplo con el caso Aletza
 
-Análogo al LEFT, pero con la tabla derecha como maestra. Es menos usado porque se puede escribir el LEFT cambiando el orden.
+```sql
+-- Todos los usuarios, incluso aquellos sin perfil de voz
+SELECT u.nombre, u.email, p.estado, p.muestras_tomadas
+FROM usuarios u
+LEFT JOIN perfiles_voz p ON u.id = p.usuario_id;
 
-### FULL OUTER JOIN
+-- Resultado: muestra todos los usuarios, con NULL en perfil si no existe
 
-Devuelve todas las filas de ambas tablas, rellenando con NULL donde no hay coincidencia.
+-- Todos los usuarios, incluso aquellos sin sesiones
+SELECT u.nombre, COUNT(s.id) AS numero_sesiones
+FROM usuarios u
+LEFT JOIN sesiones s ON u.id = s.usuario_id
+GROUP BY u.id, u.nombre;
 
-::: center
-:::
+-- Todos los mensajes, incluso aquellos sin logs de ejecución
+SELECT m.id, m.contenido, l.modulo, l.tiempo_ejecucion_ms
+FROM mensajes m
+LEFT JOIN logs_ejecucion l ON m.id = l.mensaje_id;
+```
 
-Sintaxis:
+### 5.4 RIGHT JOIN
+
+El **RIGHT JOIN** es simétrico al LEFT JOIN: devuelve todas las filas de la tabla derecha, y las coincidentes de la izquierda.
 
 ```sql
 SELECT columnas
 FROM tablaA
-FULL OUTER JOIN tablaB ON tablaA.clave = tablaB.clave;
+RIGHT JOIN tablaB ON tablaA.clave = tablaB.clave;
 ```
 
-### CROSS JOIN
-
-Producto cartesiano (cada fila de A con cada fila de B). No lleva condición.
+**Nota:** RIGHT JOIN puede reescribirse como LEFT JOIN intercambiando el orden de las tablas. Por claridad, se recomienda usar LEFT JOIN.
 
 ```sql
-SELECT * FROM tablaA CROSS JOIN tablaB;
--- Equivalente a SELECT * FROM tablaA, tablaB;
+-- Estos dos son equivalentes:
+SELECT * FROM usuarios u RIGHT JOIN sesiones s ON u.id = s.usuario_id;
+SELECT * FROM sesiones s LEFT JOIN usuarios u ON u.id = s.usuario_id;
 ```
 
-### Self-Join
+### 5.5 JOIN con Múltiples Tablas
 
-Una tabla se une consigo misma. Es útil para relaciones jerárquicas (ej. empleados con jefe).
+Podemos encadenar varios JOINs para combinar información de múltiples tablas:
 
 ```sql
-SELECT e1.nombre AS empleado, e2.nombre AS jefe
-FROM empleados e1
-LEFT JOIN empleados e2 ON e1.jefe_id = e2.id;
+SELECT columnas
+FROM tablaA
+JOIN tablaB ON tablaA.clave = tablaB.clave
+JOIN tablaC ON tablaB.clave2 = tablaC.clave2;
 ```
 
-### JOIN con condiciones no equitativas
-
-La condición puede incluir otros operadores (\>, \<, BETWEEN). Pero hay que tener en cuenta que estos joins pueden ser costosos.
+#### Ejemplo con el caso Aletza (3 tablas)
 
 ```sql
-SELECT *
+-- Obtener mensajes con usuario y sus logs de ejecución
+SELECT 
+    u.nombre AS usuario,
+    m.contenido AS mensaje,
+    m.modalidad,
+    l.modulo AS modulo_ia,
+    l.tiempo_ejecucion_ms,
+    l.exito
+FROM mensajes m
+INNER JOIN usuarios u ON m.remitente_id = u.id
+LEFT JOIN logs_ejecucion l ON m.id = l.mensaje_id
+ORDER BY m.enviado_en DESC;
+
+-- Obtener sesiones activas con información completa
+SELECT 
+    s.id AS sesion_id,
+    u.nombre AS usuario,
+    u.email,
+    s.canal,
+    s.iniciada_en,
+    s.ultima_actividad,
+    COUNT(m.id) AS mensajes_en_sesion
+FROM sesiones s
+INNER JOIN usuarios u ON s.usuario_id = u.id
+LEFT JOIN mensajes m ON s.id = m.sesion_id
+WHERE s.expira_en > NOW()  -- sesiones no expiradas
+GROUP BY s.id, u.nombre, u.email, s.canal, s.iniciada_en, s.ultima_actividad;
+```
+
+### 5.6 Self-Join (Auto-Join)
+
+Un **Self-Join** ocurre cuando una tabla se une consigo misma. Es útil para relaciones jerárquicas o cuando necesitamos comparar filas dentro de la misma tabla.
+
+```sql
+-- Es obligatorio usar alias diferentes para la misma tabla
+SELECT 
+    a.columna1,
+    b.columna2
+FROM tabla a
+JOIN tabla b ON a.clave = b.clave_referencia;
+```
+
+#### Ejemplo
+
+Supongamos que tenemos una tabla de módulos IA que pueden llamar a otros módulos:
+
+```sql
+-- Tabla de módulos IA (ejemplo adicional)
+CREATE TABLE modulos_ia (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(50),
+    version VARCHAR(10),
+    modulo_padre_id INTEGER REFERENCES modulos_ia(id)
+);
+
+-- Self-Join para obtener jerarquía de módulos
+SELECT 
+    hijo.nombre AS modulo_hijo,
+    padre.nombre AS modulo_padre,
+    hijo.version
+FROM modulos_ia hijo
+LEFT JOIN modulos_ia padre ON hijo.modulo_padre_id = padre.id
+ORDER BY padre.nombre NULLS FIRST;
+
+-- Encontrar módulos que se ejecutan más rápido que el promedio
+SELECT 
+    m1.modulo,
+    m1.tiempo_ejecucion_ms,
+    m2.tiempo_promedio
+FROM logs_ejecucion m1
+JOIN (
+    SELECT modulo, AVG(tiempo_ejecucion_ms) AS tiempo_promedio
+    FROM logs_ejecucion
+    GROUP BY modulo
+) m2 ON m1.modulo = m2.modulo
+WHERE m1.tiempo_ejecucion_ms < m2.tiempo_promedio;
+```
+
+### 5.7 JOIN con Condiciones No Equitativas
+
+Las condiciones de JOIN no tienen que ser necesariamente de igualdad (`=`). Podemos usar otros operadores como `<`, `>`, `BETWEEN`, etc.
+
+```sql
+-- JOIN con condición de desigualdad
+SELECT * 
+FROM tablaA a
+JOIN tablaB b ON a.id <> b.id;
+
+-- JOIN con condición de rango
+SELECT * 
 FROM ventas v
-JOIN productos p ON v.producto_id = p.id AND v.cantidad > p.stock_minimo;
-```
+JOIN productos p ON v.precio BETWEEN p.precio_minimo AND p.precio_maximo;
 
-## Algoritmos de JOIN Internos
-
-El motor elige entre varios algoritmos según el tamaño de las tablas y los índices:
-
-- **Nested Loop:** Para cada fila de la tabla externa, busca coincidencias en la interna (ideal si una es pequeña o hay índice).
-
-- **Hash Join:** Construye una tabla hash en memoria con una de las tablas, luego recorre la otra. Eficiente para tablas grandes sin índices.
-
-- **Merge Join:** Ordena ambas tablas (si no lo están) y luego las fusiona. Útil si ya están ordenadas o se necesita ordenar de todas formas.
-
-Saber cuándo se usa cada uno es una pregunta clásica en entrevistas.
-
-## Ejemplo Práctico con Múltiples Tablas
-
-Supongamos una base de datos de ventas con las tablas:
-
-- `clientes` (id, nombre, ciudad)
-
-- `productos` (id, nombre, precio)
-
-- `pedidos` (id, cliente_id, fecha)
-
-- `detalle_pedido` (pedido_id, producto_id, cantidad)
-
-Queremos obtener una lista de pedidos con nombre del cliente, fecha, productos y cantidad:
-
-```sql
-SELECT c.nombre AS cliente, p.fecha, pr.nombre AS producto, dp.cantidad
-FROM pedidos p
-JOIN clientes c ON p.cliente_id = c.id
-JOIN detalle_pedido dp ON p.id = dp.pedido_id
-JOIN productos pr ON dp.producto_id = pr.id;
-```
-
-Este es un JOIN de cuatro tablas. El orden de los JOINs puede afectar el rendimiento, pero el optimizador suele reordenarlos.
-
-# Subconsultas
-
-Una subconsulta es una consulta anidada dentro de otra. Pueden usarse en SELECT, FROM, WHERE, etc. Son herramientas poderosas pero a veces pueden reescribirse como JOINs para mejorar rendimiento.
-
-## Subconsultas Escalares
-
-Devuelven un solo valor (una fila y una columna). Se usan en expresiones.
-
-```sql
-SELECT nombre, (SELECT AVG(precio) FROM productos) AS precio_medio
-FROM productos;
-```
-
-Deben asegurar que devuelven una sola fila; si devuelven varias, se produce error.
-
-## Subconsultas de Fila Única
-
-Devuelven una fila con varias columnas. Se pueden comparar con operadores como `=, >, <` si se espera una sola fila.
-
-```sql
-SELECT * FROM productos
-WHERE (categoria, precio) = (SELECT categoria, MAX(precio) FROM productos GROUP BY categoria LIMIT 1);
-```
-
-(En la práctica, es más seguro usar EXISTS o IN.)
-
-## Subconsultas de Múltiples Filas
-
-Devuelven varias filas. Se usan con `IN`, `ANY`, `ALL`, `EXISTS`.
-
-- **IN**: Verifica si el valor está en el conjunto.
-
-- **ANY / SOME**: Compara con algún valor del conjunto (ej. \> ANY significa mayor que al menos uno).
-
-- **ALL**: Compara con todos los valores (ej. \> ALL significa mayor que todos).
-
-- **EXISTS**: Verifica si la subconsulta devuelve alguna fila (es más eficiente que IN para conjuntos grandes porque puede parar al encontrar la primera).
-
-```sql
-SELECT nombre FROM clientes
-WHERE id IN (SELECT cliente_id FROM pedidos WHERE fecha >= '2025-01-01');
-
-SELECT nombre FROM clientes c
-WHERE EXISTS (SELECT 1 FROM pedidos p WHERE p.cliente_id = c.id AND p.fecha >= '2025-01-01');
-```
-
-`EXISTS` suele ser más rápido cuando la subconsulta es correlacionada.
-
-## Subconsultas Correlacionadas
-
-Hacen referencia a columnas de la consulta exterior. Se evalúan para cada fila de la consulta externa.
-
-```sql
-SELECT p.nombre, p.precio
-FROM productos p
-WHERE p.precio > (SELECT AVG(precio) FROM productos WHERE categoria = p.categoria);
-```
-
-Aquí, la subconsulta calcula el precio medio de la categoría del producto actual. Pueden ser lentas si la tabla externa es grande.
-
-## Subconsultas en la cláusula FROM
-
-Se puede usar una subconsulta como una tabla derivada (vista temporal). Requiere un alias.
-
-```sql
-SELECT categoria, AVG(precio) AS precio_medio
-FROM (SELECT * FROM productos WHERE activo = true) AS productos_activos
-GROUP BY categoria;
-```
-
-# Common Table Expressions (CTEs)
-
-Las CTEs (WITH queries) permiten definir consultas auxiliares que se comportan como tablas temporales dentro de una consulta principal. Mejoran la legibilidad y permiten consultas recursivas.
-
-## Sintaxis Básica
-
-```sql
-WITH cte_nombre (columnas_opcional) AS (
-    consulta
-)
-SELECT ...
-FROM cte_nombre ...
-```
-
-### Ejemplo
-
-Obtener el total de ventas por cliente y luego filtrar los que superan 1000:
-
-```sql
-WITH ventas_cliente AS (
-    SELECT c.id, c.nombre, SUM(dp.cantidad * pr.precio) AS total
-    FROM clientes c
-    LEFT JOIN pedidos p ON c.id = p.cliente_id
-    LEFT JOIN detalle_pedido dp ON p.id = dp.pedido_id
-    LEFT JOIN productos pr ON dp.producto_id = pr.id
-    GROUP BY c.id, c.nombre
-)
-SELECT * FROM ventas_cliente WHERE total > 1000;
-```
-
-### CTEs Múltiples
-
-Se pueden definir varias CTEs separadas por comas.
-
-```sql
-WITH
-    ventas AS (SELECT ...),
-    clientes_vip AS (SELECT ...)
-SELECT ...
-```
-
-### CTEs Recursivas
-
-Permiten consultar estructuras jerárquicas (ej. organigrama). La sintaxis incluye una parte no recursiva (anchor) y una parte recursiva unida con UNION ALL.
-
-```sql
-WITH RECURSIVE organigrama AS (
-    -- Anchor: el jefe máximo
-    SELECT id, nombre, jefe_id, 1 AS nivel
-    FROM empleados
-    WHERE jefe_id IS NULL
-    UNION ALL
-    -- Recursivo: empleados que tienen jefe
-    SELECT e.id, e.nombre, e.jefe_id, o.nivel + 1
-    FROM empleados e
-    JOIN organigrama o ON e.jefe_id = o.id
-)
-SELECT * FROM organigrama;
-```
-
-Es una pregunta común en entrevistas avanzadas.
-
-## CTEs vs. Subconsultas vs. Tablas Temporales
-
-- Las CTEs son solo azúcar sintáctico; el optimizador puede tratarlas como subconsultas en línea o materializarlas según el motor (en PostgreSQL, se materializan por defecto a menos que se use `NOT MATERIALIZED`).
-
-- Son más legibles y permiten recursión.
-
-- Para reutilización múltiple en la misma consulta, una CTE evita repetir código.
-
-# Buenas Prácticas y Optimización de Consultas SQL
-
-Escribir SQL eficiente no solo es cuestión de sintaxis correcta, sino de entender cómo el motor ejecutará la consulta. Aquí hay reglas y patrones que suelen preguntar en entrevistas.
-
-## Preferir EXISTS a IN cuando la subconsulta es grande
-
-```sql
--- Menos eficiente si la subconsulta devuelve muchas filas
-SELECT * FROM clientes WHERE id IN (SELECT cliente_id FROM pedidos);
-
--- Más eficiente (puede parar al encontrar el primero)
-SELECT * FROM clientes c WHERE EXISTS (SELECT 1 FROM pedidos p WHERE p.cliente_id = c.id);
-```
-
-## Evitar Funciones en Columnas Indexadas
-
-```sql
--- No usará índice en fecha
-SELECT * FROM pedidos WHERE EXTRACT(YEAR FROM fecha) = 2025;
-
--- Mejor (si hay índice en fecha)
-SELECT * FROM pedidos WHERE fecha >= '2025-01-01' AND fecha < '2026-01-01';
-```
-
-## Usar UNION ALL en lugar de UNION si no se necesitan duplicados
-
-UNION elimina duplicados (requiere ordenar y comparar), mientras que UNION ALL simplemente concatena.
-
-## SELECT \* Es Peligroso
-
-Siempre especificar las columnas necesarias. SELECT \* puede traer más datos de los necesarios, aumentar E/S y red, y romper la aplicación si cambia el esquema.
-
-## Cuidado con las Conversiones Implícitas
-
-Si comparas un texto con un número, el motor puede convertir toda la columna, impidiendo el uso de índices.
-
-```sql
--- Si id es texto, pero lo comparas con número, puede haber conversión
-SELECT * FROM tabla WHERE id = 123; -- mejor usar '123'
-```
-
-## Índices y JOINs
-
-Asegurar que las columnas de JOIN estén indexadas. Para JOINs de muchos a muchos, indexar ambas columnas en la tabla intermedia.
-
-## Analizar el Plan con EXPLAIN
-
-Siempre que una consulta sea lenta, usar EXPLAIN (ANALYZE) para ver dónde está el cuello de botella.
-
-## Escritura de Consultas Legibles
-
-Usar indentación, alias claros, y mayúsculas para palabras clave. No afecta el rendimiento pero facilita el mantenimiento.
-
-# Consideraciones de Hardware y Motor
-
-## Buffer Pool y Caché
-
-El tamaño del buffer pool (por ejemplo, `innodb_buffer_pool_size` en MySQL, `shared_buffers` en PostgreSQL) es crítico. Si los datos caben en memoria, las consultas son mucho más rápidas.
-
-## Disco: SSD vs HDD
-
-En producción, siempre SSD. Las lecturas secuenciales son más rápidas, pero los índices requieren lecturas aleatorias. SSD mejora drásticamente las lecturas aleatorias.
-
-## Parallel Query
-
-Algunos motores pueden usar múltiples CPUs para una consulta (paralelismo). Esto puede acelerar agregaciones y escaneos.
-
-## Configuración del Motor
-
-Parámetros como el tamaño de memoria para hash joins, el costo de E/S, etc., pueden ajustarse. En entrevistas, suelen preguntar sobre parámetros genéricos.
-
-# Breve Comparación entre Motores (para JOINs y DML)
-
-Aunque nos centramos en SQL estándar, cada motor tiene peculiaridades:
-
-- **PostgreSQL**: Cumple con el estándar, soporta CTEs recursivas, FULL JOIN, y tiene un optimizador muy maduro.
-
-- **MySQL**: No soporta FULL JOIN (se simula con UNION). Los JOINs pueden ser lentos si no se usan índices.
-
-- **SQL Server**: Ofrece sugerencias de JOIN (LOOP, HASH, MERGE) y soporta CTEs recursivas.
-
-- **Oracle**: Sintaxis antigua de JOIN (+) para outer joins, pero se recomienda usar ANSI.
-
-En entrevistas, es importante conocer las diferencias si el puesto requiere un motor específico.
-
-# Joins en el Mundo NoSQL (Una Breve Mirada)
-
-Aunque esta sesión se centra en SQL, es útil saber cómo se abordan las relaciones en bases de datos NoSQL, ya que en proyectos modernos pueden convivir ambos paradigmas.
-
-- **MongoDB (documental):** No soporta joins nativos entre colecciones, pero desde la versión 3.2 incluye el operador `$lookup` en el pipeline de agregación, que realiza un left outer join con otra colección. Sin embargo, su uso es limitado y se recomienda diseñar documentos embebidos para evitar joins.
-
-- **Cassandra (columna ancha):** No soporta joins. El modelado se basa en desnormalización y tablas diseñadas específicamente para las consultas.
-
-- **Redis (clave-valor):** No tiene joins; las relaciones se manejan a nivel de aplicación o mediante estructuras como sets y sorted sets.
-
-- **Neo4j (grafos):** Las relaciones son nativas; en lugar de joins, se navegan los nodos y relaciones con patrones de camino.
-
-En resumen, en NoSQL se sacrifica la capacidad de join en favor de escalabilidad y rendimiento, por lo que el diseño de datos es fundamental.
-
-# Ejercicios Resueltos
-
-A continuación se presentan ejercicios que integran los conceptos vistos. Se resuelven paso a paso.
-
-## Ejercicio 1: Consultas Básicas con DML
-
-**Enunciado:** Dada la tabla `empleados` con columnas `id`, *nombre*, *salario*, *departamento_id*. Insertar tres empleados, actualizar el salario de uno, y luego eliminar los empleados de un departamento específico.
-
-**Solución:**
-
-```sql
--- Insertar
-INSERT INTO empleados (nombre, salario, departamento_id) VALUES
-('Juan Perez', 3000, 1),
-('Ana Garcia', 3500, 2),
-('Luis Fernandez', 3200, 1);
-
--- Actualizar salario de Juan
-UPDATE empleados SET salario = 3300 WHERE nombre = 'Juan Perez';
-
--- Eliminar empleados del departamento 2
-DELETE FROM empleados WHERE departamento_id = 2;
-```
-
-## Ejercicio 2: INNER JOIN y LEFT JOIN
-
-**Enunciado:** Usar las tablas `clientes`, `pedidos` y `detalle_pedido` del ejemplo anterior. Obtener:
-
-1.  Todos los pedidos con el nombre del cliente y la fecha.
-
-2.  Todos los clientes, incluso si no tienen pedidos, mostrando el número de pedidos (0 si no tiene).
-
-3.  El total gastado por cada cliente (suma de cantidad \* precio de cada producto en sus pedidos).
-
-**Solución:**
-
-```sql
--- 1. Pedidos con cliente
-SELECT p.id, c.nombre, p.fecha
-FROM pedidos p
-INNER JOIN clientes c ON p.cliente_id = c.id;
-
--- 2. Todos los clientes con número de pedidos
-SELECT c.id, c.nombre, COUNT(p.id) AS num_pedidos
-FROM clientes c
-LEFT JOIN pedidos p ON c.id = p.cliente_id
-GROUP BY c.id, c.nombre;
-
--- 3. Total gastado por cliente
-SELECT c.id, c.nombre, COALESCE(SUM(dp.cantidad * pr.precio), 0) AS total_gastado
-FROM clientes c
-LEFT JOIN pedidos p ON c.id = p.cliente_id
-LEFT JOIN detalle_pedido dp ON p.id = dp.pedido_id
-LEFT JOIN productos pr ON dp.producto_id = pr.id
-GROUP BY c.id, c.nombre;
-```
-
-Explicación: Usamos LEFT JOIN para incluir clientes sin pedidos, y COALESCE para mostrar 0 en lugar de NULL.
-
-## Ejercicio 3: Subconsultas
-
-**Enunciado:** Encontrar los productos cuyo precio es superior al precio medio de su categoría. Usar subconsulta correlacionada.
-
-**Solución:**
-
-```sql
-SELECT p.nombre, p.precio, p.categoria
-FROM productos p
-WHERE p.precio > (SELECT AVG(precio) FROM productos WHERE categoria = p.categoria);
-```
-
-## Ejercicio 4: Uso de CTE
-
-**Enunciado:** Obtener los empleados que ganan más que el salario promedio de su departamento, mostrando el nombre del empleado, su salario y el promedio del departamento.
-
-**Solución:**
-
-```sql
-WITH promedio_depto AS (
-    SELECT departamento_id, AVG(salario) AS salario_prom
-    FROM empleados
-    GROUP BY departamento_id
-)
-SELECT e.nombre, e.salario, pd.salario_prom
+-- JOIN con condición de fecha
+SELECT * 
 FROM empleados e
-JOIN promedio_depto pd ON e.departamento_id = pd.departamento_id
-WHERE e.salario > pd.salario_prom;
+JOIN contrataciones c ON e.fecha_ingreso < c.fecha_corte;
 ```
 
-## Ejercicio 5: Optimización y EXPLAIN
-
-**Enunciado:** Dada una consulta lenta, ¿cómo diagnosticarías y optimizarías? Supongamos: `SELECT * FROM pedidos WHERE EXTRACT(YEAR FROM fecha) = 2025;`
-
-**Solución:**
-
-1.  Usar EXPLAIN ANALYZE para ver el plan.
-
-2.  Probablemente hará un seq scan porque la función impide usar índice en fecha.
-
-3.  Reescribir: `SELECT * FROM pedidos WHERE fecha >= ’2025-01-01’ AND fecha < ’2026-01-01’;`
-
-4.  Crear índice en `fecha` si no existe.
-
-5.  Verificar con EXPLAIN que ahora use index scan.
-
-## Ejercicio 6: Recursividad con CTE
-
-**Enunciado:** Dada una tabla `empleados` con `id`, *nombre*, *jefe_id*, obtener el organigrama completo con niveles.
-
-**Solución:**
+#### Ejemplo con el caso Aletza
 
 ```sql
-WITH RECURSIVE organigrama AS (
-    SELECT id, nombre, jefe_id, 1 AS nivel
-    FROM empleados
-    WHERE jefe_id IS NULL
-    UNION ALL
-    SELECT e.id, e.nombre, e.jefe_id, o.nivel + 1
-    FROM empleados e
-    JOIN organigrama o ON e.jefe_id = o.id
-)
-SELECT * FROM organigrama ORDER BY nivel, nombre;
+-- Encontrar mensajes que fueron procesados más rápido que el promedio de su módulo
+SELECT 
+    m.id,
+    m.contenido,
+    l.modulo,
+    l.tiempo_ejecucion_ms,
+    p.tiempo_promedio_modulo
+FROM logs_ejecucion l
+JOIN mensajes m ON l.mensaje_id = m.id
+JOIN (
+    SELECT modulo, AVG(tiempo_ejecucion_ms) AS tiempo_promedio_modulo
+    FROM logs_ejecucion
+    GROUP BY modulo
+) p ON l.modulo = p.modulo
+WHERE l.tiempo_ejecucion_ms < p.tiempo_promedio_modulo
+ORDER BY (p.tiempo_promedio_modulo - l.tiempo_ejecucion_ms) DESC;
+
+-- Encontrar sesiones que tuvieron más mensajes que el promedio
+SELECT 
+    s.id,
+    s.canal,
+    COUNT(m.id) AS mensajes_sesion
+FROM sesiones s
+LEFT JOIN mensajes m ON s.id = m.sesion_id
+GROUP BY s.id, s.canal
+HAVING COUNT(m.id) > (
+    SELECT AVG(mensajes_por_sesion)
+    FROM (
+        SELECT COUNT(m2.id) AS mensajes_por_sesion
+        FROM sesiones s2
+        LEFT JOIN mensajes m2 ON s2.id = m2.sesion_id
+        GROUP BY s2.id
+    ) AS promedios
+);
 ```
 
-# Glosario de Términos
-
-DML
-
-:   Data Manipulation Language: sublenguaje de SQL para manipular datos (SELECT, INSERT, UPDATE, DELETE).
-
-JOIN
-
-:   Operación que combina filas de dos o más tablas basándose en una condición relacionada.
-
-INNER JOIN
-
-:   Devuelve solo las filas que tienen correspondencia en ambas tablas.
-
-LEFT JOIN
-
-:   Devuelve todas las filas de la tabla izquierda, y las coincidentes de la derecha.
-
-FULL OUTER JOIN
-
-:   Devuelve todas las filas de ambas tablas, rellenando con NULL donde no hay coincidencia.
-
-Subconsulta
-
-:   Consulta anidada dentro de otra consulta.
-
-Subconsulta correlacionada
-
-:   Subconsulta que hace referencia a columnas de la consulta exterior.
-
-CTE
-
-:   Common Table Expression (WITH clause): consulta auxiliar que puede ser referenciada múltiples veces.
-
-Recursive CTE
-
-:   CTE que se llama a sí misma, útil para jerarquías.
-
-EXPLAIN
-
-:   Comando para mostrar el plan de ejecución de una consulta.
-
-Plan de ejecución
-
-:   Secuencia de operaciones que el motor realizará para ejecutar una consulta.
-
-Buffer Pool
-
-:   Área de memoria donde se cachean páginas de datos e índices.
-
-Index Scan
-
-:   Acceso a tabla mediante un índice.
-
-Seq Scan
-
-:   Escaneo secuencial de toda la tabla.

@@ -24,7 +24,7 @@ Cada sesión incluye material teórico, notebooks de práctica (SQL/Python), eje
 | 11 | [NoSQL](sesiones/sesion-11.md) |
 | 12 | [Base de Dato Vectorial](sesiones/sesion-12.md) |
 | 13 | [Arquitecturas Híbridas](sesiones/sesion-13.md) |
-| 14 | [Despliegue y Alta Disponibilidad](sesiones/sesion-14.md) |
+| 14 | [Despliegue y Observabilidad](sesiones/sesion-14.md) |
 
 
 ## 📂 Recursos generales
