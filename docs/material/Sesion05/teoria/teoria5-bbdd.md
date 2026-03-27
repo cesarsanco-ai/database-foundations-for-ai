@@ -1,888 +1,370 @@
 
 ## Sesión 5
-# MANIPULACIÓN DE DATOS Y LÓGICA DE CONJUNTOS
-## DML, JOINs, Subconsultas, CTEs y Optimización en SQL
+# ANÁLISIS AVANZADO Y TRANSFORMACIÓN DE DATOS
+## Agregaciones, Ventanas, Limpieza y Técnicas ETL con SQL
 
 **Autor:** Carlos César Sánchez Coronel  
 **Fecha:** 2026
 
 ---
 
-# Introducción a la Manipulación de Datos
+# Introducción
 
-En las sesiones anteriores hemos aprendido a modelar bases de datos, normalizar y definir estructuras. Ahora es el momento de interactuar con los datos: insertarlos, consultarlos, modificarlos y eliminarlos. El lenguaje SQL (Structured Query Language) es el estándar para estas tareas. En esta sesión nos centraremos en el sublenguaje DML (Data Manipulation Language) y en las operaciones de conjuntos que nos permiten combinar información de múltiples tablas: los JOINs. También exploraremos cómo el motor de base de datos interpreta y ejecuta nuestras consultas, qué sucede a nivel hardware, y cómo escribir SQL eficiente. Dominar estos conceptos es fundamental para cualquier profesional que trabaje con datos, ya que constituyen la base de cualquier análisis, informe o aplicación, y son temas recurrentes en entrevistas técnicas nacionales e internacionales.
+En la sesión anterior dominamos la manipulación básica de datos y las operaciones de conjuntos mediante JOINs. Ahora daremos un paso adelante para explorar técnicas analíticas y de transformación que nos permitirán resumir, ordenar, limpiar y preparar datos para análisis más profundos, incluyendo su uso en procesos ETL y alimentación de modelos de inteligencia artificial. Esta sesión cubre agregaciones, funciones de ventana, limpieza de datos (texto, fechas, nulos), tablas temporales, CTEs y técnicas avanzadas como pivotes y expresiones regulares. Cada concepto se acompaña de ejemplos prácticos y ejercicios resueltos que refuerzan el aprendizaje y preparan para entrevistas técnicas donde estos temas son recurrentes.
 
-## El Lenguaje SQL y sus Sublenguajes
+# Agregaciones y Agrupamientos
 
-SQL se divide en varios sublenguajes según su función:
+Las funciones de agregación permiten resumir conjuntos de filas en un único valor. Combinadas con la cláusula GROUP BY, podemos obtener resúmenes por grupos.
 
-- **DDL (Data Definition Language):** CREATE, ALTER, DROP -- definen la estructura.
+## Funciones de Agregación Básicas
 
-- **DML (Data Manipulation Language):** SELECT, INSERT, UPDATE, DELETE -- manipulan los datos.
+Las funciones de agregación estándar en SQL son:
 
-- **DCL (Data Control Language):** GRANT, REVOKE -- controlan permisos.
+- `COUNT(*)`: número de filas.
 
-- **TCL (Transaction Control Language):** COMMIT, ROLLBACK -- gestionan transacciones.
+- `COUNT(expr)`: número de valores no nulos de expr.
 
-En esta sesión profundizaremos en DML, con especial énfasis en SELECT y JOINs.
+- `SUM(expr)`: suma de valores.
 
-# Lenguaje SQL: Sublenguajes y Operaciones Fundamentales
+- `AVG(expr)`: promedio.
 
-El lenguaje SQL se divide en varios sublenguajes según la naturaleza de las operaciones. Conocer cada uno y sus comandos es esencial para cualquier profesional de bases de datos, ya que permite definir estructuras, manipular datos, controlar permisos y gestionar transacciones. En este capítulo exploraremos los cuatro sublenguajes principales: DDL, DML, DCL y TCL, con ejemplos prácticos y casos de uso que suelen aparecer en entrevistas técnicas.
+- `MIN(expr)`: mínimo.
 
-## DDL (Data Definition Language)
+- `MAX(expr)`: máximo.
 
-El sublenguaje de definición de datos se utiliza para crear, modificar y eliminar la estructura de los objetos de la base de datos (tablas, índices, vistas, etc.). Los comandos DDL suelen ser auto-commit, es decir, no se pueden deshacer con ROLLBACK en la mayoría de los motores.
-
-### CREATE
-
-Crea nuevos objetos. El más común es `CREATE TABLE`.
+Ejemplo: Obtener el número total de clientes y el salario promedio por departamento.
 
 ```sql
-CREATE TABLE clientes (
-    id SERIAL PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL,
-    email VARCHAR(100) UNIQUE,
-    ciudad VARCHAR(50),
-    fecha_registro DATE DEFAULT CURRENT_DATE
-);
+SELECT departamento_id, COUNT(*) AS num_empleados, AVG(salario) AS salario_promedio
+FROM empleados
+GROUP BY departamento_id;
 ```
 
-También se pueden crear índices, vistas, etc.:
+## GROUP BY con Múltiples Columnas
+
+Podemos agrupar por varias columnas para obtener resúmenes más detallados.
 
 ```sql
-CREATE INDEX idx_ciudad ON clientes(ciudad);
-CREATE VIEW clientes_madrid AS SELECT * FROM clientes WHERE ciudad = 'Madrid';
+SELECT departamento_id, ciudad, COUNT(*) AS num_empleados
+FROM empleados
+GROUP BY departamento_id, ciudad;
 ```
 
-### ALTER
+## Filtrado de Grupos con HAVING
 
-Modifica la estructura de un objeto existente.
+HAVING es similar a WHERE pero aplica a grupos, no a filas individuales. Se usa después de GROUP BY.
 
 ```sql
--- Añadir una columna
-ALTER TABLE clientes ADD COLUMN telefono VARCHAR(20);
-
--- Modificar tipo de dato
-ALTER TABLE clientes ALTER COLUMN nombre TYPE VARCHAR(200);
-
--- Añadir una restricción
-ALTER TABLE clientes ADD CONSTRAINT email_unico UNIQUE (email);
+SELECT departamento_id, AVG(salario) AS salario_promedio
+FROM empleados
+GROUP BY departamento_id
+HAVING AVG(salario) > 4000;
 ```
 
-### DROP
+## Agregaciones Avanzadas: ROLLUP, CUBE y GROUPING SETS
 
-Elimina objetos de la base de datos. ¡Cuidado! Es irreversible (a menos que tengas backup).
+Estas extensiones permiten generar subtotales y totales generales en una misma consulta.
+
+### ROLLUP
+
+Genera subtotales para cada nivel de agrupación, además del total general.
 
 ```sql
-DROP TABLE clientes; -- Elimina la tabla y todos sus datos
-DROP INDEX idx_ciudad;
-DROP VIEW clientes_madrid;
+SELECT departamento_id, ciudad, SUM(salario) AS total_salarios
+FROM empleados
+GROUP BY ROLLUP (departamento_id, ciudad);
 ```
 
-### TRUNCATE
+Produce filas para cada (depto, ciudad), cada depto (subtotal) y un total general.
 
-Elimina todas las filas de una tabla de forma rápida (no genera logs por fila, a diferencia de DELETE). Es DDL porque no se puede deshacer con ROLLBACK en muchos motores.
+### CUBE
+
+Genera todas las combinaciones posibles de subtotales.
 
 ```sql
-TRUNCATE TABLE clientes;
+SELECT departamento_id, ciudad, SUM(salario)
+FROM empleados
+GROUP BY CUBE (departamento_id, ciudad);
 ```
 
-### Restricciones de Integridad en DDL
+Incluye subtotales por depto, por ciudad, y total general.
 
-Las restricciones (constraints) se definen en DDL y garantizan la integridad de los datos:
+### GROUPING SETS
 
-- **PRIMARY KEY**: Identifica unívocamente cada fila.
-
-- **FOREIGN KEY**: Mantiene integridad referencial.
-
-- **UNIQUE**: Valores únicos en una columna o combinación.
-
-- **CHECK**: Valida que los datos cumplan una condición (ej. salario \> 0).
-
-- **NOT NULL**: La columna no puede tener valores nulos.
-
-Ejemplo con todas ellas:
+Permite especificar exactamente los niveles de agrupación deseados.
 
 ```sql
-CREATE TABLE pedidos (
-    id SERIAL PRIMARY KEY,
-    cliente_id INT NOT NULL,
-    fecha DATE NOT NULL,
-    total DECIMAL(10,2) CHECK (total >= 0),
-    FOREIGN KEY (cliente_id) REFERENCES clientes(id)
-);
+SELECT departamento_id, ciudad, SUM(salario)
+FROM empleados
+GROUP BY GROUPING SETS ((departamento_id), (ciudad), ());
 ```
 
-## DML (Data Manipulation Language)
+El conjunto vacío () representa el total general.
 
-El sublenguaje de manipulación de datos permite consultar, insertar, modificar y eliminar los datos almacenados. Es el más utilizado en el día a día.
+## Ejercicio Resuelto: Resumen de Ventas
 
-### SELECT
+**Enunciado:** Dada una tabla `ventas` con columnas `producto`, *categoria*, *monto*, *fecha*, obtener:
 
-La sentencia SELECT recupera datos de una o más tablas. Ya la hemos visto en detalle, pero recordemos su sintaxis básica:
+1.  Monto total por categoría.
+
+2.  Monto total por categoría y producto.
+
+3.  Solo las categorías cuyo monto total supere 10000.
+
+4.  Además, incluir un total general y subtotales por categoría usando ROLLUP.
+
+**Solución:**
 
 ```sql
-SELECT columnas
-FROM tabla
-WHERE condicion
-ORDER BY columna
-LIMIT n;
+-- 1. Monto total por categoría
+SELECT categoria, SUM(monto) AS total
+FROM ventas
+GROUP BY categoria;
+
+-- 2. Por categoría y producto
+SELECT categoria, producto, SUM(monto) AS total
+FROM ventas
+GROUP BY categoria, producto;
+
+-- 3. Categorías con total > 10000
+SELECT categoria, SUM(monto) AS total
+FROM ventas
+GROUP BY categoria
+HAVING SUM(monto) > 10000;
+
+-- 4. Con ROLLUP
+SELECT categoria, producto, SUM(monto) AS total
+FROM ventas
+GROUP BY ROLLUP (categoria, producto);
 ```
+
+# Funciones de Ventana (Window Functions)
+
+Las funciones de ventana realizan cálculos sobre un conjunto de filas relacionadas con la fila actual, sin colapsar el resultado en una sola fila. Son esenciales para análisis de series temporales, rankings, y más.
+
+## Concepto y Sintaxis
+
+Una función de ventana se define con la cláusula `OVER()`, que puede incluir:
+
+- `PARTITION BY`: divide el conjunto en particiones.
+
+- `ORDER BY`: ordena las filas dentro de cada partición.
+
+- `ROWS / RANGE`: define el marco de ventana (filas a incluir).
+
+Sintaxis general:
+
+```sql
+funcion() OVER (PARTITION BY col1 ORDER BY col2 ROWS BETWEEN ...)
+```
+
+## Funciones de Ranking
+
+- `ROW_NUMBER()`: asigna un número único secuencial por partición.
+
+- `RANK()`: igual que ROW_NUMBER pero con empates; deja huecos.
+
+- `DENSE_RANK()`: igual que RANK pero sin huecos.
+
+- `NTILE(n)`: divide las filas en n grupos aproximadamente iguales.
 
 Ejemplo:
 
 ```sql
-SELECT nombre, email FROM clientes WHERE ciudad = 'Barcelona' ORDER BY nombre;
+SELECT nombre, salario,
+       ROW_NUMBER() OVER (ORDER BY salario DESC) AS row_num,
+       RANK()       OVER (ORDER BY salario DESC) AS rank,
+       DENSE_RANK() OVER (ORDER BY salario DESC) AS dense_rank,
+       NTILE(4)     OVER (ORDER BY salario DESC) AS cuartil
+FROM empleados;
 ```
 
-### INSERT
+## Funciones de Valor
 
-Inserta nuevas filas en una tabla.
+- `LAG(col, n)`: valor de la columna n filas antes.
+
+- `LEAD(col, n)`: valor n filas después.
+
+- `FIRST_VALOR(col)`: primer valor en la ventana.
+
+- `LAST_VALUE(col)`: último valor.
+
+- `NTH_VALUE(col, n)`: enésimo valor.
+
+Muy útiles para comparar filas consecutivas.
 
 ```sql
-INSERT INTO clientes (nombre, email, ciudad) VALUES
-('Carlos Ruiz', 'carlos@mail.com', 'Valencia');
+SELECT fecha, monto,
+       LAG(monto, 1) OVER (ORDER BY fecha) AS monto_anterior,
+       monto - LAG(monto, 1) OVER (ORDER BY fecha) AS diferencia
+FROM ventas_diarias;
 ```
 
-También se puede insertar desde una consulta:
+## Funciones de Agregación como Ventana
+
+Las funciones como SUM, AVG pueden usarse como ventana para obtener totales acumulados, promedios móviles, etc.
 
 ```sql
-INSERT INTO clientes_vip (nombre, email)
-SELECT nombre, email FROM clientes WHERE ciudad = 'Madrid';
+SELECT fecha, monto,
+       SUM(monto) OVER (ORDER BY fecha) AS acumulado,
+       AVG(monto) OVER (ORDER BY fecha ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS media_movil_3
+FROM ventas_diarias;
 ```
 
-### UPDATE
+## Definiendo Marcos de Ventana
 
-Modifica filas existentes.
+El marco especifica qué filas incluir. Opciones:
 
-```sql
-UPDATE clientes SET ciudad = 'Sevilla' WHERE id = 5;
-```
+- `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW` (desde el inicio hasta la actual).
 
-Siempre usar WHERE para no actualizar toda la tabla.
+- `ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING` (anterior, actual y siguiente).
 
-### DELETE
+- `RANGE` trabaja con valores en lugar de filas (útil para fechas).
 
-Elimina filas.
+## Ejemplo: Ranking por Departamento
 
-```sql
-DELETE FROM clientes WHERE email IS NULL;
-```
-
-Sin WHERE, elimina todas las filas (pero la tabla sigue existiendo). Para vaciado masivo, TRUNCATE es más rápido.
-
-### MERGE (UPSERT)
-
-Algunos motores (SQL Server, Oracle, PostgreSQL con ON CONFLICT) permiten insertar o actualizar según exista o no la fila. Es muy útil en sincronización de datos.
+Obtener los empleados mejor pagados de cada departamento (top 3).
 
 ```sql
--- PostgreSQL
-INSERT INTO clientes (id, nombre, email)
-VALUES (1, 'Ana', 'ana@mail.com')
-ON CONFLICT (id) DO UPDATE SET nombre = EXCLUDED.nombre, email = EXCLUDED.email;
-```
-
-## DCL (Data Control Language)
-
-El sublenguaje de control de datos gestiona los permisos y accesos a los objetos de la base de datos. Es fundamental en entornos multiusuario y para cumplir normativas de seguridad.
-
-### GRANT
-
-Otorga privilegios a usuarios o roles.
-
-```sql
--- Otorgar permiso de SELECT sobre la tabla clientes al usuario 'analista'
-GRANT SELECT ON clientes TO analista;
-
--- Otorgar todos los privilegios sobre la base de datos
-GRANT ALL PRIVILEGES ON DATABASE mi_bd TO admin;
-```
-
-Los privilegios comunes son: SELECT, INSERT, UPDATE, DELETE, REFERENCES, TRIGGER, CREATE, CONNECT, etc.
-
-### REVOKE
-
-Revoca permisos previamente otorgados.
-
-```sql
-REVOKE DELETE ON clientes FROM analista;
-```
-
-### Casos de Uso en Entrevistas
-
-En entrevistas suelen preguntar cómo se gestionan los permisos en entornos multi-rol, o cómo asegurar que un usuario solo pueda leer datos. También es común preguntar sobre el principio de mínimo privilegio.
-
-## TCL (Transaction Control Language)
-
-El sublenguaje de control de transacciones permite gestionar los cambios realizados con DML, agrupándolos en unidades lógicas que pueden confirmarse o deshacerse.
-
-### BEGIN / START TRANSACTION
-
-Inicia una transacción. En algunos motores (PostgreSQL) se usa BEGIN; en MySQL, START TRANSACTION.
-
-```sql
-BEGIN;
-UPDATE cuentas SET saldo = saldo - 100 WHERE id = 1;
-UPDATE cuentas SET saldo = saldo + 100 WHERE id = 2;
--- Aún no son permanentes
-```
-
-### COMMIT
-
-Confirma todos los cambios realizados en la transacción actual, haciéndolos permanentes.
-
-```sql
-COMMIT;
-```
-
-### ROLLBACK
-
-Deshace todos los cambios realizados desde el BEGIN, volviendo al estado anterior.
-
-```sql
-ROLLBACK;
-```
-
-### SAVEPOINT
-
-Permite establecer puntos intermedios dentro de una transacción para poder deshacer solo una parte.
-
-```sql
-BEGIN;
-UPDATE cuentas SET saldo = saldo - 100 WHERE id = 1;
-SAVEPOINT despues_de_restar;
-UPDATE cuentas SET saldo = saldo + 100 WHERE id = 2;
--- Si algo falla, podemos retroceder al savepoint
-ROLLBACK TO SAVEPOINT despues_de_restar;
--- Luego podemos continuar o hacer COMMIT
-COMMIT;
-```
-
-### Propiedades ACID
-
-Las transacciones garantizan las propiedades ACID (Atomicidad, Consistencia, Aislamiento, Durabilidad), tema recurrente en entrevistas. Es importante saber explicarlas con ejemplos.
-
-## Comparativa entre Sublenguajes
-
-A modo de resumen, la siguiente tabla muestra los comandos principales de cada sublenguaje:
-
-::: center
-  **Sublenguaje**   **Comandos principales**                **Uso**
-  ----------------- --------------------------------------- -------------------------
-  DDL               CREATE, ALTER, DROP, TRUNCATE           Definir estructura
-  DML               SELECT, INSERT, UPDATE, DELETE, MERGE   Manipular datos
-  DCL               GRANT, REVOKE                           Controlar permisos
-  TCL               BEGIN, COMMIT, ROLLBACK, SAVEPOINT      Gestionar transacciones
-:::
-
-## Ejercicios Resueltos Integradores
-
-A continuación, ejercicios que combinan varios sublenguajes.
-
-### Ejercicio 1: Creación y manipulación
-
-**Enunciado:** Crear una tabla `productos` con columnas id, nombre, precio, stock. Insertar tres productos. Actualizar el precio de uno. Eliminar un producto. Finalmente, otorgar permisos de SELECT a un usuario.
-
-**Solución:**
-
-```sql
--- DDL
-CREATE TABLE productos (
-    id SERIAL PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL,
-    precio DECIMAL(10,2) CHECK (precio > 0),
-    stock INT DEFAULT 0
-);
-
--- DML
-INSERT INTO productos (nombre, precio, stock) VALUES
-('Laptop', 1200.00, 10),
-('Mouse', 25.50, 50),
-('Teclado', 45.00, 30);
-
-UPDATE productos SET precio = 1150.00 WHERE nombre = 'Laptop';
-
-DELETE FROM productos WHERE nombre = 'Mouse';
-
--- DCL
-GRANT SELECT ON productos TO analista;
-```
-
-### Ejercicio 2: Transacción con error
-
-**Enunciado:** Realizar una transferencia bancaria entre dos cuentas, asegurando que si una operación falla, ninguna se aplique. Usar transacciones.
-
-**Solución:**
-
-```sql
-BEGIN;
-UPDATE cuentas SET saldo = saldo - 500 WHERE id = 1;
-UPDATE cuentas SET saldo = saldo + 500 WHERE id = 2;
--- Si todo va bien
-COMMIT;
--- Si ocurre un error antes del COMMIT, se puede hacer ROLLBACK
-```
-
-### Ejercicio 3: Permisos y seguridad
-
-**Enunciado:** Crear un usuario 'lector' que solo pueda hacer SELECT en la tabla `clientes`, y un usuario 'editor' que pueda INSERT, UPDATE y DELETE. Implementar los comandos DCL.
-
-**Solución:**
-
-```sql
--- Crear usuarios (en PostgreSQL)
-CREATE USER lector WITH PASSWORD 'pass1';
-CREATE USER editor WITH PASSWORD 'pass2';
-
--- Otorgar permisos
-GRANT SELECT ON clientes TO lector;
-GRANT SELECT, INSERT, UPDATE, DELETE ON clientes TO editor;
-
--- Revocar permisos si es necesario
-REVOKE DELETE ON clientes FROM editor;
-```
-
-## Conclusión
-
-Dominar los cuatro sublenguajes de SQL es fundamental para cualquier profesional de datos. No solo se trata de escribir consultas, sino de entender cómo definir estructuras robustas (DDL), manipular datos eficientemente (DML), controlar accesos (DCL) y garantizar la integridad transaccional (TCL). Estos conceptos son evaluados constantemente en entrevistas técnicas y son la base para construir sistemas de bases de datos seguros, escalables y confiables.
-
-# El Proceso Interno de una Consulta SQL
-
-Para escribir SQL eficiente, es crucial entender cómo el motor procesa una consulta. No basta con saber la sintaxis; hay que comprender el flujo lógico y físico.
-
-## Orden Lógico de Ejecución de una Consulta
-
-Aunque escribimos SELECT \... FROM \... WHERE \... GROUP BY \... HAVING \... ORDER BY \... LIMIT, el motor ejecuta en un orden diferente. El orden lógico (conceptual) es:
-
-1.  **FROM y JOINs**: Se construye el conjunto de datos base (producto cartesiano de las tablas involucradas, aplicando las condiciones de JOIN).
-
-2.  **WHERE**: Se filtran las filas según las condiciones.
-
-3.  **GROUP BY**: Se agrupan las filas.
-
-4.  **HAVING**: Se filtran los grupos.
-
-5.  **SELECT**: Se evalúan las expresiones de las columnas, incluyendo funciones de agregación.
-
-6.  **ORDER BY**: Se ordena el resultado.
-
-7.  **LIMIT / OFFSET**: Se recorta el resultado.
-
-Este orden es importante porque, por ejemplo, no se puede usar un alias de SELECT en WHERE (porque WHERE se ejecuta antes). Tampoco se pueden usar funciones de ventana en WHERE por la misma razón.
-
-### Ejemplo
-
-```sql
-SELECT nombre, salario, salario * 12 AS salario_anual
-FROM empleados
-WHERE salario > 3000
-ORDER BY salario_anual;
-```
-
-Aquí, el alias `salario_anual` se puede usar en ORDER BY porque se calcula antes de ordenar, pero no se podría usar en WHERE.
-
-## El Camino Físico: De la Consulta al Hardware
-
-Cuando ejecutamos una consulta, ocurren múltiples etapas:
-
-### Parsing (Análisis Sintáctico)
-
-El motor verifica que la consulta sea sintácticamente correcta y que las tablas y columnas existan. Genera un árbol de consulta.
-
-### Optimización
-
-El optimizador (basado en costos, CBO) genera varios planes de ejecución posibles y estima su costo (en términos de E/S, CPU, memoria). Considera:
-
-- Estadísticas de las tablas (número de filas, distribución de valores, histogramas).
-
-- Existencia de índices.
-
-- Métodos de acceso (seq scan, index scan, bitmap scan).
-
-- Algoritmos de JOIN (nested loop, hash join, merge join).
-
-Elige el plan de menor costo estimado.
-
-### Ejecución
-
-El plan se ejecuta, interactuando con el buffer cache y el almacenamiento. Si los datos están en caché (buffer pool), se evita E/S a disco. De lo contrario, se leen páginas del disco.
-
-### Retorno de Resultados
-
-Las filas resultantes se envían al cliente, posiblemente en lotes.
-
-### Hardware Involucrado
-
-- **CPU**: Procesa las condiciones, cálculos, agregaciones.
-
-- **RAM (Buffer Pool)**: Almacena páginas de datos e índices recientemente usados.
-
-- **Disco (SSD/HDD)**: Si hay cache miss, se lee de disco.
-
-- **Red**: Transmite los resultados al cliente.
-
-En entrevistas, preguntan cómo optimizar: reducir E/S, usar índices, evitar ordenamientos innecesarios, etc.
-
-## EXPLAIN: La Herramienta Clave
-
-Para entender el plan de ejecución, usamos `EXPLAIN` (y `EXPLAIN ANALYZE` para ejecutar realmente y ver tiempos).
-
-```sql
-EXPLAIN (ANALYZE, BUFFERS) SELECT * FROM clientes WHERE ciudad = 'Madrid';
-```
-
-Muestra el plan, costos estimados, filas reales, tiempo, y accesos a buffers (caché vs disco). Es esencial en entrevistas para demostrar capacidad de diagnóstico.
-
-# Joins: Combinando Tablas
-
-Las bases de datos relacionales se basan en la normalización, que distribuye la información en múltiples tablas relacionadas mediante claves. Para recuperar datos que están dispersos, necesitamos combinar tablas mediante JOINs. Un JOIN combina filas de dos o más tablas basándose en una condición relacionada.
-
-## Producto Cartesiano y JOIN
-
-Si escribimos:
-
-```sql
-SELECT * FROM A, B;
-```
-
-Obtenemos el producto cartesiano (todas las combinaciones de filas de A con B). Esto rara vez es útil. Los JOINs añaden una condición para filtrar las combinaciones relevantes.
-
-## Tipos de JOIN
-
-Existen varios tipos, que se ilustran con diagramas de Venn (aunque hay que tener cuidado porque los conjuntos no son exactamente así, son ilustrativos).
-
-### INNER JOIN
-
-Devuelve solo las filas que tienen correspondencia en ambas tablas.
-
-::: center
-:::
-
-Sintaxis:
-
-```sql
-SELECT columnas
-FROM tablaA
-INNER JOIN tablaB ON tablaA.clave = tablaB.clave;
-```
-
-También se puede usar la palabra clave `JOIN` a secas (por defecto es INNER).
-
-### LEFT JOIN (o LEFT OUTER JOIN)
-
-Devuelve todas las filas de la tabla izquierda, y las coincidentes de la derecha. Si no hay coincidencia, las columnas de la derecha son NULL.
-
-::: center
-:::
-
-Sintaxis:
-
-```sql
-SELECT columnas
-FROM tablaA
-LEFT JOIN tablaB ON tablaA.clave = tablaB.clave;
-```
-
-### RIGHT JOIN
-
-Análogo al LEFT, pero con la tabla derecha como maestra. Es menos usado porque se puede escribir el LEFT cambiando el orden.
-
-### FULL OUTER JOIN
-
-Devuelve todas las filas de ambas tablas, rellenando con NULL donde no hay coincidencia.
-
-::: center
-:::
-
-Sintaxis:
-
-```sql
-SELECT columnas
-FROM tablaA
-FULL OUTER JOIN tablaB ON tablaA.clave = tablaB.clave;
-```
-
-### CROSS JOIN
-
-Producto cartesiano (cada fila de A con cada fila de B). No lleva condición.
-
-```sql
-SELECT * FROM tablaA CROSS JOIN tablaB;
--- Equivalente a SELECT * FROM tablaA, tablaB;
-```
-
-### Self-Join
-
-Una tabla se une consigo misma. Es útil para relaciones jerárquicas (ej. empleados con jefe).
-
-```sql
-SELECT e1.nombre AS empleado, e2.nombre AS jefe
-FROM empleados e1
-LEFT JOIN empleados e2 ON e1.jefe_id = e2.id;
-```
-
-### JOIN con condiciones no equitativas
-
-La condición puede incluir otros operadores (\>, \<, BETWEEN). Pero hay que tener en cuenta que estos joins pueden ser costosos.
-
-```sql
-SELECT *
-FROM ventas v
-JOIN productos p ON v.producto_id = p.id AND v.cantidad > p.stock_minimo;
-```
-
-## Algoritmos de JOIN Internos
-
-El motor elige entre varios algoritmos según el tamaño de las tablas y los índices:
-
-- **Nested Loop:** Para cada fila de la tabla externa, busca coincidencias en la interna (ideal si una es pequeña o hay índice).
-
-- **Hash Join:** Construye una tabla hash en memoria con una de las tablas, luego recorre la otra. Eficiente para tablas grandes sin índices.
-
-- **Merge Join:** Ordena ambas tablas (si no lo están) y luego las fusiona. Útil si ya están ordenadas o se necesita ordenar de todas formas.
-
-Saber cuándo se usa cada uno es una pregunta clásica en entrevistas.
-
-## Ejemplo Práctico con Múltiples Tablas
-
-Supongamos una base de datos de ventas con las tablas:
-
-- `clientes` (id, nombre, ciudad)
-
-- `productos` (id, nombre, precio)
-
-- `pedidos` (id, cliente_id, fecha)
-
-- `detalle_pedido` (pedido_id, producto_id, cantidad)
-
-Queremos obtener una lista de pedidos con nombre del cliente, fecha, productos y cantidad:
-
-```sql
-SELECT c.nombre AS cliente, p.fecha, pr.nombre AS producto, dp.cantidad
-FROM pedidos p
-JOIN clientes c ON p.cliente_id = c.id
-JOIN detalle_pedido dp ON p.id = dp.pedido_id
-JOIN productos pr ON dp.producto_id = pr.id;
-```
-
-Este es un JOIN de cuatro tablas. El orden de los JOINs puede afectar el rendimiento, pero el optimizador suele reordenarlos.
-
-# Subconsultas
-
-Una subconsulta es una consulta anidada dentro de otra. Pueden usarse en SELECT, FROM, WHERE, etc. Son herramientas poderosas pero a veces pueden reescribirse como JOINs para mejorar rendimiento.
-
-## Subconsultas Escalares
-
-Devuelven un solo valor (una fila y una columna). Se usan en expresiones.
-
-```sql
-SELECT nombre, (SELECT AVG(precio) FROM productos) AS precio_medio
-FROM productos;
-```
-
-Deben asegurar que devuelven una sola fila; si devuelven varias, se produce error.
-
-## Subconsultas de Fila Única
-
-Devuelven una fila con varias columnas. Se pueden comparar con operadores como `=, >, <` si se espera una sola fila.
-
-```sql
-SELECT * FROM productos
-WHERE (categoria, precio) = (SELECT categoria, MAX(precio) FROM productos GROUP BY categoria LIMIT 1);
-```
-
-(En la práctica, es más seguro usar EXISTS o IN.)
-
-## Subconsultas de Múltiples Filas
-
-Devuelven varias filas. Se usan con `IN`, `ANY`, `ALL`, `EXISTS`.
-
-- **IN**: Verifica si el valor está en el conjunto.
-
-- **ANY / SOME**: Compara con algún valor del conjunto (ej. \> ANY significa mayor que al menos uno).
-
-- **ALL**: Compara con todos los valores (ej. \> ALL significa mayor que todos).
-
-- **EXISTS**: Verifica si la subconsulta devuelve alguna fila (es más eficiente que IN para conjuntos grandes porque puede parar al encontrar la primera).
-
-```sql
-SELECT nombre FROM clientes
-WHERE id IN (SELECT cliente_id FROM pedidos WHERE fecha >= '2025-01-01');
-
-SELECT nombre FROM clientes c
-WHERE EXISTS (SELECT 1 FROM pedidos p WHERE p.cliente_id = c.id AND p.fecha >= '2025-01-01');
-```
-
-`EXISTS` suele ser más rápido cuando la subconsulta es correlacionada.
-
-## Subconsultas Correlacionadas
-
-Hacen referencia a columnas de la consulta exterior. Se evalúan para cada fila de la consulta externa.
-
-```sql
-SELECT p.nombre, p.precio
-FROM productos p
-WHERE p.precio > (SELECT AVG(precio) FROM productos WHERE categoria = p.categoria);
-```
-
-Aquí, la subconsulta calcula el precio medio de la categoría del producto actual. Pueden ser lentas si la tabla externa es grande.
-
-## Subconsultas en la cláusula FROM
-
-Se puede usar una subconsulta como una tabla derivada (vista temporal). Requiere un alias.
-
-```sql
-SELECT categoria, AVG(precio) AS precio_medio
-FROM (SELECT * FROM productos WHERE activo = true) AS productos_activos
-GROUP BY categoria;
-```
-
-# Common Table Expressions (CTEs)
-
-Las CTEs (WITH queries) permiten definir consultas auxiliares que se comportan como tablas temporales dentro de una consulta principal. Mejoran la legibilidad y permiten consultas recursivas.
-
-## Sintaxis Básica
-
-```sql
-WITH cte_nombre (columnas_opcional) AS (
-    consulta
-)
-SELECT ...
-FROM cte_nombre ...
-```
-
-### Ejemplo
-
-Obtener el total de ventas por cliente y luego filtrar los que superan 1000:
-
-```sql
-WITH ventas_cliente AS (
-    SELECT c.id, c.nombre, SUM(dp.cantidad * pr.precio) AS total
-    FROM clientes c
-    LEFT JOIN pedidos p ON c.id = p.cliente_id
-    LEFT JOIN detalle_pedido dp ON p.id = dp.pedido_id
-    LEFT JOIN productos pr ON dp.producto_id = pr.id
-    GROUP BY c.id, c.nombre
-)
-SELECT * FROM ventas_cliente WHERE total > 1000;
-```
-
-### CTEs Múltiples
-
-Se pueden definir varias CTEs separadas por comas.
-
-```sql
-WITH
-    ventas AS (SELECT ...),
-    clientes_vip AS (SELECT ...)
-SELECT ...
-```
-
-### CTEs Recursivas
-
-Permiten consultar estructuras jerárquicas (ej. organigrama). La sintaxis incluye una parte no recursiva (anchor) y una parte recursiva unida con UNION ALL.
-
-```sql
-WITH RECURSIVE organigrama AS (
-    -- Anchor: el jefe máximo
-    SELECT id, nombre, jefe_id, 1 AS nivel
+WITH ranked AS (
+    SELECT nombre, salario, departamento_id,
+           ROW_NUMBER() OVER (PARTITION BY departamento_id ORDER BY salario DESC) AS rn
     FROM empleados
-    WHERE jefe_id IS NULL
-    UNION ALL
-    -- Recursivo: empleados que tienen jefe
-    SELECT e.id, e.nombre, e.jefe_id, o.nivel + 1
-    FROM empleados e
-    JOIN organigrama o ON e.jefe_id = o.id
 )
-SELECT * FROM organigrama;
+SELECT * FROM ranked WHERE rn <= 3;
 ```
 
-Es una pregunta común en entrevistas avanzadas.
+# Limpieza y Transformación de Datos
 
-## CTEs vs. Subconsultas vs. Tablas Temporales
+La preparación de datos (data cleaning) es una de las tareas que más tiempo consume en proyectos de datos. SQL ofrece potentes funciones para limpiar y transformar.
 
-- Las CTEs son solo azúcar sintáctico; el optimizador puede tratarlas como subconsultas en línea o materializarlas según el motor (en PostgreSQL, se materializan por defecto a menos que se use `NOT MATERIALIZED`).
+## Manejo de Valores Nulos
 
-- Son más legibles y permiten recursión.
+- `COALESCE(expr1, expr2, ...)`: devuelve el primer no nulo.
 
-- Para reutilización múltiple en la misma consulta, una CTE evita repetir código.
+- `NULLIF(expr1, expr2)`: devuelve NULL si expr1 = expr2, sino expr1.
 
-# Buenas Prácticas y Optimización de Consultas SQL
+- `IS NULL / IS NOT NULL`: para filtrar.
 
-Escribir SQL eficiente no solo es cuestión de sintaxis correcta, sino de entender cómo el motor ejecutará la consulta. Aquí hay reglas y patrones que suelen preguntar en entrevistas.
-
-## Preferir EXISTS a IN cuando la subconsulta es grande
+Ejemplo: Reemplazar nulos en email por 'sin email'.
 
 ```sql
--- Menos eficiente si la subconsulta devuelve muchas filas
-SELECT * FROM clientes WHERE id IN (SELECT cliente_id FROM pedidos);
-
--- Más eficiente (puede parar al encontrar el primero)
-SELECT * FROM clientes c WHERE EXISTS (SELECT 1 FROM pedidos p WHERE p.cliente_id = c.id);
+SELECT nombre, COALESCE(email, 'sin email') AS email
+FROM clientes;
 ```
 
-## Evitar Funciones en Columnas Indexadas
+## Funciones de Texto
+
+- `UPPER(texto)`, `LOWER(texto)`, `INITCAP(texto)`: cambiar mayúsculas/minúsculas.
+
+- `CONCAT(str1, str2)` o `||` (operador de concatenación).
+
+- `SUBSTRING(texto FROM inicio FOR longitud)` o `SUBSTR`.
+
+- `REPLACE(texto, de, a)`: reemplazar subcadenas.
+
+- `TRANSLATE(texto, de, a)`: reemplazo carácter a carácter.
+
+- `TRIM([LEADING|TRAILING|BOTH] caracter FROM texto)`: eliminar espacios o caracteres.
+
+- `LPAD(texto, longitud, relleno)`, `RPAD`: rellenar a la izquierda/derecha.
+
+Ejemplo: Normalizar nombres.
 
 ```sql
--- No usará índice en fecha
-SELECT * FROM pedidos WHERE EXTRACT(YEAR FROM fecha) = 2025;
-
--- Mejor (si hay índice en fecha)
-SELECT * FROM pedidos WHERE fecha >= '2025-01-01' AND fecha < '2026-01-01';
+SELECT UPPER(TRIM(nombre)) AS nombre_normalizado
+FROM clientes;
 ```
 
-## Usar UNION ALL en lugar de UNION si no se necesitan duplicados
+### Expresiones Regulares
 
-UNION elimina duplicados (requiere ordenar y comparar), mientras que UNION ALL simplemente concatena.
-
-## SELECT \* Es Peligroso
-
-Siempre especificar las columnas necesarias. SELECT \* puede traer más datos de los necesarios, aumentar E/S y red, y romper la aplicación si cambia el esquema.
-
-## Cuidado con las Conversiones Implícitas
-
-Si comparas un texto con un número, el motor puede convertir toda la columna, impidiendo el uso de índices.
+Muchos motores soportan expresiones regulares (PostgreSQL: ` `, `! `, `REGEXP_MATCH`, `REGEXP_REPLACE`, `REGEXP_SPLIT`). Ejemplo: Extraer el dominio de un email.
 
 ```sql
--- Si id es texto, pero lo comparas con número, puede haber conversión
-SELECT * FROM tabla WHERE id = 123; -- mejor usar '123'
+SELECT email, SUBSTRING(email FROM '@(.*)$') AS dominio
+FROM clientes;
+-- O con regexp_replace
+SELECT REGEXP_REPLACE(email, '.*@', '') AS dominio FROM clientes;
 ```
 
-## Índices y JOINs
+## Funciones de Fecha y Hora
 
-Asegurar que las columnas de JOIN estén indexadas. Para JOINs de muchos a muchos, indexar ambas columnas en la tabla intermedia.
+- `CURRENT_DATE`, `CURRENT_TIMESTAMP`, `NOW()`.
 
-## Analizar el Plan con EXPLAIN
+- `EXTRACT(campo FROM fecha)`: extrae año, mes, día, hora, etc.
 
-Siempre que una consulta sea lenta, usar EXPLAIN (ANALYZE) para ver dónde está el cuello de botella.
+- `DATE_PART(’campo’, fecha)`: similar a EXTRACT.
 
-## Escritura de Consultas Legibles
+- `DATE_TRUNC(’unidad’, fecha)`: trunca a la unidad especificada (año, mes, día).
 
-Usar indentación, alias claros, y mayúsculas para palabras clave. No afecta el rendimiento pero facilita el mantenimiento.
+- `fecha1 - fecha2`: diferencia en días (depende del motor).
 
-# Consideraciones de Hardware y Motor
+- `INTERVAL`: suma o resta intervalos.
 
-## Buffer Pool y Caché
+Ejemplo: Obtener ventas del último mes.
 
-El tamaño del buffer pool (por ejemplo, `innodb_buffer_pool_size` en MySQL, `shared_buffers` en PostgreSQL) es crítico. Si los datos caben en memoria, las consultas son mucho más rápidas.
+```sql
+SELECT * FROM ventas
+WHERE fecha >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month')
+  AND fecha < DATE_TRUNC('month', CURRENT_DATE);
+```
 
-## Disco: SSD vs HDD
+## Conversión de Tipos
 
-En producción, siempre SSD. Las lecturas secuenciales son más rápidas, pero los índices requieren lecturas aleatorias. SSD mejora drásticamente las lecturas aleatorias.
+- `CAST(expr AS tipo)` o `expr::tipo` (PostgreSQL).
 
-## Parallel Query
+- `TO_CHAR(fecha, formato)`: formatear fecha a texto.
 
-Algunos motores pueden usar múltiples CPUs para una consulta (paralelismo). Esto puede acelerar agregaciones y escaneos.
+- `TO_DATE(texto, formato)`: texto a fecha.
 
-## Configuración del Motor
+- `TO_NUMBER(texto, formato)`: texto a número.
 
-Parámetros como el tamaño de memoria para hash joins, el costo de E/S, etc., pueden ajustarse. En entrevistas, suelen preguntar sobre parámetros genéricos.
+Ejemplo: Convertir texto '2025-03-01' a fecha.
 
-# Breve Comparación entre Motores (para JOINs y DML)
+```sql
+SELECT TO_DATE('2025-03-01', 'YYYY-MM-DD');
+```
 
-Aunque nos centramos en SQL estándar, cada motor tiene peculiaridades:
+## Ejercicio Resuelto: Limpieza de Datos de Clientes
 
-- **PostgreSQL**: Cumple con el estándar, soporta CTEs recursivas, FULL JOIN, y tiene un optimizador muy maduro.
+**Enunciado:** La tabla `clientes_raw` tiene columnas: id, nombre (con espacios y mayúsculas inconsistentes), email (con algunos nulos), fecha_registro (como texto en formato 'DD/MM/YYYY'). Limpiar:
 
-- **MySQL**: No soporta FULL JOIN (se simula con UNION). Los JOINs pueden ser lentos si no se usan índices.
+1.  Nombre en formato título (initcap) y sin espacios extras.
 
-- **SQL Server**: Ofrece sugerencias de JOIN (LOOP, HASH, MERGE) y soporta CTEs recursivas.
+2.  Email: si es nulo, asignar 'pendiente@mail.com'.
 
-- **Oracle**: Sintaxis antigua de JOIN (+) para outer joins, pero se recomienda usar ANSI.
-
-En entrevistas, es importante conocer las diferencias si el puesto requiere un motor específico.
-
-# Joins en el Mundo NoSQL (Una Breve Mirada)
-
-Aunque esta sesión se centra en SQL, es útil saber cómo se abordan las relaciones en bases de datos NoSQL, ya que en proyectos modernos pueden convivir ambos paradigmas.
-
-- **MongoDB (documental):** No soporta joins nativos entre colecciones, pero desde la versión 3.2 incluye el operador `$lookup` en el pipeline de agregación, que realiza un left outer join con otra colección. Sin embargo, su uso es limitado y se recomienda diseñar documentos embebidos para evitar joins.
-
-- **Cassandra (columna ancha):** No soporta joins. El modelado se basa en desnormalización y tablas diseñadas específicamente para las consultas.
-
-- **Redis (clave-valor):** No tiene joins; las relaciones se manejan a nivel de aplicación o mediante estructuras como sets y sorted sets.
-
-- **Neo4j (grafos):** Las relaciones son nativas; en lugar de joins, se navegan los nodos y relaciones con patrones de camino.
-
-En resumen, en NoSQL se sacrifica la capacidad de join en favor de escalabilidad y rendimiento, por lo que el diseño de datos es fundamental.
-
-# Ejercicios Resueltos
-
-A continuación se presentan ejercicios que integran los conceptos vistos. Se resuelven paso a paso.
-
-## Ejercicio 1: Consultas Básicas con DML
-
-**Enunciado:** Dada la tabla `empleados` con columnas `id`, *nombre*, *salario*, *departamento_id*. Insertar tres empleados, actualizar el salario de uno, y luego eliminar los empleados de un departamento específico.
+3.  Fecha convertida a tipo DATE.
 
 **Solución:**
 
 ```sql
--- Insertar
-INSERT INTO empleados (nombre, salario, departamento_id) VALUES
-('Juan Perez', 3000, 1),
-('Ana Garcia', 3500, 2),
-('Luis Fernandez', 3200, 1);
-
--- Actualizar salario de Juan
-UPDATE empleados SET salario = 3300 WHERE nombre = 'Juan Perez';
-
--- Eliminar empleados del departamento 2
-DELETE FROM empleados WHERE departamento_id = 2;
+SELECT id,
+       INITCAP(TRIM(nombre)) AS nombre_limpio,
+       COALESCE(email, 'pendiente@mail.com') AS email,
+       TO_DATE(fecha_registro, 'DD/MM/YYYY') AS fecha_registro_date
+FROM clientes_raw;
 ```
 
-## Ejercicio 2: INNER JOIN y LEFT JOIN
+# Técnicas Avanzadas para ETL y Transformación
 
-**Enunciado:** Usar las tablas `clientes`, `pedidos` y `detalle_pedido` del ejemplo anterior. Obtener:
+En procesos ETL (Extract, Transform, Load) y preparación de datos para IA, se requieren técnicas más sofisticadas.
 
-1.  Todos los pedidos con el nombre del cliente y la fecha.
+## Tablas Temporales
 
-2.  Todos los clientes, incluso si no tienen pedidos, mostrando el número de pedidos (0 si no tiene).
-
-3.  El total gastado por cada cliente (suma de cantidad \* precio de cada producto en sus pedidos).
-
-**Solución:**
+Las tablas temporales existen solo durante la sesión. Útiles para almacenar resultados intermedios.
 
 ```sql
--- 1. Pedidos con cliente
-SELECT p.id, c.nombre, p.fecha
-FROM pedidos p
-INNER JOIN clientes c ON p.cliente_id = c.id;
-
--- 2. Todos los clientes con número de pedidos
-SELECT c.id, c.nombre, COUNT(p.id) AS num_pedidos
-FROM clientes c
-LEFT JOIN pedidos p ON c.id = p.cliente_id
-GROUP BY c.id, c.nombre;
-
--- 3. Total gastado por cliente
-SELECT c.id, c.nombre, COALESCE(SUM(dp.cantidad * pr.precio), 0) AS total_gastado
-FROM clientes c
-LEFT JOIN pedidos p ON c.id = p.cliente_id
-LEFT JOIN detalle_pedido dp ON p.id = dp.pedido_id
-LEFT JOIN productos pr ON dp.producto_id = pr.id
-GROUP BY c.id, c.nombre;
+CREATE TEMP TABLE resumen_departamento AS
+SELECT departamento_id, AVG(salario) AS salario_prom
+FROM empleados
+GROUP BY departamento_id;
 ```
 
-Explicación: Usamos LEFT JOIN para incluir clientes sin pedidos, y COALESCE para mostrar 0 en lugar de NULL.
+Luego podemos usarla en consultas posteriores.
 
-## Ejercicio 3: Subconsultas
+## Common Table Expressions (CTEs)
 
-**Enunciado:** Encontrar los productos cuyo precio es superior al precio medio de su categoría. Usar subconsulta correlacionada.
-
-**Solución:**
-
-```sql
-SELECT p.nombre, p.precio, p.categoria
-FROM productos p
-WHERE p.precio > (SELECT AVG(precio) FROM productos WHERE categoria = p.categoria);
-```
-
-## Ejercicio 4: Uso de CTE
-
-**Enunciado:** Obtener los empleados que ganan más que el salario promedio de su departamento, mostrando el nombre del empleado, su salario y el promedio del departamento.
-
-**Solución:**
+Las CTEs (WITH) mejoran la legibilidad y permiten recursión. Ya las vimos en la sesión anterior, pero aquí las aplicamos a transformaciones complejas. Ejemplo: Encontrar empleados con salario superior al promedio de su departamento.
 
 ```sql
 WITH promedio_depto AS (
@@ -890,113 +372,251 @@ WITH promedio_depto AS (
     FROM empleados
     GROUP BY departamento_id
 )
-SELECT e.nombre, e.salario, pd.salario_prom
+SELECT e.nombre, e.salario, e.departamento_id, pd.salario_prom
 FROM empleados e
 JOIN promedio_depto pd ON e.departamento_id = pd.departamento_id
 WHERE e.salario > pd.salario_prom;
 ```
 
-## Ejercicio 5: Optimización y EXPLAIN
+## Subconsultas Correlacionadas en Transformaciones
 
-**Enunciado:** Dada una consulta lenta, ¿cómo diagnosticarías y optimizarías? Supongamos: `SELECT * FROM pedidos WHERE EXTRACT(YEAR FROM fecha) = 2025;`
+Son útiles para comparar cada fila con un agregado de su grupo, como ya vimos.
 
-**Solución:**
+## Condicionales con CASE
 
-1.  Usar EXPLAIN ANALYZE para ver el plan.
+`CASE` permite lógica condicional en SQL. Es muy usado para categorizar datos.
 
-2.  Probablemente hará un seq scan porque la función impide usar índice en fecha.
+```sql
+SELECT nombre, salario,
+       CASE
+           WHEN salario < 2000 THEN 'Bajo'
+           WHEN salario < 4000 THEN 'Medio'
+           ELSE 'Alto'
+       END AS categoria_salarial
+FROM empleados;
+```
 
-3.  Reescribir: `SELECT * FROM pedidos WHERE fecha >= ’2025-01-01’ AND fecha < ’2026-01-01’;`
+## Pivotes con CASE y Agregación Condicional
 
-4.  Crear índice en `fecha` si no existe.
+Para convertir filas en columnas (pivot), se puede usar CASE dentro de funciones de agregación. Ejemplo: Mostrar ventas por año y mes en columnas separadas.
 
-5.  Verificar con EXPLAIN que ahora use index scan.
+```sql
+SELECT producto,
+       SUM(CASE WHEN EXTRACT(month FROM fecha) = 1 THEN monto ELSE 0 END) AS enero,
+       SUM(CASE WHEN EXTRACT(month FROM fecha) = 2 THEN monto ELSE 0 END) AS febrero,
+       ...
+FROM ventas
+GROUP BY producto;
+```
 
-## Ejercicio 6: Recursividad con CTE
+También se puede usar `FILTER (WHERE condición)` en algunos motores:
 
-**Enunciado:** Dada una tabla `empleados` con `id`, *nombre*, *jefe_id*, obtener el organigrama completo con niveles.
+```sql
+SELECT producto,
+       SUM(monto) FILTER (WHERE EXTRACT(month FROM fecha) = 1) AS enero,
+       SUM(monto) FILTER (WHERE EXTRACT(month FROM fecha) = 2) AS febrero
+FROM ventas
+GROUP BY producto;
+```
+
+## Uniones y Combinaciones Avanzadas
+
+A veces necesitamos combinar datos de diferentes fuentes con UNION, INTERSECT, EXCEPT.
+
+```sql
+-- Clientes que son también proveedores
+SELECT id, nombre FROM clientes
+INTERSECT
+SELECT id, nombre FROM proveedores;
+```
+
+## Manejo de Duplicados
+
+Podemos eliminar duplicados usando DISTINCT, o identificar duplicados con ROW_NUMBER.
+
+```sql
+WITH duplicados AS (
+    SELECT *, ROW_NUMBER() OVER (PARTITION BY email ORDER BY id) AS rn
+    FROM clientes
+)
+DELETE FROM duplicados WHERE rn > 1; -- En PostgreSQL se necesita usar la tabla real
+```
+
+Pero en la práctica, para eliminar, se usa una subconsulta o una tabla temporal.
+
+## Ejercicio Resuelto: Transformación Compleja
+
+**Enunciado:** Dada una tabla `ventas` (id, fecha, producto, monto) y `productos` (id, nombre, categoria), se pide:
+
+1.  Crear una tabla temporal con las ventas del último trimestre.
+
+2.  Calcular el total de ventas por categoría y mes, mostrando los meses como columnas (pivot).
+
+3.  Añadir una columna que clasifique las ventas como 'baja' (\<100), 'media' (100-500), 'alta' (\>500).
+
+4.  Finalmente, mostrar solo las categorías con ventas totales \> 1000.
 
 **Solución:**
 
 ```sql
-WITH RECURSIVE organigrama AS (
-    SELECT id, nombre, jefe_id, 1 AS nivel
+-- 1. Tabla temporal con ventas último trimestre
+CREATE TEMP TABLE ventas_trimestre AS
+SELECT v.*, p.categoria
+FROM ventas v
+JOIN productos p ON v.producto = p.id
+WHERE v.fecha >= DATE_TRUNC('quarter', CURRENT_DATE) - INTERVAL '3 months';
+
+-- 2. Pivot por mes
+SELECT categoria,
+       SUM(CASE WHEN EXTRACT(month FROM fecha) = 1 THEN monto ELSE 0 END) AS enero,
+       SUM(CASE WHEN EXTRACT(month FROM fecha) = 2 THEN monto ELSE 0 END) AS febrero,
+       SUM(CASE WHEN EXTRACT(month FROM fecha) = 3 THEN monto ELSE 0 END) AS marzo,
+       SUM(monto) AS total
+FROM ventas_trimestre
+GROUP BY categoria;
+
+-- 3. Clasificación
+SELECT *,
+       CASE
+           WHEN monto < 100 THEN 'baja'
+           WHEN monto <= 500 THEN 'media'
+           ELSE 'alta'
+       END AS clasificacion
+FROM ventas_trimestre;
+
+-- 4. Filtro por total > 1000
+SELECT categoria, SUM(monto) AS total
+FROM ventas_trimestre
+GROUP BY categoria
+HAVING SUM(monto) > 1000;
+```
+
+# Ejercicios Resueltos Adicionales
+
+## Ejercicio 1: Series Temporales
+
+**Enunciado:** Calcular la media móvil de 7 días de las ventas diarias. **Solución:**
+
+```sql
+SELECT fecha, monto,
+       AVG(monto) OVER (ORDER BY fecha ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS media_movil_7
+FROM ventas_diarias;
+```
+
+## Ejercicio 2: Limpieza de Texto y Expresiones Regulares
+
+**Enunciado:** Extraer el código postal de una dirección que está en el formato \"Calle Falsa 123, 28080 Madrid\". Se supone que el código postal son 5 dígitos. **Solución:**
+
+```sql
+SELECT direccion,
+       SUBSTRING(direccion FROM '[0-9]{5}') AS codigo_postal
+FROM clientes;
+```
+
+## Ejercicio 3: Agregación Condicional
+
+**Enunciado:** Contar empleados por departamento y también cuántos tienen salario \> 3000. **Solución:**
+
+```sql
+SELECT departamento_id,
+       COUNT(*) AS total,
+       COUNT(*) FILTER (WHERE salario > 3000) AS altos_salarios
+FROM empleados
+GROUP BY departamento_id;
+```
+
+## Ejercicio 4: CTE Recursiva para Jerarquía
+
+**Enunciado:** Obtener todos los subordinados de un empleado dado (id=5) en una tabla empleados con jefe_id. **Solución:**
+
+```sql
+WITH RECURSIVE subordinados AS (
+    SELECT id, nombre, jefe_id
     FROM empleados
-    WHERE jefe_id IS NULL
+    WHERE id = 5
     UNION ALL
-    SELECT e.id, e.nombre, e.jefe_id, o.nivel + 1
+    SELECT e.id, e.nombre, e.jefe_id
     FROM empleados e
-    JOIN organigrama o ON e.jefe_id = o.id
+    JOIN subordinados s ON e.jefe_id = s.id
 )
-SELECT * FROM organigrama ORDER BY nivel, nombre;
+SELECT * FROM subordinados;
 ```
 
 # Glosario de Términos
 
-DML
+Función de agregación
 
-:   Data Manipulation Language: sublenguaje de SQL para manipular datos (SELECT, INSERT, UPDATE, DELETE).
+:   Función que opera sobre un conjunto de filas y devuelve un único valor (SUM, AVG, COUNT).
 
-JOIN
+GROUP BY
 
-:   Operación que combina filas de dos o más tablas basándose en una condición relacionada.
+:   Agrupa filas que comparten valores en columnas especificadas.
 
-INNER JOIN
+HAVING
 
-:   Devuelve solo las filas que tienen correspondencia en ambas tablas.
+:   Filtra grupos después de la agregación.
 
-LEFT JOIN
+ROLLUP
 
-:   Devuelve todas las filas de la tabla izquierda, y las coincidentes de la derecha.
+:   Extensión de GROUP BY que genera subtotales.
 
-FULL OUTER JOIN
+CUBE
 
-:   Devuelve todas las filas de ambas tablas, rellenando con NULL donde no hay coincidencia.
+:   Genera todas las combinaciones de subtotales.
 
-Subconsulta
+Función de ventana
 
-:   Consulta anidada dentro de otra consulta.
+:   Función que calcula un valor sobre un conjunto de filas relacionadas sin colapsar.
 
-Subconsulta correlacionada
+OVER
 
-:   Subconsulta que hace referencia a columnas de la consulta exterior.
+:   Define la ventana para funciones de ventana.
+
+PARTITION BY
+
+:   Divide el conjunto en particiones dentro de una ventana.
+
+ROW_NUMBER
+
+:   Asigna un número secuencial único.
+
+RANK
+
+:   Asigna rango con huecos.
+
+DENSE_RANK
+
+:   Asigna rango sin huecos.
+
+LAG / LEAD
+
+:   Accede a filas anteriores o posteriores.
+
+COALESCE
+
+:   Devuelve el primer valor no nulo.
+
+NULLIF
+
+:   Devuelve NULL si dos expresiones son iguales.
+
+Expresión regular
+
+:   Patrón para búsqueda y manipulación de texto.
 
 CTE
 
-:   Common Table Expression (WITH clause): consulta auxiliar que puede ser referenciada múltiples veces.
+:   Common Table Expression (WITH clause).
 
-Recursive CTE
+Tabla temporal
 
-:   CTE que se llama a sí misma, útil para jerarquías.
+:   Tabla que existe solo durante una sesión.
 
-EXPLAIN
+CASE
 
-:   Comando para mostrar el plan de ejecución de una consulta.
+:   Expresión condicional.
 
-Plan de ejecución
+Pivot
 
-:   Secuencia de operaciones que el motor realizará para ejecutar una consulta.
+:   Transformación de filas en columnas.
 
-Buffer Pool
-
-:   Área de memoria donde se cachean páginas de datos e índices.
-
-Index Scan
-
-:   Acceso a tabla mediante un índice.
-
-Seq Scan
-
-:   Escaneo secuencial de toda la tabla.
-
-# Referencias {#referencias .unnumbered}
-
-- Elmasri, R., & Navathe, S. B. (2016). *Fundamentals of Database Systems*. 7th ed. Pearson.
-
-- Silberschatz, A., Korth, H. F., & Sudarshan, S. (2020). *Database System Concepts*. 7th ed. McGraw-Hill.
-
-- Documentación oficial de PostgreSQL: <https://www.postgresql.org/docs/>
-
-- Documentación de MySQL: <https://dev.mysql.com/doc/>
-
-- "Use The Index, Luke" -- Guía de optimización de SQL: <https://use-the-index-luke.com/>

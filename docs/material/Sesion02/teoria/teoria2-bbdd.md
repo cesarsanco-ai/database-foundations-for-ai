@@ -1,5 +1,5 @@
 
-## Sesión 3
+## Sesión 2
 # MODELAMIENTO DE DATOS
 ## De la realidad del negocio al esquema físico
 
@@ -104,30 +104,6 @@ Es la implementación concreta en el SGBD elegido. Se definen tipos de datos esp
 - `BLOB` para datos binarios (imágenes, archivos).
 - Tipos especiales: `JSON`, `JSONB` (PostgreSQL), `GEOMETRY` (espacial).
 
-#### Índices avanzados
-Los índices son estructuras de acceso rápido que aceleran las consultas.
-
-- **B-Tree:** El más común. Equilibrado, ordenado. Soporta búsquedas por igualdad y rango (<, >, BETWEEN). Ideal para columnas con muchos valores distintos.
-- **Hash:** Solo para igualdad (=). Muy rápido pero no soporta rangos. Útil en tablas en memoria o para claves de caché.
-- **Bitmap:** Usado en columnas con pocos valores distintos (baja cardinalidad). Cada valor tiene un mapa de bits. Eficiente para combinaciones de condiciones en data warehousing.
-- **GiST (Generalized Search Tree):** Soporta tipos de datos complejos como geometría (GIS), búsqueda por proximidad, texto completo. PostgreSQL.
-- **GIN (Generalized Inverted Index):** Ideal para índices invertidos, como búsqueda de texto completo, arrays, JSONB. Permite buscar elementos dentro de un documento.
-- **BRIN (Block Range Index):** Para tablas muy grandes donde los datos están ordenados físicamente (ej. series temporales). Almacena resúmenes por bloques, ocupa poco espacio.
-- **Índices compuestos:** Sobre varias columnas. El orden importa: se pueden usar para búsquedas por la primera columna, pero no eficientemente por las siguientes si la primera no está filtrada.
-- **Índices funcionales:** Sobre el resultado de una función (ej. `LOWER(email)`). Útil para búsquedas case-insensitive.
-
-```sql
--- Ejemplo de índice compuesto en PostgreSQL
-CREATE INDEX idx_apellido_nombre ON clientes(apellido, nombre);
--- Ejemplo de índice GIN sobre JSONB
-CREATE INDEX idx_datos ON tabla USING gin (datos_jsonb);
-```
-
-#### Particionamiento
-Dividir una tabla grande en fragmentos más pequeños según una clave. Mejora el rendimiento y facilita la gestión.
-- **Por rango:** Ej. ventas por mes.
-- **Por lista:** Ej. región geográfica.
-- **Por hash:** Distribución uniforme.
 
 ---
 
@@ -506,25 +482,7 @@ Mecanismos para controlar la concurrencia.
 
 ---
 
-## Modelamiento para Big Data y NoSQL
 
-En entornos modernos, es común encontrarse con bases de datos NoSQL. Conocer sus principios ayuda a elegir la tecnología adecuada.
-
-### Tipos de bases de datos NoSQL
-- **Clave-valor** (Redis, DynamoDB): Modelo simple, acceso por clave. Ideal para cachés, sesiones.
-- **Documentales** (MongoDB, Couchbase): Almacenan documentos JSON. Se modela pensando en las consultas: se desnormaliza para evitar joins.
-- **Columna ancha** (Cassandra, HBase): Modelado orientado a consultas, con clave de partición y clustering. Las tablas se diseñan según los patrones de acceso.
-- **Grafos** (Neo4j, Amazon Neptune): Nodos y relaciones con propiedades. Ideal para redes sociales, recomendaciones, detección de fraudes.
-
-### Teorema CAP
-En sistemas distribuidos, solo se pueden garantizar dos de tres: Consistencia, Disponibilidad y Tolerancia a Particiones. Los sistemas NoSQL eligen combinaciones (CP, AP, CA).
-
-### Modelamiento en MongoDB
-- **Documentos anidados:** Cuando la relación es "contiene" y el subdocumento no se consulta independientemente.
-- **Referencias:** Cuando los datos son compartidos o grandes, se usa un ID para referenciar otro documento.
-
-### Modelamiento en Cassandra
-Clave primaria compuesta por **clave de partición** (determina nodo) y **clustering columns** (orden dentro de la partición). Las consultas deben filtrar por clave de partición.
 
 ---
 
