@@ -253,29 +253,5 @@ ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
 WHERE valor > (SELECT AVG(...))
 ```
 
----
 
-## ⚡ Buenas prácticas
 
-* Usa ventanas en vez de subqueries cuando puedas
-* Usa `FILTER` para agregaciones limpias
-* Evita duplicados con ROW_NUMBER
-* Limpia datos antes de analizar
-* Usa CTE para legibilidad
-
----
-
-## 🔥 Tips de entrevista
-
-* Diferencia GROUP BY vs WINDOW
-* Explicar LAG/LEAD
-* Saber hacer ranking
-* Pivot con CASE
-* Media móvil
-* Limpieza con COALESCE
-
----
-
-## ⚡ Regla final
-
-👉 **Agregaciones resumen → Ventanas analizan → ETL transforma**
