@@ -11,14 +11,14 @@ Cada sesión incluye material teórico, notebooks de práctica (SQL/Python), eje
 
 | Semana | Tema |
 |--------|--------|
-| 01 | [Introducción](sesiones/sesion-01.md) |
+| 01 | [Ecosistema de Datos](sesiones/sesion-01.md) |
 | 02 | [Modelamiento](sesiones/sesion-02.md) |
 | 03 | [Normalización](sesiones/sesion-03.md) |
 | 04 | [SQL - Parte 1](sesiones/sesion-04.md) |
 | 05 | [SQL - Parte 2](sesiones/sesion-05.md) |
 | 06 | [Optimización de consultas](sesiones/sesion-06.md) |
 | 07 | [Programación en el Servidor](sesiones/sesion-07.md) |
-| 08 | [Pipeline de Datos](sesiones/sesion-08.md) |
+| 08 | [ETL](sesiones/sesion-08.md) |
 | 09 | [Big Data](sesiones/sesion-09.md) |
 | 10 | [Cloud Database](sesiones/sesion-10.md) |
 | 11 | [NoSQL](sesiones/sesion-11.md) |

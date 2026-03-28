@@ -101,3 +101,61 @@ layout: default
 | Búsqueda    | Logs, búsqueda web, métricas                       |
 
 
+
+***
+
+
+Analogias con SQL
+
+---
+
+### 📊 1. Estructura y Conceptos Básicos
+
+| SQL (PostgreSQL / SQL Server) | MongoDB (NoSQL) | Descripción |
+| :--- | :--- | :--- |
+| **Database** | **Database** | El contenedor principal. |
+| **Table** | **Collection** | Donde guardas los datos (ej: `usuarios`). |
+| **Row** (Fila) | **Document** | Un registro individual en formato JSON/BSON. |
+| **Column** | **Field** (Campo) | Una clave dentro del JSON (ej: `"pais": "Perú"`). |
+| **Primary Key** (`id`) | **`_id`** | Identificador único (por defecto es un `ObjectId`). |
+| **View** | **View / Read-only Pipeline** | Una consulta de agregación guardada. |
+
+---
+
+### 🔍 2. Consultas Simples (DML)
+
+| Acción SQL | Filtro en MongoDB Atlas (campo **Filter**) |
+| :--- | :--- |
+| `SELECT * FROM mensajes` | `{}` (Dejar vacío) |
+| `WHERE pais = 'Perú'` | `{ "pais": "Perú" }` |
+| `WHERE id > 10` | `{ "_id": { "$gt": 10 } }` |
+| `WHERE pais IN ('Perú', 'Chile')` | `{ "pais": { "$in": ["Perú", "Chile"] } }` |
+| `WHERE contenido LIKE '%clima%'` | `{ "contenido": { "$regex": "clima", "$options": "i" } }` |
+| `WHERE activo = true AND pais = 'Perú'` | `{ "activo": true, "pais": "Perú" }` |
+
+
+
+---
+
+### ⚙️ 3. Agregaciones y Operaciones Complejas
+Estas se usan en la pestaña **Aggregations** añadiendo "Stages".
+
+| Operación SQL | Stage en MongoDB Atlas | Código de ejemplo (dentro del Stage) |
+| :--- | :--- | :--- |
+| **WHERE / HAVING** | `$match` | `{ "metadata_ia.sentimiento": "positivo" }` |
+| **SELECT** (Alias/Cálculos) | `$project` | `{ "nombre": "$username", "anio": { "$year": "$fecha" } }` |
+| **GROUP BY** | `$group` | `{ "_id": "$modalidad", "total": { "$sum": 1 } }` |
+| **ORDER BY** | `$sort` | `{ "enviado_en": -1 }` (1: ASC, -1: DESC) |
+| **LIMIT** | `$limit` | `5` (Solo el número) |
+| **LEFT JOIN** | `$lookup` | `{ "from": "usuarios", "localField": "user_id", ... }` |
+
+---
+
+### 🛠️ 4. Gestión de Errores y Mantenimiento
+
+* **`TRUNCATE TABLE`:** En Atlas usas **"Delete All Documents"** desde los tres puntos `(...)` de la colección.
+* **`UNIQUE CONSTRAINT`:** MongoDB lo maneja con el índice `_id`. Si intentas insertar un ID que ya existe, verás el famoso error **`E11000`**.
+* **`INSERT INTO ... VALUES (...)`:** En Atlas usas **"Insert Document"**. Si pegas una lista entre corchetes `[ ]`, es un `INSERT` masivo.
+
+
+
