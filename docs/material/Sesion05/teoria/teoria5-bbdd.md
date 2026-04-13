@@ -2,7 +2,7 @@
 layout: default
 ---
 
-# ANÁLISIS AVANZADO Y TRANSFORMACIÓN DE DATOS
+# Sesion 5: SQL Parte 2 - Analisis avanzado y transformacion de datos
 
 # Introducción
 

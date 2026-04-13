@@ -1,501 +1,304 @@
 ---
 layout: default
 ---
+# Sesion 12: NoSQL y persistencia poliglota para IA
 
-# BASES DE DATOS VECTORIALES Y RAG
+### 1. Logro de la sesion
 
+Evaluar modelos NoSQL (documental, key-value, columnar y grafos), comprender sus trade-offs frente a SQL y disenar estrategias de persistencia poliglota para soluciones de analitica e inteligencia artificial.
 
+---
 
-## Introducción a las Bases de Datos Vectoriales
+### 2. Conexion con el syllabus
 
-Las bases de datos tradicionales (SQL y NoSQL) están optimizadas para búsquedas por coincidencia exacta de valores o rangos. Sin embargo, en el contexto de la inteligencia artificial, necesitamos buscar por **similitud semántica**: encontrar elementos que sean conceptualmente similares, aunque no compartan palabras clave exactas. Por ejemplo, buscar \"mascota felina\" y querer obtener resultados sobre \"gatos\". Aquí es donde entran las **bases de datos vectoriales**.
+Semana 12 corresponde a:
 
-## ¿Qué es un vector en el contexto de IA?
+- Tipos NoSQL: documental, key-value, grafos, columnar.
+- Casos de uso en IA.
+- Persistencia poliglota.
 
-Un vector es una lista ordenada de números (coordenadas) que representa un objeto (texto, imagen, audio, etc.) en un espacio de alta dimensionalidad. Estos vectores, llamados **embeddings**, son generados por modelos de machine learning (como Word2Vec, BERT, CLIP) de manera que objetos semánticamente cercanos tienen vectores cercanos según alguna métrica de distancia.
+---
 
-## Limitaciones de las bases de datos tradicionales
+### 3. Por que surge NoSQL
 
-- No pueden buscar por similitud semántica de forma eficiente.
+Limitaciones de sistemas relacionales en ciertos contextos:
 
-- Las consultas de texto (LIKE, búsqueda de texto completo) solo encuentran coincidencias exactas o por palabras clave, no capturan el significado.
+- esquemas altamente variables,
+- escalado horizontal masivo,
+- baja latencia en volumen extremo,
+- grafos complejos de relaciones.
 
-- No están optimizadas para manejar vectores de cientos o miles de dimensiones.
+NoSQL no reemplaza SQL, lo complementa.
 
-## ¿Qué hace una base de datos vectorial?
+---
 
-Una base de datos vectorial está diseñada para:
+### 4. SQL vs NoSQL (visión practica)
 
-- Almacenar vectores junto con metadatos asociados.
+SQL destaca en:
 
-- Indexar los vectores para permitir búsquedas rápidas de los vecinos más cercanos (Approximate Nearest Neighbors, ANN).
+- integridad fuerte,
+- joins complejos,
+- transacciones ACID.
 
-- Ofrecer APIs para calcular distancias y recuperar los elementos más similares a un vector de consulta.
+NoSQL destaca en:
 
-# Embeddings: El Corazón de la Búsqueda Semántica
+- flexibilidad de esquema,
+- escalado horizontal,
+- modelos de acceso especializados.
 
-## Definición y generación
+---
 
-Un embedding es una representación densa de baja dimensionalidad (comparada con el espacio original) de un objeto. Por ejemplo, un texto de longitud variable se convierte en un vector de, digamos, 384, 768 o 1536 dimensiones.
+### 5. Modelo documental
 
-Modelos populares para generar embeddings:
+Ejemplos: MongoDB, Couchbase.
 
-- **Texto**: Sentence Transformers (all-MiniLM-L6-v2), OpenAI embeddings (text-embedding-ada-002), BERT, RoBERTa.
+Caracteristicas:
 
-- **Imágenes**: CLIP, ResNet, VGG.
+- datos en documentos JSON/BSON,
+- esquema flexible,
+- consultas por campos anidados.
 
-- **Múltiples modalidades**: CLIP (imagen y texto), ImageBind.
+Caso de uso:
 
-### Ejemplo con Sentence Transformers en Python
+perfiles de usuario y eventos semiestructurados.
 
-```python
-from sentence_transformers import SentenceTransformer
-model = SentenceTransformer('all-MiniLM-L6-v2')
-oraciones = ["Un gato en la alfombra", "Un perro jugando en el parque"]
-embeddings = model.encode(oraciones)
-print(embeddings.shape)  # (2, 384)
-print(embeddings[0][:5]) # Primeros 5 valores del primer vector
-```
+---
 
-## Visualización de embeddings
+### 6. Modelo key-value
 
-Aunque no podemos visualizar espacios de alta dimensionalidad, podemos reducirlos a 2D con técnicas como PCA o t-SNE para inspección. Esto ayuda a ver cómo se agrupan elementos semánticamente similares.
+Ejemplos: Redis, DynamoDB (modo KV).
 
-# Búsqueda de Similitud: k-NN y ANN
+Caracteristicas:
 
-## k-NN exacto
+- acceso por clave,
+- latencia muy baja,
+- ideal para cache y sesiones.
 
-El vecino más cercano exacto (k-NN) consiste en calcular la distancia entre el vector de consulta y todos los vectores almacenados, y seleccionar los k más cercanos. Esto tiene complejidad O(n) por consulta, inviable para millones de vectores.
+Caso de uso:
 
-## Aproximación: ANN (Approximate Nearest Neighbors)
+almacenar tokens, sesiones, feature flags.
 
-Los algoritmos ANN sacrifican un poco de precisión para lograr búsquedas en tiempo sublineal (logarítmico o incluso constante). Los más comunes:
+---
 
-### HNSW (Hierarchical Navigable Small World)
+### 7. Modelo wide-column / columnar NoSQL
 
-Crea una estructura de grafos multinivel para navegar rápidamente hacia los vecinos. Es uno de los algoritmos más populares por su equilibrio entre velocidad y precisión. Usado en Milvus, Pinecone, Weaviate, pgvector (con extensión).
+Ejemplos: Cassandra, HBase.
 
-### IVF (Inverted File Index)
+Caracteristicas:
 
-Divide el espacio en clusters (mediante k-means) y asigna cada vector a su cluster. En la búsqueda, solo se exploran los clusters más cercanos a la consulta. Usado en Faiss (Facebook AI Similarity Search).
+- particion por clave,
+- alta escritura distribuida,
+- diseño orientado a consultas previstas.
 
-### PQ (Product Quantization)
+Caso de uso:
 
-Comprime vectores dividiéndolos en subvectores y cuantificando cada subespacio. Reduce drásticamente el uso de memoria y acelera la búsqueda.
+telemetria y series de tiempo a gran escala.
 
-### Comparativa
+---
 
-::: center
-  **Algoritmo**   **Velocidad**   **Precisión**
-  --------------- --------------- --------------------------------------
-  HNSW            Alta            Muy alta
-  IVF             Alta            Alta (depende de número de clusters)
-  PQ              Muy alta        Media
-:::
+### 8. Modelo de grafos
 
-# Métricas de Distancia
+Ejemplos: Neo4j, JanusGraph.
 
-La noción de \"cercanía\" depende de la métrica elegida. Las más comunes en espacios de embeddings:
+Caracteristicas:
 
-## Similitud de Coseno
+- nodos y aristas con propiedades,
+- recorridos eficientes de relaciones,
+- consultas de caminos y comunidades.
 
-Mide el coseno del ángulo entre dos vectores. Ignora la magnitud, se enfoca en la dirección. Es la más usada para texto. $$\text{similitud} = \frac{\mathbf{u} \cdot \mathbf{v}}{\|\mathbf{u}\| \|\mathbf{v}\|}$$ Valores entre -1 y 1 (o 0 y 1 si los vectores son no negativos). Cuanto más cercano a 1, más similares.
+Caso de uso:
 
-## Distancia Euclidiana (L2)
+fraude, recomendacion, redes sociales, knowledge graphs.
 
-Distancia geométrica tradicional. Sensible a la magnitud. $$d = \sqrt{\sum_{i} (u_i - v_i)^2}$$
+---
 
-## Producto Punto
+### 9. Consistencia y CAP
 
-Si los vectores están normalizados (norma 1), el producto punto equivale a la similitud de coseno. Algunas bases de datos lo usan por eficiencia.
+Teorema CAP en sistemas distribuidos:
 
-## Qué métrica elegir
+- Consistency,
+- Availability,
+- Partition tolerance.
 
-Depende del modelo de embeddings. Por ejemplo, los modelos de Sentence Transformers suelen entrenarse con similitud de coseno. Es importante usar la métrica para la que fue entrenado el modelo.
+En presencia de particiones, se balancea consistencia vs disponibilidad.
 
-# Tecnologías de Bases de Datos Vectoriales
+Conceptos practicos:
 
-Existen dos categorías: bases de datos nativas (diseñadas exclusivamente para vectores) y extensiones sobre bases de datos existentes.
+- consistencia eventual,
+- lecturas/escrituras quorums,
+- trade-offs por dominio.
 
-## Bases de Datos Nativas
+---
 
-### Pinecone
+### 10. NoSQL en IA
 
-Servicio en la nube totalmente gestionado. Ofrece indexación automática, escalabilidad y búsqueda de alta precisión. Muy fácil de usar. No tiene versión on-premise.
+Casos frecuentes:
 
-### Milvus
+1. almacenamiento de eventos de inferencia,
+2. perfiles enriquecidos por usuario,
+3. cache de features online,
+4. grafos de conocimiento,
+5. historial semiestructurado de prompts/respuestas.
 
-Plataforma de código abierto para búsqueda vectorial. Escalable, soporta múltiples índices (HNSW, IVF, etc.), y se puede desplegar on-premise o en la nube. Tiene versiones gestionadas (Zilliz Cloud).
+---
 
-### Weaviate
+### 11. Persistencia poliglota
 
-Base de datos vectorial de código abierto con soporte para módulos de ML (transformers, etc.). Permite búsqueda híbrida (vectorial + filtros escalares).
+Es usar mas de un motor segun necesidad.
 
-### Qdrant
+Ejemplo de arquitectura:
 
-Escrita en Rust, enfocada en alto rendimiento. Ofrece filtrado y búsqueda vectorial. Disponible como código abierto y servicio gestionado.
+- PostgreSQL para core transaccional,
+- Redis para cache de baja latencia,
+- MongoDB para documentos flexibles,
+- motor vectorial para retrieval semantico.
 
-### Chroma
+---
 
-Ligera, pensada para prototipos y proyectos pequeños. Muy fácil de usar desde Python.
+### 12. Seleccion por patrón de acceso
 
-## Extensiones sobre Bases de Datos Existentes
+Pregunta clave:
 
-### pgvector
+"Como se consultan y actualizan los datos realmente?"
 
-Extensión para PostgreSQL que añade un tipo de dato vector y soporte para índices (IVFFlat, HNSW). Permite integrar búsqueda vectorial con datos relacionales.
+No elegir motor por tendencia, sino por:
 
-```sql
-CREATE EXTENSION vector;
-CREATE TABLE items (id bigserial, embedding vector(384));
-CREATE INDEX ON items USING ivfflat (embedding vector_cosine_ops);
-SELECT * FROM items ORDER BY embedding <=> '[0.1,0.2,...]' LIMIT 5;
-```
+- latencia objetivo,
+- cardinalidad,
+- tipo de consulta,
+- costo operativo.
 
-### Elasticsearch
+---
 
-Desde la versión 7.x, soporta búsqueda vectorial (dense vector) con similitud de coseno o producto punto. Permite combinar con búsqueda de texto completo.
+### 13. Modelado en NoSQL
 
-### Redis Stack
+A diferencia de SQL, se diseña alrededor de queries esperadas.
 
-Redis añadió RedisVL (módulo de búsqueda vectorial) y soporte para índices de vectores. Útil para caché y aplicaciones en tiempo real.
+Principios:
 
-### MongoDB
+- desnormalizar donde convenga,
+- evitar joins distribuidos costosos,
+- precomputar vistas de lectura.
 
-A través de agregaciones, se puede hacer búsqueda vectorial simple, pero no está optimizado para grandes escalas. Existe una extensión de Atlas Search que soporta vectores.
+---
 
-## Tabla comparativa
+### 14. Integridad y calidad en NoSQL
 
-::: center
-  **Tecnología**   **Tipo**               **Índices**       **Despliegue**
-  ---------------- ---------------------- ----------------- --------------------
-  Pinecone         Nativa (gestionada)    HNSW              Solo cloud
-  Milvus           Nativa (open source)   HNSW, IVF, etc.   On-premise / cloud
-  Weaviate         Nativa (open source)   HNSW              On-premise / cloud
-  pgvector         Extensión PostgreSQL   IVFFlat, HNSW     On-premise / cloud
-  Elasticsearch    Motor de búsqueda      HNSW (plugin)     On-premise / cloud
-  RedisVL          Módulo Redis           HNSW              On-premise / cloud
-:::
+Aunque el esquema sea flexible, se requiere:
 
-# Retrieval Augmented Generation (RAG)
+- contratos de datos,
+- validaciones en ingestion,
+- versionado de estructura,
+- monitoreo de calidad.
 
-RAG es un patrón arquitectónico que combina un sistema de recuperación (retriever) con un modelo generativo (LLM) para producir respuestas basadas en información externa y actualizada.
+---
 
-## Problema que resuelve
+### 15. Seguridad en motores NoSQL
 
-Los LLMs tienen un conocimiento limitado a su fecha de entrenamiento y pueden alucinar (inventar) cuando no saben algo. RAG les proporciona contexto relevante extraído de una base de conocimiento, reduciendo alucinaciones y permitiendo respuestas sobre datos privados o recientes.
+Controles minimos:
 
-## Flujo de trabajo típico
+- autenticacion fuerte,
+- autorizacion por coleccion/tabla,
+- cifrado de datos,
+- redes privadas,
+- auditoria de operaciones.
 
-1.  **Indexación**: Se dividen los documentos en fragmentos (chunks), se generan sus embeddings y se almacenan en una base de datos vectorial junto con el texto original y metadatos.
+---
 
-2.  **Consulta**: El usuario hace una pregunta.
+### 16. Operacion y observabilidad
 
-3.  **Embedding de consulta**: Se genera el embedding de la pregunta usando el mismo modelo que se usó para indexar.
+Monitorear:
 
-4.  **Búsqueda de similitud**: La base de datos vectorial devuelve los k fragmentos más similares.
+- latencia p95,
+- throughput,
+- uso de memoria,
+- reintentos/errores,
+- estado de replicas.
 
-5.  **Generación de contexto**: Se construye un prompt que incluye los fragmentos recuperados y la pregunta original.
+---
 
-6.  **Llamada al LLM**: El modelo genera una respuesta basada en el contexto.
+### 17. Costos y mantenimiento
 
-::: center
-:::
+Dimensionar costo por:
 
-## Orquestadores
+- almacenamiento,
+- replica,
+- transferencia,
+- operaciones por segundo.
 
-Para implementar RAG, se utilizan frameworks que simplifican la integración:
+Riesgo tipico:
 
-### LangChain
+subestimar costo de indices y replicas.
 
-Proporciona herramientas para cargar documentos, dividirlos, generar embeddings, interactuar con bases de datos vectoriales y LLMs.
+---
 
-```python
-from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.vectorstores import Pinecone
-from langchain.llms import OpenAI
-from langchain.chains import RetrievalQA
+### 18. Migracion y convivencia SQL + NoSQL
 
-embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-vectorstore = Pinecone.from_documents(docs, embeddings, index_name="mi-index")
-qa = RetrievalQA.from_chain_type(llm=OpenAI(), retriever=vectorstore.as_retriever())
-respuesta = qa.run("¿Cuál es la capital de Francia?")
-```
+Estrategia segura:
 
-### LlamaIndex
+1. identificar dominio candidato,
+2. pilotear caso acotado,
+3. definir sincronizacion,
+4. medir impacto,
+5. escalar gradualmente.
 
-Similar a LangChain, pero con un enfoque más centrado en índices y estructuras de datos.
+---
 
-### Haystack
+### 19. Errores frecuentes
 
-Framework de código abierto para construir sistemas de búsqueda y RAG.
+- usar NoSQL para todo sin justificacion,
+- no definir modelo de consistencia,
+- copiar esquemas SQL sin adaptar,
+- ignorar gobernanza y ownership,
+- no planear estrategia de backup.
 
-# Integración con SQL y NoSQL
+---
 
-En aplicaciones reales, las bases de datos vectoriales no viven aisladas. A menudo coexisten con bases de datos relacionales y NoSQL.
+### 20. Caso aplicado
 
-## Casos de integración
+Asistente omnicanal:
 
-- Almacenar metadatos (precio, categoría, fecha) en PostgreSQL y embeddings en pgvector, permitiendo búsquedas híbridas.
+- PostgreSQL: usuarios, permisos, facturacion.
+- Redis: sesiones activas y cache de contexto.
+- MongoDB: historial de conversaciones enriquecidas.
+- Vector DB: retrieval semantico de conocimiento.
 
-- Usar MongoDB para documentos y una base vectorial para búsqueda semántica sobre esos documentos.
+---
 
-- Tener un data lake con archivos Parquet y usar un catálogo para indexar embeddings.
+### 21. Mini laboratorio
 
-## Estrategias de consistencia
+1. Clasificar 4 casos de uso por tipo de motor.
+2. Disenar documento JSON para perfil enriquecido.
+3. Proponer esquema de cache en key-value.
+4. Definir consulta de grafo para recomendacion.
+5. Justificar arquitectura poliglota final.
 
-- **Actualización síncrona**: Al insertar un documento, se genera su embedding y se guarda en ambas bases.
+---
 
-- **CDC (Change Data Capture)**: Detectar cambios en la BD principal y actualizar la vectorial mediante eventos (Kafka, Debezium).
+### 22. Checklist de salida
 
-## Ejemplo con pgvector y PostgreSQL
+- Distingo los 4 modelos NoSQL.
+- Selecciono motor segun patron de acceso.
+- Entiendo trade-offs de consistencia.
+- Diseño persistencia poliglota razonada.
+- Relaciono NoSQL con requerimientos de IA.
 
-```sql
--- Tabla de productos con embedding
-CREATE TABLE productos (
-    id SERIAL PRIMARY KEY,
-    nombre TEXT,
-    descripcion TEXT,
-    precio NUMERIC,
-    embedding vector(384)
-);
+---
 
--- Índice HNSW (requiere pgvector >= 0.5.0)
-CREATE INDEX ON productos USING hnsw (embedding vector_cosine_ops);
+### 23. Preguntas de autoevaluacion
 
--- Búsqueda: productos similares a "zapatos deportivos" con precio < 100
-SELECT nombre, precio
-FROM productos
-WHERE precio < 100
-ORDER BY embedding <=> (SELECT embedding FROM productos WHERE id = 123)
-LIMIT 10;
-```
+1. Cuando prefieres documental sobre relacional?
+2. Que aporta key-value en latencia?
+3. Que riesgo tiene consistencia eventual?
+4. Cuando un grafo supera a SQL?
+5. Como decides entre un motor o varios?
 
-# Despliegue On-Premise y Cloud
+---
 
-## On-Premise
+### 24. Referencias recomendadas
 
-Empresas con requisitos de seguridad o datos sensibles pueden desplegar bases de datos vectoriales en sus propios servidores.
-
-- Milvus, Weaviate, Qdrant tienen versiones open source que se pueden instalar en Kubernetes o máquinas virtuales.
-
-- pgvector se instala como extensión de PostgreSQL en cualquier servidor.
-
-Ventajas: control total, sin costos de salida de datos. Desventajas: mantenimiento, escalado manual.
-
-## Cloud
-
-Los proveedores ofrecen servicios gestionados:
-
-- **Pinecone**: totalmente gestionado, sin preocuparse por infraestructura.
-
-- **Milvus Cloud** (Zilliz), **Weaviate Cloud**, **Qdrant Cloud**.
-
-- **AWS**: OpenSearch Serverless con vectorial, MemoryDB para Redis (pronto), y soporte en Aurora PostgreSQL (pgvector).
-
-- **Google Cloud**: Vertex AI Vector Search (antes Matching Engine).
-
-- **Azure**: Cognitive Search con vectorial, Cosmos DB con extensión de vectores (en preview).
-
-Ventajas: escalabilidad automática, menor overhead operativo. Desventajas: costos variables, dependencia del proveedor.
-
-## Dimensionamiento y costos
-
-El costo depende de:
-
-- Número de vectores y su dimensionalidad.
-
-- Tipo de índice (HNSW consume más memoria pero es más rápido; IVF consume menos pero puede ser más lento).
-
-- Operaciones de escritura y consultas por segundo.
-
-Ejemplo: Pinecone cobra por hora y por la cantidad de vectores almacenados. Para 1 millón de vectores de 384 dimensiones, el costo aproximado es de unos \$0.50 por hora en el plan estándar. En cambio, pgvector en una instancia de AWS RDS puede ser más económico si ya se tiene la base de datos.
-
-# Casos de Uso Reales
-
-## Búsqueda semántica en comercio electrónico
-
-Un sitio de ventas puede permitir a los usuarios buscar productos por descripción semántica: \"vestido rojo elegante\" en lugar de palabras clave exactas. Los embeddings de las descripciones se comparan con el embedding de la consulta.
-
-## Sistemas de preguntas y respuestas (FAQ)
-
-Una empresa puede tener cientos de documentos internos. Un chatbot RAG responde preguntas de empleados buscando en esos documentos.
-
-## Recomendación de contenidos
-
-En una plataforma de streaming, se pueden generar embeddings de películas (basados en trama, género, actores) y recomendar las más similares a las que ha visto el usuario.
-
-## Detección de plagio o documentos duplicados
-
-Comparando embeddings de documentos, se pueden encontrar similitudes entre textos.
-
-## Búsqueda multimodal
-
-Con modelos como CLIP, se pueden buscar imágenes usando texto o viceversa. Las imágenes y textos se proyectan al mismo espacio vectorial.
-
-# Ejercicios Resueltos
-
-## Ejercicio 1: Generar embeddings y buscar similitud con pgvector
-
-**Enunciado:** Usando Python y Sentence Transformers, genera embeddings para una lista de oraciones y almacénalos en PostgreSQL con pgvector. Luego realiza una consulta de búsqueda semántica.
-
-**Solución:**
-
-```python
-import psycopg2
-from sentence_transformers import SentenceTransformer
-
-# Conectar a PostgreSQL
-conn = psycopg2.connect(dbname="test", user="postgres")
-cur = conn.cursor()
-cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
-cur.execute("DROP TABLE IF EXISTS oraciones;")
-cur.execute("CREATE TABLE oraciones (id SERIAL PRIMARY KEY, texto TEXT, embedding vector(384));")
-
-# Modelo de embeddings
-model = SentenceTransformer('all-MiniLM-L6-v2')
-oraciones = [
-    "El gato duerme en el sofá",
-    "Los perros juegan en el parque",
-    "Me gusta la comida italiana",
-    "El cielo está nublado hoy"
-]
-embeddings = model.encode(oraciones).tolist()
-
-# Insertar
-for texto, emb in zip(oraciones, embeddings):
-    cur.execute("INSERT INTO oraciones (texto, embedding) VALUES (%s, %s);", (texto, emb))
-conn.commit()
-
-# Consulta: buscar oraciones similares a "animales domésticos"
-consulta = "animales domésticos"
-emb_consulta = model.encode([consulta]).tolist()[0]
-cur.execute("""
-    SELECT texto, embedding <=> %s::vector AS distancia
-    FROM oraciones
-    ORDER BY embedding <=> %s::vector
-    LIMIT 2;
-""", (emb_consulta, emb_consulta))
-resultados = cur.fetchall()
-for texto, dist in resultados:
-    print(f"{texto} (distancia: {dist:.4f})")
-cur.close()
-conn.close()
-```
-
-Salida esperada: las oraciones sobre gato y perro serán las más cercanas.
-
-## Ejercicio 2: Implementar un pipeline RAG con LangChain y Chroma
-
-**Enunciado:** Cargar un documento PDF, dividirlo en fragmentos, crear embeddings y construir un sistema de preguntas y respuestas usando LangChain y Chroma como base vectorial.
-
-**Solución:**
-
-```python
-from langchain.document_loaders import PyPDFLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.vectorstores import Chroma
-from langchain.llms import OpenAI
-from langchain.chains import RetrievalQA
-
-# 1. Cargar y dividir documento
-loader = PyPDFLoader("documento.pdf")
-documentos = loader.load()
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-docs = text_splitter.split_documents(documentos)
-
-# 2. Crear embeddings y vectorstore
-embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-vectorstore = Chroma.from_documents(docs, embeddings)
-
-# 3. Configurar LLM (OpenAI) - requiere API key
-llm = OpenAI(temperature=0)
-
-# 4. Crear cadena de QA
-qa = RetrievalQA.from_chain_type(llm=llm, retriever=vectorstore.as_retriever())
-
-# 5. Preguntar
-respuesta = qa.run("¿Cuál es el tema principal del documento?")
-print(respuesta)
-```
-
-## Ejercicio 3: Búsqueda híbrida con filtros en pgvector
-
-**Enunciado:** En una tabla de productos con precio y categoría, buscar productos similares a una descripción dada, filtrando por precio mayor a 50 y categoría \"electrónica\".
-
-**Solución:**
-
-```python
-import psycopg2
-from sentence_transformers import SentenceTransformer
-
-conn = psycopg2.connect(dbname="test", user="postgres")
-cur = conn.cursor()
-model = SentenceTransformer('all-MiniLM-L6-v2')
-
-# Suponiendo que ya existen productos con embeddings
-consulta = "teléfono inteligente con buena cámara"
-emb_consulta = model.encode([consulta]).tolist()[0]
-
-cur.execute("""
-    SELECT nombre, precio, embedding <=> %s::vector AS dist
-    FROM productos
-    WHERE precio > 50 AND categoria = 'electronica'
-    ORDER BY embedding <=> %s::vector
-    LIMIT 5;
-""", (emb_consulta, emb_consulta))
-for row in cur.fetchall():
-    print(row)
-cur.close()
-conn.close()
-```
-
-## Ejercicio 4: Comparación de índices en Milvus
-
-**Enunciado:** Usando Milvus (modo local), crear una colección, insertar vectores aleatorios y comparar el rendimiento de búsqueda con índice HNSW vs IVFFlat.
-
-**Solución:**
-
-```python
-from pymilvus import connections, Collection, FieldSchema, CollectionSchema, DataType, utility
-import numpy as np
-import time
-
-connections.connect("default", host="localhost", port="19530")
-
-# Crear colección
-fields = [
-    FieldSchema(name="id", dtype=DataType.INT64, is_primary=True),
-    FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=128)
-]
-schema = CollectionSchema(fields)
-collection = Collection("test_vector", schema)
-
-# Insertar 10000 vectores aleatorios
-data = [
-    [i for i in range(10000)],
-    [np.random.rand(128).tolist() for _ in range(10000)]
-]
-collection.insert(data)
-collection.flush()
-
-# Índice HNSW
-hnsw_params = {"index_type": "HNSW", "metric_type": "COSINE", "params": {"M": 16, "efConstruction": 200}}
-collection.create_index("embedding", hnsw_params)
-collection.load()
-start = time.time()
-results = collection.search([np.random.rand(128).tolist()], "embedding", param={"metric_type": "COSINE", "params": {"ef": 64}}, limit=10)
-print("HNSW tiempo:", time.time() - start)
-
-# Índice IVF
-ivf_params = {"index_type": "IVF_FLAT", "metric_type": "COSINE", "params": {"nlist": 128}}
-collection.drop_index()
-collection.create_index("embedding", ivf_params)
-collection.load()
-start = time.time()
-results = collection.search([np.random.rand(128).tolist()], "embedding", param={"metric_type": "COSINE", "params": {"nprobe": 10}}, limit=10)
-print("IVF tiempo:", time.time() - start)
-```
-
-Se observará que HNSW suele ser más rápido pero consume más memoria.
+1. Kleppmann, Designing Data-Intensive Applications.
+2. MongoDB Architecture Guide.
+3. Redis documentation.
+4. Cassandra data modeling guides.
+5. Neo4j graph modeling basics.

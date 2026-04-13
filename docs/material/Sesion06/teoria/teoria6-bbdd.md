@@ -1,512 +1,341 @@
 ---
 layout: default
 ---
+# Sesion 6: SQL Parte 3 - Window functions y transformaciones avanzadas
 
-# Optimización de Consultas en SQL
+### 1. Logro de la sesion
 
-## 🎯 Objetivo
-
-Desarrollar la capacidad de diagnosticar, medir y optimizar consultas SQL en entornos reales, utilizando herramientas y técnicas avanzadas de PostgreSQL.
-
-Al finalizar, podrás:
-
-* Interpretar planes de ejecución (`EXPLAIN ANALYZE`)
-* Diseñar índices eficientes según patrones de acceso
-* Medir rendimiento con métricas reales
-* Optimizar consultas complejas (JOINs, filtros, JSONB)
-* Evaluar trade-offs entre lectura y escritura
+Aplicar SQL avanzado en PostgreSQL para analitica y preparacion de datos usando window functions, transformaciones de texto/fecha, manejo de nulos, CTEs y patrones de feature engineering.
 
 ---
 
-# 1. Fundamentos de Optimización
+### 2. Conexion con el syllabus
 
-## 1.1 ¿Por qué optimizar consultas?
+Semana 6 corresponde a:
 
-A medida que los datos crecen:
+- Window Functions: `OVER`, `RANK`, `ROW_NUMBER`, `LAG`, `LEAD`.
+- Feature engineering en SQL.
+- Transformaciones avanzadas de fechas, texto y limpieza.
 
-* Las consultas pasan de **milisegundos → segundos/minutos**
-* Aumenta el uso de:
-
-  * CPU
-  * Memoria (RAM)
-  * E/S de disco
-
-**Objetivo de optimización:**
-
-* Reducir latencia (tiempo de respuesta)
-* Minimizar lecturas innecesarias
-* Mejorar escalabilidad
+Esta sesion se alinea con `5-transformacion.sql` y `6-analisis.sql`.
 
 ---
 
-## 1.2 Principio clave
+### 3. De SQL operativo a SQL analitico
 
-> **“No optimices SQL, optimiza accesos a datos.”**
+En SQL parte 1 y 2 se cubrieron joins, filtros y agregaciones.
+En SQL parte 3 el objetivo cambia:
 
-La mayor parte del costo proviene de:
-
-* Leer demasiadas filas (**I/O bound**)
-* No usar índices
-* Mala selectividad
-
----
-
-# 2. Índices en PostgreSQL (Clave del Rendimiento)
-
-## 2.1 Tipos de Índices
-
-### 🔹 B-Tree (por defecto)
-
-* Igualdad y rangos:
-
-  ```sql
-  =, <, >, BETWEEN, ORDER BY
-  ```
-* También útil para:
-
-  ```sql
-  LIKE 'texto%'
-  ```
-
-👉 Es el **80% de los casos reales**
+1. Analizar tendencias y comportamiento temporal.
+2. Preparar variables para modelos de ML.
+3. Generar datasets limpios y consistentes.
 
 ---
 
-### 🔹 Hash
+### 4. Manejo de nulos con criterio
 
-* Solo igualdad (`=`)
-* Uso limitado en práctica moderna
+`NULL` significa valor desconocido, no cero ni vacio.
 
----
+Funciones clave:
 
-### 🔹 GIN (Generalized Inverted Index)
-
-Ideal para:
-
-* JSONB
-* Arrays
-* Búsqueda de texto
+- `COALESCE(a,b,...)`.
+- `NULLIF(a,b)`.
 
 ```sql
-CREATE INDEX idx_json ON tabla USING gin (columna_json);
+SELECT username, COALESCE(pais, 'No especificado') AS pais_normalizado
+FROM usuarios;
 ```
-
----
-
-### 🔹 GiST
-
-* Geoespacial
-* Tipos complejos
-
----
-
-### 🔹 BRIN
-
-* Tablas enormes
-* Datos ordenados físicamente (logs, series temporales)
-
-👉 Muy liviano, pero menos preciso
-
----
-
-## 2.2 Tipos de diseño de índices
-
-### 🔸 Índices simples
 
 ```sql
-CREATE INDEX idx_fecha ON pedidos(fecha);
+SELECT modulo, NULLIF(tiempo_ejecucion_ms, 0) AS tiempo_seguro
+FROM logs_ejecucion;
 ```
+
+Buenas practicas:
+
+- Normalizar nulos antes de agregar.
+- Evitar mezclar nulo semantico con valores por defecto sin documentar.
 
 ---
 
-### 🔸 Índices compuestos
+### 5. Transformaciones de texto
+
+Funciones frecuentes en PostgreSQL:
+
+- `LOWER`, `UPPER`, `INITCAP`.
+- `TRIM`, `REPLACE`, `LENGTH`.
+- `SUBSTRING`, `SPLIT_PART`.
+- `REGEXP_REPLACE`, `REGEXP_MATCHES`.
 
 ```sql
-CREATE INDEX idx_user_fecha ON pedidos(usuario_id, fecha);
+SELECT
+    username,
+    LOWER(email) AS email_normalizado,
+    SPLIT_PART(email, '@', 2) AS dominio
+FROM usuarios;
 ```
 
-📌 Regla clave:
+Uso real:
 
-> El orden importa (izquierda → derecha)
+- limpieza de correo,
+- estandarizacion de categorias,
+- extraccion de metadatos.
 
 ---
 
-### 🔸 Índices parciales
+### 6. Transformaciones de fecha y hora
+
+Funciones clave:
+
+- `EXTRACT`.
+- `DATE_TRUNC`.
+- `AGE`.
+- `NOW` e `INTERVAL`.
 
 ```sql
-CREATE INDEX idx_activos ON sesiones(usuario_id)
-WHERE activa = true;
+SELECT
+    DATE_TRUNC('month', creado_en) AS mes,
+    COUNT(*) AS usuarios_registrados
+FROM usuarios
+GROUP BY DATE_TRUNC('month', creado_en)
+ORDER BY mes;
 ```
 
-✔ Menor tamaño
-✔ Más rápidos
-✔ Menor costo de mantenimiento
+Aplicaciones:
+
+- series temporales,
+- cohortes,
+- estacionalidad.
 
 ---
 
-### 🔸 Índices funcionales
+### 7. Conversion de tipos
+
+Formas en PostgreSQL:
+
+- `CAST(expr AS tipo)`.
+- `expr::tipo`.
 
 ```sql
-CREATE INDEX idx_lower_email ON usuarios (LOWER(email));
+SELECT
+    tiempo_ejecucion_ms::TEXT AS tiempo_texto,
+    enviado_en::DATE AS fecha
+FROM logs_ejecucion l
+JOIN mensajes m ON l.mensaje_id = m.id;
 ```
 
-✔ Permiten usar índices en expresiones
+Regla:
+
+Convertir de manera explicita evita ambiguedad y errores de calidad.
 
 ---
 
-### 🔸 Índices sobre JSONB
+### 8. Condicionales con `CASE`
+
+`CASE` permite categorizar datos sin salir de SQL.
 
 ```sql
-CREATE INDEX idx_json_intencion 
-ON mensajes ((metadata->>'intencion'));
+SELECT
+    modulo,
+    tiempo_ejecucion_ms,
+    CASE
+        WHEN tiempo_ejecucion_ms < 50 THEN 'Rapido'
+        WHEN tiempo_ejecucion_ms < 150 THEN 'Normal'
+        WHEN tiempo_ejecucion_ms < 300 THEN 'Lento'
+        ELSE 'Muy lento'
+    END AS categoria
+FROM logs_ejecucion;
 ```
+
+Uso:
+
+- reglas de negocio,
+- scoring,
+- etiquetas para dashboards.
 
 ---
 
-# 3. Planes de Ejecución (`EXPLAIN ANALYZE`)
+### 9. Window functions: concepto base
 
-## 3.1 ¿Qué es?
+Diferencia con `GROUP BY`:
 
-Permite ver **cómo PostgreSQL ejecuta una consulta**.
+- `GROUP BY` colapsa filas.
+- `OVER` conserva detalle y agrega contexto analitico.
+
+Sintaxis general:
 
 ```sql
-EXPLAIN ANALYZE SELECT * FROM pedidos;
+funcion() OVER (PARTITION BY ... ORDER BY ...)
 ```
 
 ---
 
-## 3.2 Operaciones clave
+### 10. Ranking y segmentacion
 
-### 🔴 Seq Scan (malo en tablas grandes)
+Funciones:
 
-```text
-Seq Scan on tabla
-```
-
-* Lee toda la tabla
-* Complejidad: O(n)
-
----
-
-### 🟢 Index Scan
-
-```text
-Index Scan using idx_x
-```
-
-* Usa índice
-* Mucho más eficiente
-
----
-
-### 🟡 Bitmap Heap Scan
-
-* Combina múltiples índices
-* Útil para condiciones múltiples
-
----
-
-## 3.3 JOINs internos
-
-* **Nested Loop** → bueno para pocos datos
-* **Hash Join** → bueno para grandes volúmenes
-* **Merge Join** → cuando hay orden
-
----
-
-## 3.4 Métricas importantes
-
-Dentro de `EXPLAIN ANALYZE`:
-
-* `actual time`
-* `rows`
-* `loops`
-* `buffers`
-
-Ejemplo:
-
-```text
-actual time=0.03..120.50 rows=1000 loops=1
-```
-
----
-
-# 4. Métricas de Rendimiento en PostgreSQL
-
-## 4.1 `pg_stat_statements`
-
-Extensión clave para producción.
+- `ROW_NUMBER`.
+- `RANK`.
+- `DENSE_RANK`.
+- `NTILE`.
 
 ```sql
-CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+SELECT
+    u.username,
+    COUNT(m.id) AS mensajes,
+    RANK() OVER (ORDER BY COUNT(m.id) DESC) AS ranking
+FROM usuarios u
+LEFT JOIN mensajes m ON u.id = m.remitente_id
+GROUP BY u.id, u.username;
 ```
 
-Consulta:
+---
+
+### 11. Analisis secuencial con `LAG` y `LEAD`
+
+Permiten comparar filas consecutivas por entidad.
 
 ```sql
-SELECT 
-    query,
-    calls,
-    total_time,
-    mean_time,
-    rows
-FROM pg_stat_statements
-ORDER BY total_time DESC
-LIMIT 10;
+SELECT
+    remitente_id,
+    enviado_en,
+    LAG(enviado_en) OVER (PARTITION BY remitente_id ORDER BY enviado_en) AS previo,
+    EXTRACT(EPOCH FROM (enviado_en - LAG(enviado_en) OVER (PARTITION BY remitente_id ORDER BY enviado_en))) / 60 AS minutos_diff
+FROM mensajes;
 ```
 
----
+Casos de uso:
 
-## 4.2 Métricas importantes
-
-* `calls` → frecuencia
-* `total_time` → impacto total
-* `mean_time` → latencia promedio
-* `rows` → volumen retornado
+- tiempo entre eventos,
+- abandono,
+- deteccion de picos.
 
 ---
 
-## 4.3 Interpretación
-
-| Métrica           | Qué indica           |
-| ----------------- | -------------------- |
-| Alto `mean_time`  | consulta lenta       |
-| Alto `calls`      | consulta frecuente   |
-| Alto `total_time` | mayor impacto global |
-
----
-
-# 5. Estrategias de Optimización
-
-## 5.1 Indexar columnas correctas
-
-Indexar:
-
-* Columnas en `WHERE`
-* Columnas en `JOIN`
-* Columnas en `ORDER BY`
-
----
-
-## 5.2 Evitar funciones en columnas indexadas
-
-❌ Malo:
+### 12. Acumulados y medias moviles
 
 ```sql
-WHERE EXTRACT(YEAR FROM fecha) = 2025;
+SELECT
+    DATE(enviado_en) AS fecha,
+    COUNT(*) AS mensajes_dia,
+    SUM(COUNT(*)) OVER (ORDER BY DATE(enviado_en)) AS acumulado,
+    AVG(COUNT(*)) OVER (ORDER BY DATE(enviado_en) ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS media_3
+FROM mensajes
+GROUP BY DATE(enviado_en)
+ORDER BY fecha;
 ```
 
-✔ Bueno:
+Esto habilita analitica de tendencia sin exportar a otra herramienta.
+
+---
+
+### 13. Subconsultas y CTEs
+
+Tipos comunes:
+
+- subconsulta en `SELECT`,
+- subconsulta en `WHERE`,
+- subconsulta en `FROM`.
+
+CTE (`WITH`) mejora legibilidad y modularidad.
 
 ```sql
-WHERE fecha >= '2025-01-01'
-  AND fecha < '2026-01-01';
+WITH mensajes_por_usuario AS (
+    SELECT remitente_id, COUNT(*) AS total
+    FROM mensajes
+    GROUP BY remitente_id
+)
+SELECT u.username, COALESCE(m.total, 0) AS total_mensajes
+FROM usuarios u
+LEFT JOIN mensajes_por_usuario m ON u.id = m.remitente_id;
 ```
 
 ---
 
-## 5.3 Selectividad
+### 14. Feature engineering en SQL
 
-Un índice funciona mejor cuando:
+Ejemplos de features para ML:
 
-* Filtra pocas filas
+- frecuencia de mensajes por usuario,
+- tiempo promedio entre interacciones,
+- modalidad dominante,
+- actividad por franja horaria,
+- recencia de ultima sesion.
 
-❌ Ejemplo malo:
+Ventajas de hacerlo en SQL:
 
-```sql
-WHERE genero = 'M'; -- 50% de la tabla
-```
-
-✔ Mejor:
-
-```sql
-WHERE email = 'x@mail.com';
-```
+- reproducibilidad,
+- trazabilidad,
+- cercania a los datos fuente.
 
 ---
 
-## 5.4 Evitar `SELECT *`
+### 15. Calidad de datos para features
 
-* Más datos → más I/O
-* Peor uso de índices
+Checklist:
 
----
-
-## 5.5 Uso de índices compuestos
-
-Consulta:
-
-```sql
-WHERE usuario_id = 10 AND fecha > NOW() - INTERVAL '7 days';
-```
-
-Índice ideal:
-
-```sql
-(usuario_id, fecha)
-```
+1. tipos de datos consistentes,
+2. nulos controlados,
+3. outliers detectados,
+4. llaves unicas verificadas,
+5. timestamps con zona horaria clara.
 
 ---
 
-# 6. JSONB y Optimización
+### 16. Patrón de consulta analitica robusta
 
-## 6.1 Problema común
-
-```sql
-WHERE metadata->>'tipo' = 'error';
-```
-
-➡ Sin índice → lento
+1. filtrar periodo,
+2. limpiar campos,
+3. derivar features,
+4. calcular ventanas,
+5. persistir resultado en tabla o vista.
 
 ---
 
-## 6.2 Soluciones
+### 17. Errores frecuentes en SQL avanzado
 
-### Opción 1: GIN
-
-```sql
-CREATE INDEX idx_json ON tabla USING gin (metadata);
-```
-
-✔ Flexible
-❌ Menos eficiente en igualdad específica
+- usar ventanas sin `ORDER BY` cuando la secuencia importa,
+- mezclar `GROUP BY` y ventanas sin validar grano,
+- no documentar reglas de limpieza,
+- asumir que `NULL` se comporta como cero,
+- crear CTEs excesivos sin revisar rendimiento.
 
 ---
 
-### Opción 2: Índice funcional (mejor)
+### 18. Mini laboratorio
 
-```sql
-CREATE INDEX idx_tipo ON tabla ((metadata->>'tipo'));
-```
-
-✔ Más rápido para igualdad
-
----
-
-# 7. Trade-Off: Lectura vs Escritura
-
-## 7.1 Problema
-
-Cada índice:
-
-* Mejora SELECT
-* Empeora INSERT / UPDATE / DELETE
+1. Crear ranking de usuarios por actividad.
+2. Calcular tiempo entre mensajes por usuario.
+3. Construir media movil diaria.
+4. Clasificar modulos por performance con `CASE`.
+5. Generar tabla de features para modelado.
 
 ---
 
-## 7.2 Impacto típico
+### 19. Checklist de salida
 
-* +10% a +30% en tiempo de escritura por índice
-
----
-
-## 7.3 Regla práctica
-
-| Sistema      | Estrategia        |
-| ------------ | ----------------- |
-| OLTP         | índices moderados |
-| Analytics    | muchos índices    |
-| Logs masivos | BRIN              |
+- Domino `OVER` con `PARTITION` y `ORDER`.
+- Aplico `LAG/LEAD` en series de eventos.
+- Limpio texto y fechas con funciones de PostgreSQL.
+- Construyo CTEs claros para analitica.
+- Puedo entregar un dataset de features confiable.
 
 ---
 
-# 8. Flujo Profesional de Optimización
+### 20. Preguntas de autoevaluacion
 
-## Paso 1: Detectar problema
-
-* `pg_stat_statements`
-* Logs lentos
-
----
-
-## Paso 2: Analizar consulta
-
-```sql
-EXPLAIN ANALYZE
-```
+1. Cuando prefieres window function sobre `GROUP BY`?
+2. Que diferencia hay entre `RANK` y `DENSE_RANK`?
+3. Como evitar sesgos por nulos en features?
+4. Para que sirve `DATE_TRUNC` en cohortes?
+5. Que valida primero antes de entrenar un modelo?
 
 ---
 
-## Paso 3: Identificar cuello de botella
+### 21. Referencias recomendadas
 
-* Seq Scan
-* JOIN costoso
-* Filtro ineficiente
-
----
-
-## Paso 4: Aplicar solución
-
-* Crear índice
-* Reescribir query
-* Reducir datos
-
----
-
-## Paso 5: Medir impacto
-
-Antes vs después:
-
-* Tiempo
-* Filas
-* Buffers
-
----
-
-# 9. Ejemplo Integrado
-
-## Consulta
-
-```sql
-SELECT *
-FROM pedidos
-WHERE usuario_id = 10
-AND fecha >= NOW() - INTERVAL '7 days';
-```
-
----
-
-## Problema
-
-* Seq Scan
-* Alta latencia
-
----
-
-## Solución
-
-```sql
-CREATE INDEX idx_user_fecha ON pedidos(usuario_id, fecha);
-```
-
----
-
-## Resultado esperado
-
-* Index Scan
-* Reducción drástica de tiempo
-
----
-
-# 10. Buenas Prácticas
-
-✔ Usar `EXPLAIN ANALYZE` siempre
-✔ Medir antes y después
-✔ Crear índices según consultas reales
-✔ Evitar sobre-indexar
-✔ Usar índices compuestos correctamente
-✔ Revisar `pg_stat_statements` regularmente
-
----
-
-# 11. Reflexión Final
-
-La optimización no es solo técnica, es estratégica:
-
-* No se trata de **más índices**, sino de **mejores índices**
-* No se trata de consultas complejas, sino de **consultas eficientes**
-* Lo importante es medir, no asumir
-
-> **“Lo que no se mide, no se puede optimizar.”**
-
-
+1. PostgreSQL docs: window functions.
+2. PostgreSQL docs: date/time functions.
+3. PostgreSQL docs: string functions.
+4. Material practico de transformacion y analisis.
+5. Feature engineering for ML (conceptos aplicados).

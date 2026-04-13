@@ -1,9 +1,7 @@
 ---
 layout: default
 ---
-## Sesión 2
-
-# MODELAMIENTO DE DATOS
+# Sesion 2: Modelamiento de datos
 
 ## Introducción al Modelamiento de Datos
 

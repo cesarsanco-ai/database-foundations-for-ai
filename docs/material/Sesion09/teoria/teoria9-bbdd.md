@@ -1,410 +1,322 @@
 ---
 layout: default
 ---
+# Sesion 9: ETL y pipelines de datos
 
-# BIG DATA Y FORMATOS DE ALTO RENDIMIENTO
+### 1. Logro de la sesion
 
+Disenar pipelines ETL/ELT confiables para mover datos desde fuentes operativas hacia capas analiticas (Bronze, Silver, Gold), diferenciando batch y streaming, y aplicando controles de calidad, incrementalidad y monitoreo.
 
-## Introducción al Big Data
+---
 
-El término **Big Data** se refiere a conjuntos de datos cuyo tamaño, velocidad o variedad exceden la capacidad de las herramientas tradicionales para capturarlos, gestionarlos y procesarlos en un tiempo razonable. No es solo una cuestión de volumen, sino de cómo extraer valor de ellos. En esta sesión exploraremos los conceptos fundamentales, las tecnologías de almacenamiento optimizado, las plataformas de procesamiento distribuido y las arquitecturas modernas como el Lakehouse, con ejemplos concretos de su aplicación en el mundo real, incluyendo el contexto peruano y latinoamericano.
+### 2. Conexion con el syllabus
 
-## Las 5 V del Big Data
+Semana 9 corresponde a:
 
-Inicialmente se definieron 3 V, pero hoy se habla de 5 o más:
+- ETL vs ELT.
+- Ingesta: APIs, archivos, scraping.
+- Batch vs streaming.
 
-1.  **Volumen**: Cantidad masiva de datos generados (terabytes, petabytes, exabytes).
+Se alinea con `9-etl.sql`.
 
-2.  **Velocidad**: Rapidez con la que se generan y deben procesarse (ej. sensores IoT, transacciones bancarias).
+---
 
-3.  **Variedad**: Diferentes formatos (estructurados, semiestructurados, no estructurados).
+### 3. Que es un pipeline de datos
 
-4.  **Veracidad**: Calidad y confiabilidad de los datos.
+Un pipeline es una cadena de procesos que:
 
-5.  **Valor**: Capacidad de transformar los datos en beneficios para el negocio.
+1. extrae datos,
+2. transforma y valida,
+3. carga a destino para consumo.
 
-## ¿Cuándo una solución es Big Data?
+Objetivo real:
 
-No todo proyecto con muchos datos es Big Data. Se considera Big Data cuando las herramientas convencionales (una sola máquina, bases de datos relacionales) no pueden manejar la carga y se requiere procesamiento distribuido (múltiples nodos). Ejemplos típicos:
+entregar datos confiables, oportunos y trazables.
 
-- Redes sociales: millones de publicaciones diarias (Twitter, Facebook).
+---
 
-- IoT: millones de sensores enviando lecturas cada segundo.
+### 4. ETL vs ELT
 
-- Finanzas: transacciones bursátiles en tiempo real.
+#### 4.1 ETL
 
-- Ciencia: secuenciación genética, astronomía.
+Transforma antes de cargar.
 
-# Almacenamiento Optimizado para Big Data
+Ventajas:
 
-En Big Data, los datos no siempre residen en tablas de bases de datos tradicionales. Se utilizan formatos de archivo especialmente diseñados para ser eficientes en espacio y velocidad de lectura.
+- control fuerte previo,
+- destino mas limpio desde inicio.
 
-## Apache Parquet
+#### 4.2 ELT
 
-Parquet es un formato columnar de código abierto. Almacena los datos por columnas en lugar de por filas, lo que permite:
+Carga primero, transforma en destino.
 
-- Lecturas eficientes de subconjuntos de columnas (solo se leen las necesarias).
+Ventajas:
 
-- Alta compresión (los datos de una misma columna suelen ser similares).
+- mayor flexibilidad,
+- aprovecha potencia del motor analitico.
 
-- Esquemas evolutivos (se pueden añadir columnas).
+---
 
-Es el formato nativo de herramientas como Apache Spark, y es ampliamente usado en data lakes (S3, HDFS).
+### 5. Fuentes de datos
 
-## Apache ORC
+Tipos comunes:
 
-Optimized Row Columnar (ORC) es otro formato columnar, similar a Parquet, desarrollado originalmente por Hive. Ofrece características como índices internos y estadísticas para acelerar consultas.
+- bases relacionales,
+- APIs REST,
+- archivos CSV/JSON/Parquet,
+- logs de aplicaciones,
+- scraping controlado.
 
-## Apache Avro
+Recomendacion:
 
-Avro es un formato binario orientado a filas, con un esquema definido en JSON. Es ideal para serialización en sistemas de mensajería como Kafka, ya que es compacto y rápido. Soporta evolución de esquema (compatible hacia adelante/atrás).
+capturar metadata de origen desde la ingesta.
 
-## Comparativa de Formatos
+---
 
-::: center
-  **Formato**   **Tipo**   **Compresión**       **Uso típico**             **Evolución**
-  ------------- ---------- -------------------- -------------------------- ---------------
-  Parquet       Columnar   Alta (por columna)   Análisis, data lakes       Sí
-  ORC           Columnar   Alta                 Hive, Hadoop               Sí
-  Avro          Fila       Media                Streaming, serialización   Sí
-  JSON          Texto      Baja                 APIs, documentos           No
-  CSV           Texto      Baja                 Intercambio simple         No
-:::
+### 6. Arquitectura por capas (Medallon)
 
-## Ejemplo: Lectura de Parquet con Spark
+#### 6.1 Bronze
 
-```python
-from pyspark.sql import SparkSession
+Datos crudos, historicos, minimo procesamiento.
 
-spark = SparkSession.builder.appName("lectura").getOrCreate()
-df = spark.read.parquet("s3://mi-bucket/ventas/")
-df.filter(df.fecha >= "2025-01-01").groupBy("producto").sum("monto").show()
+#### 6.2 Silver
+
+Datos limpiados, tipados y estandarizados.
+
+#### 6.3 Gold
+
+Datos agregados para BI, analitica y ML.
+
+---
+
+### 7. Implementacion en PostgreSQL
+
+Ejemplo de schemas:
+
+```sql
+CREATE SCHEMA IF NOT EXISTS bronze;
+CREATE SCHEMA IF NOT EXISTS silver;
+CREATE SCHEMA IF NOT EXISTS gold;
 ```
 
-# Data Lakes, Data Warehouses y Lakehouses
+Este patron aparece en los scripts practicos de ETL.
 
-## Data Lake
+---
 
-Un data lake es un repositorio que almacena datos en su formato original (crudo) a gran escala. Suele basarse en sistemas de archivos distribuidos como HDFS o almacenamiento en la nube (S3, ADLS). Ventajas:
+### 8. Carga inicial vs incremental
 
-- Bajo costo.
+#### 8.1 Carga full
 
-- Almacena cualquier tipo de dato (estructurado, semiestructurado, no estructurado).
+- copia todo,
+- simple para arranque,
+- costosa en volumen alto.
 
-- Ideal para ciencia de datos y exploración.
+#### 8.2 Carga incremental
 
-Desventajas:
+- solo nuevos o cambiados,
+- menor costo y latencia,
+- requiere clave de cambio (`id`, `updated_at`, CDC).
 
-- Puede convertirse en un "data swamp" si no hay gobernanza.
+---
 
-- Las consultas son lentas si no se usan herramientas adecuadas.
+### 9. Marca de agua y control
 
-## Data Warehouse
+Tabla de control recomendada:
 
-Un data warehouse almacena datos estructurados, modelados y optimizados para consultas analíticas (OLAP). Ejemplos: Amazon Redshift, Google BigQuery, Snowflake. Ventajas:
+- proceso,
+- ultima ejecucion,
+- ultimo id procesado,
+- estado,
+- registros procesados.
 
-- Alto rendimiento en consultas.
+Beneficio:
 
-- Gobernanza y calidad de datos.
+permite reintentos y auditoria operacional.
 
-- Ideal para reporting y BI.
+---
 
-Desventajas:
+### 10. Transformaciones tipicas en Silver
 
-- Costo más elevado.
+1. normalizar texto (`LOWER`, `TRIM`),
+2. validar email,
+3. extraer dominios,
+4. limpiar espacios/ruido,
+5. tipar fechas,
+6. estandarizar categorias.
 
-- Menos flexible para datos no estructurados.
+---
 
-## Lakehouse
+### 11. Calidad de datos en pipeline
 
-El concepto **Lakehouse** (acuñado por Databricks) busca combinar lo mejor de ambos: almacenamiento tipo data lake (bajo costo, formato abierto) con capacidades de gestión y rendimiento de data warehouse (transacciones ACID, evolución de esquema, optimización de consultas). Se implementa sobre formatos como Delta Lake, Apache Iceberg o Apache Hudi.
+Dimensiones:
 
-::: center
-:::
+- completitud,
+- unicidad,
+- consistencia,
+- validez,
+- frescura.
 
-### Delta Lake
+Regla:
 
-Delta Lake es una capa de almacenamiento de código abierto que aporta ACID, versionado de datos (time travel) y manejo de metadatos escalable sobre Parquet. Es el núcleo de Databricks.
+si falla control critico, detener carga a Gold.
 
-### Apache Iceberg
+---
 
-Iceberg es otra tabla de formato abierto diseñada para grandes conjuntos de datos, con soporte en Spark, Flink, Trino, etc. Ofrece evolución de esquema segura y particionado oculto.
+### 12. Batch vs Streaming
 
-## Databricks: La plataforma Lakehouse
+#### 12.1 Batch
 
-Databricks es una plataforma unificada de análisis de datos que integra:
+- corre por ventanas,
+- estable y simple,
+- mayor latencia.
 
-- Motor de procesamiento Apache Spark optimizado (hasta 50x más rápido).
+#### 12.2 Streaming
 
-- Capa de almacenamiento Delta Lake.
+- casi en tiempo real,
+- mejor para eventos continuos,
+- mayor complejidad de operacion.
 
-- Entorno de notebooks colaborativos.
+Seleccion segun SLA de negocio.
 
-- Soporte para machine learning (MLflow) y SQL.
+---
 
-Es ampliamente usada en empresas de todo el mundo para proyectos de Big Data e IA.
+### 13. Orquestacion y scheduling
 
-# Procesamiento Distribuido: Frameworks
+Un pipeline productivo requiere:
 
-Para procesar volúmenes masivos de datos, se requiere computación paralela en clústeres de máquinas. Los principales frameworks son:
+- dependencias entre tareas,
+- reintentos,
+- alertas,
+- registro de ejecucion.
 
-## Apache Spark
+Herramientas comunes:
 
-Spark es el motor más popular. Permite procesamiento batch, streaming, SQL, machine learning y graph en un mismo entorno. Utiliza memoria (cuando es posible) para acelerar las operaciones. Ofrece APIs en Scala, Python, Java, R.
+Airflow, Prefect, Dagster, orquestadores cloud.
 
-- **Resilient Distributed Datasets (RDD)**: estructura fundamental.
+---
 
-- **DataFrames**: abstracción similar a tablas, con optimizaciones.
+### 14. Idempotencia en ETL
 
-- **Spark SQL**: consultas SQL sobre DataFrames.
+Un job idempotente se puede re-ejecutar sin duplicar ni corromper datos.
 
-- **Structured Streaming**: procesamiento en tiempo real con API de DataFrames.
+Estrategias:
 
-## Apache Flink
+- `UPSERT` con `ON CONFLICT`,
+- deduplicacion por llave natural,
+- particionado por ventana temporal.
 
-Flink es un motor de procesamiento de streaming nativo, con baja latencia y capacidad de estado. Es ideal para aplicaciones que requieren resultados en milisegundos.
+---
 
-## Apache Hadoop MapReduce
+### 15. CDC en pipelines
 
-El precursor, pero hoy en desuso para la mayoría de aplicaciones debido a su alta latencia (escritura intermedia a disco) y complejidad.
+Change Data Capture detecta cambios en origen para sincronizar destino.
 
-## Comparativa Spark vs Flink
+Eventos CDC:
 
-::: center
-  **Característica**         **Spark**                                          **Flink**
-  -------------------------- -------------------------------------------------- ------------------
-  Modelo                     Micro-batches (por defecto) o streaming continuo   Streaming nativo
-  Latencia                   Segundos (micro-batches)                           Milisegundos
-  Procesamiento con estado   Sí (checkpoints)                                   Sí (muy robusto)
-  Ecosistema                 Muy amplio (SQL, ML, Graph)                        En crecimiento
-  Facilidad de uso           Alta                                               Media
-:::
+- insert,
+- update,
+- delete.
 
-# Arquitecturas Cloud, Híbridas y On-Premise
+Es clave cuando hay integracion con capas vectoriales o microservicios.
 
-## Cloud (Nube)
+---
 
-Los proveedores cloud ofrecen servicios gestionados de Big Data:
+### 16. Capa Gold y consumo
 
-- **AWS**: EMR (Spark, Hadoop), Kinesis (streaming), Athena (consultas SQL sobre S3), Redshift (data warehouse).
+Objetivo de Gold:
 
-- **Google Cloud**: Dataproc (Spark/Hadoop), Pub/Sub, BigQuery.
+- tablas de hechos y dimensiones,
+- resumenes diarios,
+- vistas para dashboards y modelos.
 
-- **Azure**: HDInsight, Event Hubs, Synapse.
+No debe contener logica improvisada de ultima hora.
 
-Ventajas: escalabilidad elástica, pago por uso, menor mantenimiento.
+---
 
-## On-Premise (Local)
+### 17. Monitoreo operacional
 
-La empresa instala y gestiona su propio clúster (Hadoop, Spark) en sus servidores. Ventajas: control total, seguridad (datos no salen de la empresa). Desventajas: alta inversión inicial (CapEx), complejidad operativa.
+Metricas minimas:
 
-## Híbrida
+- duracion del job,
+- filas leidas/escritas,
+- tasa de error,
+- freshness del dataset.
 
-Combinación de ambos: algunos datos y procesos en la nube, otros en local. Por ejemplo, un data lake en la nube y procesamiento crítico on-premise, o viceversa.
+Alertas:
 
-## Escalabilidad y Concurrencia
+- job fallido,
+- retraso de SLA,
+- volumen anomalo.
 
-En Big Data, la escalabilidad horizontal (añadir más nodos) es clave. La computación paralela permite dividir el trabajo entre muchos servidores. Conceptos importantes:
+---
 
-- **Sharding**: dividir los datos en fragmentos (shards) distribuidos.
+### 18. Seguridad y gobierno en ETL
 
-- **Replicación**: copiar datos en varios nodos para tolerancia a fallos.
+- controlar acceso por capa,
+- enmascarar datos sensibles,
+- auditar quien transforma que,
+- versionar transformaciones.
 
-- **Balanceo de carga**: distribuir las consultas entre nodos.
+---
 
-# Casos de Uso Reales
+### 19. Errores frecuentes
 
-## Redes Sociales (Twitter)
+- pipelines sin tabla de control,
+- no manejar retries,
+- mezclar datos crudos y curados,
+- no validar calidad,
+- transformar sin trazabilidad.
 
-Twitter genera cientos de millones de tweets al día. Utilizan Hadoop y Spark para análisis de tendencias, detección de spam, y recomendaciones. Los datos se almacenan en formatos como Parquet en un data lake.
+---
 
-## Internet de las Cosas (IoT)
+### 20. Caso aplicado
 
-Empresas como Petrobras (Brasil) usan IoT en plataformas petroleras. Miles de sensores envían lecturas cada segundo. Los datos se procesan en tiempo real con Kafka y Flink para detectar anomalías y prevenir fallos.
+Plataforma de mensajeria IA:
 
-## Finanzas (Bancos)
+- Bronze recibe eventos crudos de usuarios y logs.
+- Silver limpia textos, fechas y atributos de IA.
+- Gold entrega metricas de uso y rendimiento por modulo.
 
-Un banco en Perú procesa millones de transacciones diarias. Utilizan CDC (Debezium) para capturar cambios en sus bases de datos transaccionales, los envían a Kafka, y luego Spark los transforma y carga en un data warehouse (Redshift) para análisis de fraude y reportes regulatorios.
+Resultado:
 
-## Retail (Comercio Electrónico)
+analitica confiable y base de features para ML.
 
-Falabella (Chile) usa Big Data para personalización de ofertas. Los clics de los usuarios se capturan en tiempo real, se unen con datos históricos y se alimentan modelos de recomendación (machine learning) en Databricks.
+---
 
-## Telecomunicaciones
+### 21. Mini laboratorio
 
-Una operadora móvil en Latinoamérica analiza registros de llamadas (CDRs) para optimizar la red y detectar patrones de fraude. Volúmenes de varios terabytes diarios procesados con Spark.
+1. Crear schemas Bronze/Silver/Gold.
+2. Cargar datos crudos en Bronze.
+3. Transformar usuarios y mensajes a Silver.
+4. Generar resumen diario en Gold.
+5. Registrar ejecucion en tabla de control.
 
-## Big Data en Perú
+---
 
-En Perú, sectores como banca, retail y telecomunicaciones están adoptando Big Data. Ejemplos:
+### 22. Checklist de salida
 
-- BCP: uso de data lakes y machine learning para segmentación de clientes.
+- Explico ETL vs ELT segun caso.
+- Diseno pipelines incrementales.
+- Implemento controles de calidad.
+- Distingo batch y streaming por SLA.
+- Relaciono ETL con BI y ML.
 
-- Interbank: analítica en tiempo real de transacciones.
+---
 
-- Entel: procesamiento de datos de red para mejorar calidad de servicio.
+### 23. Preguntas de autoevaluacion
 
-El crecimiento del cloud (AWS en Lima) está facilitando la adopción.
+1. Cuando prefieres ETL sobre ELT?
+2. Que guarda una tabla de control de cargas?
+3. Por que idempotencia evita incidentes?
+4. Que control debe bloquear una carga a Gold?
+5. Cuando streaming no aporta valor?
 
-# Computación Paralela y Concurrente
+---
 
-## Conceptos Fundamentales
+### 24. Referencias recomendadas
 
-- **Paralelismo**: ejecución simultánea de múltiples tareas en diferentes núcleos/máquinas.
-
-- **Concurrencia**: capacidad de manejar múltiples tareas al mismo tiempo (no necesariamente en paralelo).
-
-- **Cluster**: conjunto de máquinas que trabajan juntas.
-
-- **Nodo**: una máquina del clúster.
-
-- **Task**: unidad de trabajo (por ejemplo, procesar una partición de datos).
-
-## Modelos de Particionamiento
-
-Para distribuir datos, se usan técnicas como:
-
-- **Rango**: dividir por rangos de valores (ej. fechas).
-
-- **Hash**: aplicar función hash a una clave.
-
-- **Lista**: por categorías (ej. región).
-
-El particionamiento debe balancear la carga y permitir consultas eficientes.
-
-## Ejemplo: Sharding en Cassandra
-
-En Cassandra, la clave de partición determina el nodo donde se almacena la fila. Las consultas deben incluir la clave de partición para ser eficientes.
-
-# Herramientas y Plataformas Adicionales
-
-## Apache Kafka
-
-Plataforma de streaming para la ingesta y distribución de eventos en tiempo real. Actúa como cola distribuida y duradera. Se integra con Spark, Flink, etc.
-
-## Apache Airflow
-
-Orquestador de workflows. Permite programar y monitorizar pipelines complejos (DAGs). Es el estándar para orquestación ETL/ELT.
-
-## Trino (antes Presto)
-
-Motor de consultas SQL distribuido que puede consultar datos directamente en data lakes (S3, HDFS) en formatos como Parquet. Muy rápido para análisis ad-hoc.
-
-## Apache Hive
-
-Data warehouse sobre Hadoop que traduce SQL a MapReduce o Spark. Hoy menos usado.
-
-## Apache HBase
-
-Base de datos NoSQL columnar sobre HDFS, para acceso aleatorio en tiempo real.
-
-## Elasticsearch
-
-Motor de búsqueda y analítica, usado para logs y datos de texto.
-
-## Tabla Resumen
-
-::: center
-  **Herramienta**   **Función principal**
-  ----------------- -----------------------------------------------
-  Apache Spark      Procesamiento distribuido (batch y streaming)
-  Apache Flink      Procesamiento streaming de baja latencia
-  Apache Kafka      Mensajería y streaming de eventos
-  Apache Airflow    Orquestación de pipelines
-  Trino             Consultas SQL sobre data lakes
-  Elasticsearch     Búsqueda y análisis de texto
-  Databricks        Plataforma unificada Lakehouse
-  AWS EMR           Clústeres gestionados de Hadoop/Spark
-  Google BigQuery   Data warehouse serverless
-:::
-
-# Ejercicios Resueltos
-
-## Ejercicio 1: Elección de formato
-
-**Enunciado:** Una empresa necesita almacenar logs de servidores (texto) para análisis posteriores. ¿Qué formato recomendaría y por qué?
-
-**Solución:** Recomendaría Parquet, ya que permite compresión y consultas eficientes sobre campos específicos (timestamp, nivel de log). Además, se puede usar con Spark para procesar grandes volúmenes. Alternativamente, si se requiere ingestión en tiempo real, podrían usar Avro para Kafka y luego convertirlos a Parquet para almacenamiento.
-
-## Ejercicio 2: Diseño de un data lake
-
-**Enunciado:** Diseñar la estructura de carpetas para un data lake en S3 que almacena ventas diarias, clientes y productos.
-
-**Solución:**
-
-    s3://mi-lake/
-      raw/
-        ventas/
-          year=2025/
-            month=03/
-              day=15/
-                ventas_20250315.csv
-              day=16/
-                ...
-        clientes/
-          clientes_20250315.csv
-        productos/
-          productos.csv
-      staging/
-        ventas_clean.parquet
-        clientes_clean.parquet
-      analytics/
-        ventas_diarias.parquet
-
-Particionar por fecha facilita consultas posteriores y evolución.
-
-## Ejercicio 3: Contar palabras con Spark
-
-**Enunciado:** Escribir un script en PySpark que cuente las palabras más frecuentes en un conjunto de archivos de texto.
-
-**Solución:**
-
-```python
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import explode, split, col
-
-spark = SparkSession.builder.appName("wordcount").getOrCreate()
-df = spark.read.text("s3://bucket/textos/*.txt")
-words = df.select(explode(split(col("value"), "\s+")).alias("word"))
-counts = words.groupBy("word").count().orderBy(col("count").desc())
-counts.show(10)
-```
-
-## Ejercicio 4: Procesamiento streaming con Spark
-
-**Enunciado:** Leer un stream de Kafka con eventos de clics y contar los clics por minuto.
-
-**Solución:**
-
-```python
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import window, col
-
-spark = SparkSession.builder.appName("streaming").getOrCreate()
-df = spark.readStream.format("kafka") \
-    .option("kafka.bootstrap.servers", "localhost:9092") \
-    .option("subscribe", "clics") \
-    .load()
-# Asumimos que el valor es JSON con timestamp y usuario
-from pyspark.sql.types import StructType, StringType, TimestampType
-schema = StructType().add("usuario", StringType()).add("timestamp", TimestampType())
-clics = df.selectExpr("CAST(value AS STRING)").select(from_json("value", schema).alias("data")).select("data.*")
-counts = clics.groupBy(window("timestamp", "1 minute"), col("usuario")).count()
-query = counts.writeStream.outputMode("complete").format("console").start()
-query.awaitTermination()
-```
-
-## Ejercicio 5: Dimensionamiento de clúster
-
-**Enunciado:** Estimar el número de nodos necesarios para procesar 10 TB de datos diarios con Spark, asumiendo que cada nodo tiene 64 GB de RAM y 8 cores, y que el trabajo requiere 4 horas.
-
-**Solución:**
-
-- Supongamos que Spark puede procesar 1 TB por hora por cada 10 cores (depende del tipo de trabajo). Con 8 cores por nodo, 0.8 TB/hora/nodo.
-
-- Para 10 TB en 4 horas, se necesitan 10 / 4 = 2.5 TB/hora.
-
-- Nodos necesarios: 2.5 / 0.8 ≈ 3.125, es decir, 4 nodos.
-
-Este cálculo es muy aproximado; en la práctica se hacen pruebas de rendimiento.
-
+1. Kimball: Data Warehouse Toolkit.
+2. Designing Data-Intensive Applications.
+3. Docs de orquestadores (Airflow/Prefect/Dagster).
+4. Buenas practicas de calidad de datos.
+5. Scripts ETL del curso.

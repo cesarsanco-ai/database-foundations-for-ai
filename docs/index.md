@@ -10,7 +10,7 @@ Cada sesión incluye material teórico, ejercicios, recursos complementarios y p
 
 | Semana | Tema |
 |--------|--------|
-| 01 | [Ecosistema de Datos](sesiones/sesion-01.md) |
+| 01 | [Introducción a los Datos](sesiones/sesion-01.md) |
 | 02 | [Modelamiento](sesiones/sesion-02.md) |
 | 03 | [Normalización](sesiones/sesion-03.md) |
 | 04 | [SQL - Parte 1](sesiones/sesion-04.md) |
