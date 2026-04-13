@@ -2,34 +2,18 @@
 layout: default
 ---
 
-# Sesion 8: Pipelines de Datos
+# Sesion 8: Programación en el Servidor
 [⬅️ Volver al Índice](../index.md)
 
 ## 🎯 Objetivo de la Sesión
 
-Comprender el pipeline de datos, ETL y ELT.
- 
-***
+Implementar lógica del lado del servidor con views, procedimientos, funciones y triggers.
 
-## 📘 Contenido Teórico
+## 📘 Teoría
 
-Material de apoyo y referencias de la semana.
+* 🖼️ [Sesión 8](../material/Sesion08/teoria/teoria8-bbdd.md)
 
-* 🖼️ **Clase:** [Clase08-BBDD](../material/Sesion08/teoria/teoria8-bbdd.md)
- 
-* 📝 **Quick Reference:** [CheatSheet](../material/Sesion08/cheatsheet/cheatsheet.md)
+### 💻 Ejercicios
 
-***
-
-### 💻 Laboratorio
-
-*Nivel: Intermedio* ⭐⭐⭐
-
-* 📓 **Lab 1:** [Laboratorio 1](../material/Sesion08/practica/SESION8-LAB1-BBDD.md) 
-* 📓 **Lab 2:** [Laboratorio 2](../material/Sesion08/practica/SESION8-LAB2-BBDD.md)
-
-***
-
-## 🔗 Recursos complementarios
-
-* 📁 **[Repositorio del curso](https://github.com/cesarsanco-ai/database-foundations-for-ai)** — Código y materiales en GitHub.
+* 📓 [Ejercicio 1](../material/Sesion08/practica/SESION8-LAB1-BBDD.md)
+* 📓 [Ejercicio 2](../material/Sesion08/practica/SESION8-LAB2-BBDD.md)

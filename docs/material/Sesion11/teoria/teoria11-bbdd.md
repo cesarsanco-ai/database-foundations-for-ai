@@ -1,154 +1,322 @@
 ---
 layout: default
 ---
+# Sesion 11: Cloud Databases - arquitectura, operacion y decision
 
-# NoSQL
+### 1. Logro de la sesion
 
-## Introducción a NoSQL
-
-Las bases de datos relacionales (SQL) han dominado el mundo de los datos durante décadas. Sin embargo, con la llegada de aplicaciones web a gran escala, big data y la necesidad de flexibilidad, surgieron las bases de datos **NoSQL (Not Only SQL)**. Estas bases de datos están diseñadas para:
-
-* Escalar horizontalmente.
-* Manejar datos no estructurados o semiestructurados.
-* Ofrecer alta disponibilidad y rendimiento.
+Evaluar y disenar despliegues de bases de datos en nube comparando on-premise vs cloud, modelos PaaS vs serverless, y criterios de seguridad, costo, rendimiento y continuidad para soluciones orientadas a analitica e IA.
 
 ---
 
-## ¿Por qué NoSQL?
+### 2. Contexto de negocio
 
-Limitaciones de SQL en escenarios modernos:
+Las organizaciones migran a cloud por:
 
-* Escalabilidad vertical costosa (más CPU/RAM en un solo servidor).
-* Esquema rígido (schema-on-write) que dificulta cambios frecuentes.
-* Dificultad para manejar grandes volúmenes de datos no estructurados.
-* Rendimiento limitado en operaciones masivas de lectura/escritura.
+- elasticidad,
+- reduccion de tiempo de aprovisionamiento,
+- servicios gestionados listos para produccion.
 
----
-
-## Teorema CAP
-
-En sistemas distribuidos, **no se puede garantizar simultáneamente**:
-
-* **Consistencia (C)**: Todos los nodos ven los mismos datos al mismo tiempo.
-* **Disponibilidad (A)**: Cada petición recibe respuesta (aunque no sea la más reciente).
-* **Tolerancia a Particiones (P)**: El sistema sigue funcionando aunque se pierda comunicación entre nodos.
-
-Sistemas NoSQL típicos eligen **dos de tres**:
-
-* **CP**: Consistencia + tolerancia a particiones (ej. HBase, MongoDB configurable).
-* **AP**: Disponibilidad + tolerancia a particiones (ej. Cassandra, CouchDB).
-* **CA**: Consistencia + disponibilidad (sistemas tradicionales, no toleran particiones).
+No toda carga debe migrar igual; la clave es arquitectura por caso de uso.
 
 ---
 
-## Tipos de Bases de Datos NoSQL
+### 3. On-premise vs cloud
 
-| Tipo                | Ejemplos              | Características principales                |
-| ------------------- | --------------------- | ------------------------------------------ |
-| Documental          | MongoDB, Couchbase    | Documentos JSON/BSON, esquema flexible     |
-| Clave-Valor         | Redis, DynamoDB       | Almacenamiento simple de pares clave-valor |
-| Grafos              | Neo4j, Amazon Neptune | Modela nodos y relaciones                  |
-| Columnar            | Cassandra, HBase      | Datos organizados por columnas, escalables |
-| Motores de Búsqueda | Elasticsearch, Solr   | Indexación y búsqueda de texto completo    |
+#### 3.1 On-premise
 
----
+Ventajas:
 
-# Bases de Datos Documentales: MongoDB
+- control total de infraestructura,
+- cumplimiento especifico en entornos regulados.
 
-* **Modelo**: Documentos BSON (JSON binario), jerárquicos, con arrays y subdocumentos.
-* **Consultas**: Basadas en JSON; permite inserción, actualización, eliminación y agregaciones.
-* **Escalabilidad**: Sharding horizontal + replicación para alta disponibilidad.
-* **Casos de uso**: Catálogos, CMS, sesiones de usuario, almacenamiento de embeddings para IA.
+Desventajas:
 
----
+- alto CAPEX,
+- escalado lento,
+- mayor carga operativa interna.
 
-# Bases de Datos Clave-Valor: Redis
+#### 3.2 Cloud
 
-* **Modelo**: Clave-valor en memoria, estructuras complejas (listas, sets, hashes).
-* **Persistencia**: RDB (snapshots) o AOF (registro de operaciones).
-* **Escalabilidad**: Replicación maestro-esclavo y Redis Cluster.
-* **Casos de uso**: Caché, sesiones de usuario, rate limiting, colas de tareas, almacenamiento de embeddings para IA.
+Ventajas:
 
----
+- escalado rapido,
+- menor friccion para pruebas y despliegues,
+- servicios administrados.
 
-# Bases de Datos de Grafos: Neo4j
+Desventajas:
 
-* **Modelo**: Nodos (entidades), relaciones (con dirección y tipo), propiedades.
-* **Lenguaje**: Cypher (consultas orientadas a grafos).
-* **Casos de uso**: Recomendación, detección de fraude, redes sociales, gestión de identidades.
-* **Integración IA**: Alimenta sistemas de recomendación basados en relaciones.
+- costos variables si no se controla consumo,
+- dependencia de proveedor,
+- necesidad de buena gobernanza.
 
 ---
 
-# Bases de Datos Columnares: Apache Cassandra
+### 4. Modelos de servicio
 
-* **Modelo**: Filas y columnas, clave primaria con clave de partición + clustering columns.
-* **Arquitectura**: Peer-to-peer, sin nodo maestro.
-* **Consistencia**: Eventual (configurable).
-* **Escalabilidad**: Lineal, alta disponibilidad.
-* **Casos de uso**: IoT, series temporales, mensajería, big data transaccional.
+#### 4.1 IaaS
 
----
+Tu gestionas casi todo sobre maquinas virtuales.
 
-# Motores de Búsqueda: Elasticsearch
+#### 4.2 PaaS de base de datos
 
-* **Modelo**: Documentos JSON indexados, shard y replicas, inverted index para búsquedas rápidas.
-* **Consultas**: API RESTful, agregaciones y búsquedas de texto completo.
-* **Casos de uso**: Búsqueda web, análisis de logs, métricas, búsqueda semántica.
+Proveedor gestiona parches, backups, alta disponibilidad base.
+
+#### 4.3 Serverless database
+
+Escalado automatico por demanda y pago por uso.
 
 ---
 
-# Comparativa SQL vs NoSQL
+### 5. PaaS vs Serverless
 
-| Característica | SQL                    | NoSQL                                         |
-| -------------- | ---------------------- | --------------------------------------------- |
-| Esquema        | Fijo (schema-on-write) | Flexible (schema-on-read)                     |
-| Transacciones  | ACID                   | BASE / eventual consistency                   |
-| Escalabilidad  | Vertical               | Horizontal                                    |
-| Consultas      | Estructuradas (JOINs)  | Según tipo, no joins en general               |
-| Casos de uso   | Transaccional          | Big Data, tiempo real, datos no estructurados |
-
----
-
-# Integración con Inteligencia Artificial
-
-* **Embeddings**: Guardados en MongoDB, Elasticsearch o PostgreSQL con pgvector.
-* **Caché de resultados/Modelos**: Redis reduce latencia en inferencias de IA.
-* **Estado de conversaciones**: Redis mantiene contexto en chatbots.
-* **Recomendaciones con grafos**: Neo4j alimenta modelos basados en relaciones.
+| Criterio | PaaS | Serverless |
+|---|---|---|
+| Control fino | Medio | Bajo/medio |
+| Escalado | Manual/auto parcial | Automatico |
+| Costo en inactividad | Mayor | Menor |
+| Latencia fria | Baja | Puede existir |
+| Casos tipicos | carga estable | carga variable |
 
 ---
 
-# Infraestructura en la Nube para NoSQL
+### 6. Proveedores principales
 
-| Proveedor Cloud | Servicios NoSQL principales                            |
-| --------------- | ------------------------------------------------------ |
-| AWS             | DynamoDB, DocumentDB, ElastiCache, Neptune, OpenSearch |
-| Azure           | Cosmos DB, Redis Cache, Table Storage                  |
-| GCP             | Firestore, Bigtable, Memorystore (Redis)               |
+#### 6.1 AWS
 
-**Estrategias de despliegue**:
+- RDS,
+- Aurora,
+- Redshift.
 
-* Serverless: Escalado automático, sin gestión de servidores (DynamoDB, Cosmos DB).
-* Instancias gestionadas: Control sobre configuración (ElastiCache, DocumentDB).
-* On-premise vs Cloud: Basado en costo, latencia, cumplimiento.
+#### 6.2 Azure
 
----
+- Azure SQL Database,
+- Cosmos DB,
+- Synapse.
 
-# Dimensionamiento y Costos
+#### 6.3 GCP
 
-* DynamoDB: por capacidad de lectura/escritura (RCU/WCU) y almacenamiento.
-* Redis ElastiCache: desde $0.016/hora para instancias pequeñas.
-* Cosmos DB: aprox. $0.008/hora por 100 RU/s.
+- Cloud SQL,
+- AlloyDB,
+- BigQuery.
 
 ---
 
-# Glosario
+### 7. Patron de arquitectura recomendado
 
-* **NoSQL**: Not Only SQL, bases de datos no relacionales.
-* **Teorema CAP**: Consistencia, Disponibilidad, Tolerancia a Particiones.
-* **Sharding**: Particionamiento horizontal de datos.
-* **Replicación**: Copia de datos en varios nodos.
-* **Embedding**: Representación vectorial de datos para IA.
-* **Latencia**: Tiempo de respuesta.
+Separar capas:
+
+1. OLTP transaccional.
+2. Analitica/warehouse.
+3. Capa de IA y recuperacion.
+
+No sobrecargar una sola base con todos los perfiles de uso.
+
+---
+
+### 8. Disponibilidad y resiliencia
+
+Conceptos clave:
+
+- replicas de lectura,
+- multi-zona,
+- politicas de backup,
+- RPO y RTO.
+
+Definiciones:
+
+- RPO: perdida de datos tolerable.
+- RTO: tiempo de recuperacion tolerable.
+
+---
+
+### 9. Seguridad en cloud database
+
+Controles minimos:
+
+- IAM por principio de minimo privilegio,
+- cifrado en reposo,
+- cifrado en transito TLS,
+- rotacion de secretos,
+- auditoria y trazabilidad.
+
+---
+
+### 10. Redes y aislamiento
+
+Buenas practicas:
+
+- base en red privada,
+- acceso via bastion/VPN cuando aplique,
+- evitar exposicion publica innecesaria.
+
+Riesgo clasico:
+
+abrir puertos por urgencia y olvidar cierre.
+
+---
+
+### 11. Costos en nube (FinOps)
+
+Variables principales:
+
+- almacenamiento,
+- computo,
+- IOPS,
+- transferencia de datos.
+
+Estrategias:
+
+1. dimensionar por metricas reales,
+2. apagar entornos no productivos fuera de horario,
+3. usar retencion y compresion adecuadas.
+
+---
+
+### 12. Observabilidad operacional
+
+Metrica minima por base:
+
+- CPU,
+- memoria,
+- conexiones activas,
+- latencia p95,
+- tasa de errores.
+
+Alertas:
+
+- crecimiento anomalo de storage,
+- saturacion de conexiones,
+- replica con retraso alto.
+
+---
+
+### 13. Migraciones hacia cloud
+
+#### 13.1 Lift and shift
+
+Rapido, pero no siempre optimizado.
+
+#### 13.2 Replatform
+
+Ajusta arquitectura aprovechando servicios gestionados.
+
+#### 13.3 Refactor
+
+Cambio profundo para nativo cloud.
+
+---
+
+### 14. PostgreSQL en cloud
+
+Opciones comunes:
+
+- PostgreSQL administrado (PaaS),
+- variantes compatibles de alto rendimiento.
+
+Ventajas:
+
+- ecosistema maduro,
+- extensiones como `pg_stat_statements` y `pgvector`,
+- SQL estandar y portabilidad razonable.
+
+---
+
+### 15. Cloud y cargas de IA
+
+Escenarios:
+
+- entrenamiento batch en data platform,
+- inferencia online con baja latencia,
+- RAG con sincronizacion SQL + vectorial.
+
+Requisito:
+
+coordinar base transaccional con almacenamiento analitico y vectorial.
+
+---
+
+### 16. Continuidad y DR
+
+Plan minimo:
+
+1. definir RPO/RTO por sistema,
+2. probar restauraciones periodicamente,
+3. automatizar backups con verificacion.
+
+Error frecuente:
+
+tener backup sin prueba de restauracion.
+
+---
+
+### 17. Gobernanza multi-entorno
+
+Separar:
+
+- desarrollo,
+- QA,
+- produccion.
+
+Controlar:
+
+- cambios de esquema,
+- accesos privilegiados,
+- despliegues con aprobacion.
+
+---
+
+### 18. Caso aplicado
+
+Sistema de tickets IA:
+
+- PostgreSQL PaaS para transacciones,
+- almacenamiento analitico para reportes,
+- servicio vectorial para busqueda semantica.
+
+Resultado esperado:
+
+- escalado por capa,
+- menores riesgos operativos,
+- mayor velocidad de evolucion.
+
+---
+
+### 19. Mini laboratorio
+
+1. Elegir entre on-prem y cloud para un caso real.
+2. Seleccionar PaaS o serverless y justificar.
+3. Definir controles de seguridad minimos.
+4. Estimar componentes de costo mensual.
+5. Proponer estrategia de backup y DR.
+
+---
+
+### 20. Checklist de dominio
+
+- Distingo CAPEX y OPEX en decision tecnica.
+- Selecciono PaaS/serverless segun patron de uso.
+- Defino controles de seguridad e IAM.
+- Propongo RPO/RTO razonables.
+- Identifico riesgos de vendor lock-in.
+
+---
+
+### 21. Preguntas de autoevaluacion
+
+1. Que carga se beneficia mas de serverless?
+2. Cuando una replica de lectura no resuelve latencia?
+3. Que diferencia hay entre backup y alta disponibilidad?
+4. Que practica evita sobrecostos en desarrollo?
+5. Por que conviene separar capas OLTP y analitica?
+
+---
+
+### 22. Referencias recomendadas
+
+1. AWS Well-Architected Framework.
+2. Azure Architecture Center.
+3. Google Cloud Architecture Framework.
+4. PostgreSQL on cloud best practices.
+5. NIST guidance for cloud security.
 

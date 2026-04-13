@@ -2,34 +2,18 @@
 layout: default
 ---
 
-# Sesion 12: Bases de Datos Vectoriales
+# Sesion 12: NoSQL
 [⬅️ Volver al Índice](../index.md)
 
 ## 🎯 Objetivo de la Sesión
 
-Realizar consultas vectoriales en bases de datos.
+Explorar bases NoSQL y seleccionar el tipo adecuado según el caso de uso.
 
-***
+## 📘 Teoría
 
-## 📘 Contenido Teórico
+* 🖼️ [Sesión 12](../material/Sesion12/teoria/teoria12-bbdd.md)
 
-Material de apoyo y referencias de la semana.
+### 💻 Ejercicios
 
-* 🖼️ **Clase:** [Clase12-BBDD](../material/Sesion12/teoria/teoria12-bbdd.md)
- 
-* 📝 **Quick Reference:** [CheatSheet](../material/Sesion12/cheatsheet/cheatsheet.md)
-
-***
-
-### 💻 Laboratorio
-
-*Nivel: Intermedio* ⭐⭐⭐
-
-* 📓 **Lab 1:** [Laboratorio 1](../material/Sesion12/practica/SESION12-LAB1-BBDD.md) 
-* 📓 **Lab 2:** [Laboratorio 2](../material/Sesion12/practica/SESION12-LAB2-BBDD.md)
-
-***
-
-## 🔗 Recursos complementarios
-
-* 📁 **[Repositorio del curso](https://github.com/cesarsanco-ai/database-foundations-for-ai)** — Código y materiales en GitHub.
+* 📓 [Ejercicio 1](../material/Sesion12/practica/SESION12-LAB1-BBDD.md)
+* 📓 [Ejercicio 2](../material/Sesion12/practica/SESION12-LAB2-BBDD.md)

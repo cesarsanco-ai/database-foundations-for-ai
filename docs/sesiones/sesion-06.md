@@ -2,34 +2,18 @@
 layout: default
 ---
 
-# Sesion 6: Optimizacion de consultas
+# Sesion 6: SQL - Parte 3
 [⬅️ Volver al Índice](../index.md)
 
 ## 🎯 Objetivo de la Sesión
 
-Comprender el uso de indices y buenas practicas de optimizacion.
+Usar window functions y transformaciones avanzadas para análisis y feature engineering.
 
-***
+## 📘 Teoría
 
-## 📘 Contenido Teórico
+* 🖼️ [Sesión 6](../material/Sesion06/teoria/teoria6-bbdd.md)
 
-Material de apoyo y referencias de la semana.
+### 💻 Ejercicios
 
-* 🖼️ **Clase:** [Clase06-BBDD](../material/Sesion06/teoria/teoria6-bbdd.md)
- 
-* 📝 **Quick Reference:** [CheatSheet](../material/Sesion06/cheatsheet/cheatsheet.md)
-
-***
-
-### 💻 Laboratorio
-
-*Nivel: Intermedio* ⭐⭐⭐
-
-* 📓 **Lab 1:** [Laboratorio 1](../material/Sesion06/practica/SESION6-LAB1-BBDD.md) 
-* 📓 **Lab 2:** [Laboratorio 2](../material/Sesion06/practica/SESION6-LAB2-BBDD.md)
-
-***
-
-## 🔗 Recursos complementarios
-
-* 📁 **[Repositorio del curso](https://github.com/cesarsanco-ai/database-foundations-for-ai)** — Código y materiales en GitHub.
+* 📓 [Ejercicio 1](../material/Sesion06/practica/SESION6-LAB1-BBDD.md)
+* 📓 [Ejercicio 2](../material/Sesion06/practica/SESION6-LAB2-BBDD.md)

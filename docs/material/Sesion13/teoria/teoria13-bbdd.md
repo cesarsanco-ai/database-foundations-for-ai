@@ -1,203 +1,308 @@
 ---
 layout: default
 ---
-# Arquitecturas Híbridas de Datos
+# Sesion 13: Bases de datos vectoriales y busqueda semantica
 
-## 1. Introducción: La Evolución del Paradigma de Datos
+### 1. Logro de la sesion
 
-En las últimas décadas, la gestión de datos ha transitado desde modelos centralizados y rígidos hacia ecosistemas distribuidos, heterogéneos y altamente especializados. Este cambio responde a tres fuerzas principales:
-
-1. **El crecimiento exponencial del volumen de datos** (Big Data), impulsado por la digitalización de procesos, el Internet de las Cosas (IoT) y la interacción social.
-2. **La diversidad de tipos de datos**, que ha roto los esquemas tradicionales fila-columna, dando lugar a formatos semiestructurados (JSON, XML), no estructurados (texto, imágenes) y vectoriales (embeddings).
-3. **La demanda de procesamiento en tiempo real y cognición aumentada**, donde la Inteligencia Artificial (IA) y los modelos de lenguaje de gran tamaño (LLMs) requieren acceso a datos con latencia mínima y contextos semánticos ricos.
-
-Este marco teórico establece las bases conceptuales para comprender la organización, el almacenamiento y el acceso a los datos, integrando la infraestructura física (hardware), los modelos de despliegue (on-premise, cloud, híbrido) y la arquitectura de sistemas (políglota).
+Comprender el ciclo completo de retrieval semantico para IA generativa: desde embeddings y metrica de similitud hasta indices ANN (HNSW) y uso de motores vectoriales como `pgvector`, diferenciando cuando usar SQL tradicional y cuando usar busqueda por vectores.
 
 ---
 
-## 2. Fundamentos Epistemológicos del Dato
+### 2. Problema que resuelven las vectoriales
 
-### 2.1. La Jerarquía Dato – Información – Conocimiento
+SQL clasico responde muy bien a:
 
-La pirámide DIKW (Data, Information, Knowledge, Wisdom) constituye el modelo teórico fundamental para comprender el valor ascendente de los datos.
+- igualdad exacta,
+- rangos,
+- joins relacionales.
 
-| Nivel | Definición | Caracterización Teórica |
-| :--- | :--- | :--- |
-| **Dato** | Símbolo, signo o registro sin procesar. | Carece de contexto; es la unidad mínima de significado potencial. Su valor es simbólico y dependiente de la sintaxis. |
-| **Información** | Dato procesado, estructurado y contextualizado. | Responde a preguntas básicas (quién, qué, cuándo, dónde). Emerge de la relación entre datos y su interpretación. |
-| **Conocimiento** | Información internalizada, validada y aplicable. | Incorpora experiencia, patrones y reglas. Permite la predicción y la acción. Es el resultado de procesos de aprendizaje y razonamiento. |
-| **Sabiduría** | Conocimiento aplicado con juicio ético y contextual. | Nivel superior que integra valores, consecuencias a largo plazo y toma de decisiones informada. |
+Pero falla cuando la pregunta es semantica:
 
-**Implicación teórica**: En los sistemas de bases de datos, el objetivo no es solo almacenar datos (el nivel más bajo), sino facilitar la transformación eficiente de datos en información (mediante consultas) y en conocimiento (mediante analítica e IA).
-
-### 2.2. Taxonomía de los Datos según su Estructura
-
-La estructura de los datos determina las estrategias de almacenamiento, indexación y consulta. La teoría de sistemas de bases de datos reconoce tres categorías fundamentales:
-
-| Categoría | Características | Formalización |
-| :--- | :--- | :--- |
-| **Estructurados** | Esquema predefinido, típicamente relacional. | Modelo relacional (Codd, 1970): tablas, tuplas, dominios, claves, integridad referencial. |
-| **Semiestructurados** | Organización flexible con marcadores; no requiere esquema fijo. | Modelo de datos orientado a documentos, árboles (XML), grafos (JSON-LD). |
-| **No estructurados** | Ausencia de organización predefinida. | Procesamiento mediante técnicas de NLP, visión por computadora, análisis de señales. |
-
-**Teoría subyacente**: La imposibilidad de un único modelo de datos que sea óptimo para todos los casos (impedance mismatch) ha llevado al surgimiento de arquitecturas *políglotas persistentes* (Fowler, 2011), donde múltiples motores especializados coexisten.
-
-### 2.3. Formatos de Almacenamiento y Codificación
-
-La representación física de los datos se rige por principios de eficiencia, interoperabilidad y evolución del esquema.
-
-| Formato | Modelo de Almacenamiento | Fundamentos Teóricos |
-| :--- | :--- | :--- |
-| **CSV** | Orientado a filas, sin esquema. | Simplicidad sintáctica; intercambio universal. Limitaciones en compresión y acceso aleatorio. |
-| **JSON** | Jerárquico, basado en documentos. | Modelo de objetos anidados; soporte nativo en lenguajes dinámicos. |
-| **Avro** | Binario, orientado a filas con esquema embebido. | Evolución del esquema (compatibilidad hacia adelante/atrás); ideal para serialización en sistemas de mensajería. |
-| **Parquet** | Orientado a columnas. | Basado en el modelo de almacenamiento columnar (Copeland & Kernighan, 1989). Permite proyección de columnas (solo leer subconjuntos), compresión por dominio y codificación Run-Length Encoding (RLE). |
-
-**Principio teórico**: La elección del formato implica un trade-off entre *velocidad de escritura* (orientado a filas), *velocidad de lectura analítica* (orientado a columnas) y *flexibilidad del esquema*.
+"busca documentos parecidos a esta idea".
 
 ---
 
-## 3. Fundamentos de Infraestructura Física
+### 3. Conceptos base
 
-### 3.1. Jerarquía de Memoria y Principio de Localidad
+#### 3.1 Embedding
 
-El rendimiento de los sistemas de bases de datos está determinado por la jerarquía de memoria, descrita por el modelo de von Neumann y extendido en la teoría de sistemas de almacenamiento.
+Representacion numerica (vector) de texto, imagen o audio.
 
-| Nivel | Tecnología | Latencia | Capacidad | Principio de Localidad |
-| :--- | :--- | :--- | :--- | :--- |
-| **Registros / Caché CPU** | SRAM | ~1 ns | KB | Localidad temporal de instrucciones y datos frecuentes. |
-| **Memoria Principal (RAM)** | DRAM | ~100 ns | GB – TB | **Buffer Pool**: caché de páginas de datos. Maximizar *cache hit ratio*. |
-| **Almacenamiento Persistente** | NVMe/SSD, HDD | 20 µs – 10 ms | TB – PB | Localidad espacial: lectura secuencial o acceso indexado. |
-| **Almacenamiento en Red** | SAN, NAS | +0.5 ms | PB – EB | Abstacción de almacenamiento compartido; latencia adicional por red. |
+#### 3.2 Dimensionalidad
 
-**Teoría fundamental**: El principio de localidad (temporal y espacial) justifica la existencia de *cachés* y *buffer pools*. Un sistema de base de datos eficiente maximiza la probabilidad de que los datos solicitados residan en RAM antes que en disco.
+Cantidad de componentes del vector (ej. 384, 768, 1536).
 
-### 3.2. Complejidad Computacional de los Métodos de Acceso
+#### 3.3 Similitud
 
-La teoría de estructuras de datos y algoritmos proporciona las bases para evaluar la eficiencia de los métodos de búsqueda.
-
-| Método | Estructura | Complejidad (peor caso) | Fundamento Teórico |
-| :--- | :--- | :--- | :--- |
-| **Table Scan** | Recorrido secuencial | O(n) | Acceso lineal; inevitable cuando no existen índices o la selectividad es baja. |
-| **B-Tree Index** | Árbol balanceado | O(log n) | Basado en árboles B y B+ (Bayer & McCreight, 1972). Mantiene orden y equilibrio dinámico. Ideal para búsquedas por igualdad y rango. |
-| **Hash Index** | Tabla hash | O(1) promedio | Función hash determinística; limitado a búsquedas por igualdad exacta. |
-| **Índices Vectoriales (ANN)** | HNSW, IVF | O(log n) aproximado | Búsqueda aproximada del vecino más cercano (Approximate Nearest Neighbor). Sacrifica precisión por velocidad en espacios de alta dimensionalidad. |
-
-**Teorema fundamental**: El costo de los índices es una compensación entre velocidad de lectura (beneficio) y sobrecarga de escritura (costo). El diseño físico óptimo debe maximizar el beneficio neto según el perfil de la carga de trabajo.
+Medida de cercania entre vectores.
 
 ---
 
-## 4. Modelos de Despliegue: On-Premise, Cloud e Híbrido
+### 4. Metricas de similitud
 
-### 4.1. Definiciones y Caracterización Teórica
+#### 4.1 Cosine similarity
 
-| Modelo | Definición | Marco Teórico |
-| :--- | :--- | :--- |
-| **On-Premise** | Infraestructura física ubicada en las instalaciones de la organización, administrada completamente por el equipo interno. | Modelo de *capital expenditure* (CAPEX). Proporciona control total pero rigidez en escalabilidad. Alineado con requisitos de soberanía de datos y regulaciones estrictas (ej. GDPR, DORA). |
-| **Cloud (IaaS/PaaS)** | Infraestructura virtualizada proporcionada por terceros (AWS, Azure, GCP) bajo modelo de pago por uso. | Modelo de *operational expenditure* (OPEX). Escalabilidad elástica horizontal y vertical. Basado en principios de computación utilitaria y virtualización. |
-| **Híbrido** | Combinación de entornos on-premise y cloud, con integración de datos, orquestación y políticas de gobierno unificadas. | Modelo que optimiza el *trade-off* entre control, costo y elasticidad. Permite *workload portability* y *disaster recovery* distribuido. |
+Compara direccion entre vectores.
 
-### 4.2. Fundamentos de la Arquitectura Híbrida
+#### 4.2 Distancia euclidiana
 
-La arquitectura híbrida se sustenta en tres pilares teóricos:
+Mide distancia geometrica absoluta.
 
-1. **Persistencia Políglota (Polyglot Persistence)** : Propuesta por Martin Fowler, sostiene que en sistemas complejos es óptimo utilizar múltiples motores de bases de datos especializados (SQL, NoSQL, Vectorial) en lugar de un único motor universal.
+#### 4.3 Producto punto
 
-2. **Separación de Responsabilidades**: Cada componente del ecosistema asume una función específica:
-   - **SQL (Transaccional)**: Consistencia ACID, integridad referencial, datos maestros.
-   - **NoSQL (Velocidad)**: Alta concurrencia, baja latencia, escalabilidad horizontal.
-   - **Vectorial (Semántica)**: Búsqueda por similitud, embeddings, memoria aumentada para IA.
+Frecuente cuando embeddings estan normalizados.
 
-3. **Sincronización Asíncrona y Consistencia Eventual**: Inspirado en el teorema CAP (Consistency, Availability, Partition Tolerance), los sistemas híbridos suelen priorizar disponibilidad y tolerancia a particiones, aceptando consistencia eventual entre réplicas y capas. La sincronización se realiza mediante mecanismos como Change Data Capture (CDC) y colas de mensajería (Kafka).
+Regla:
 
-### 4.3. Integración On-Premise con Cloud
-
-La integración se estructura en capas conceptuales:
-
-| Capa | Componentes | Fundamento |
-| :--- | :--- | :--- |
-| **Conectividad** | VPN, Direct Connect, ExpressRoute | Establece un canal privado, seguro y de baja latencia entre entornos. |
-| **Orquestación** | Kubernetes (híbrido), Terraform, Azure Arc | Unifica la gestión de recursos, permitiendo despliegues consistentes y políticas unificadas. |
-| **Sincronización de Datos** | CDC (Debezium), Replicación transaccional, ETL/ELT batch | Garantiza que los datos en cloud sean una representación actualizada (con latencia controlada) de los datos on-premise. |
-| **Gobernanza** | Catálogos de datos unificados, políticas de data residency, linaje distribuido | Asegura que el cumplimiento normativo se mantiene incluso cuando los datos cruzan fronteras físicas. |
+Elegir metrica compatible con el modelo de embeddings.
 
 ---
 
-## 5. El Paradigma IA-Bases de Datos
+### 5. Exact search vs ANN
 
-### 5.1. Fundamentos de la Integración IA-Datos
+#### 5.1 Busqueda exacta
 
-La inteligencia artificial moderna, en particular los modelos de lenguaje de gran tamaño (LLMs), ha redefinido la relación entre aplicaciones y sistemas de almacenamiento.
+- precisa,
+- costosa en volumen alto.
 
-**Problema fundamental**: Los LLMs tienen una *ventana de contexto* finita (memoria a corto plazo) y no pueden retener bases de datos completas en su memoria paramétrica.
+#### 5.2 ANN (Approximate Nearest Neighbors)
 
-**Solución teórica**: **Retrieval-Augmented Generation (RAG)** – un patrón arquitectónico que externaliza la memoria del modelo hacia una base de datos vectorial.
+- mucho mas rapida,
+- leve perdida de exactitud.
 
-### 5.2. Arquitectura RAG
-
-| Componente | Función | Fundamento |
-| :--- | :--- | :--- |
-| **Embedding Model** | Convierte texto en vectores de alta dimensionalidad. | Basado en representaciones distribuidas (Word2Vec, BERT). Captura semántica en espacios continuos. |
-| **Base de Datos Vectorial** | Almacena e indexa embeddings para búsqueda por similitud. | Utiliza índices ANN (HNSW, IVF) que sacrifican precisión exacta por velocidad, fundamentados en teoría de espacios métricos y cuantización vectorial. |
-| **Orquestador RAG** | Combina consulta, contexto recuperado y prompt. | Gestiona el flujo de información entre el modelo generativo y la fuente de datos externa. |
-| **LLM** | Genera respuesta fundamentada en el contexto provisto. | Utiliza el contexto recuperado como *grounding* para reducir alucinaciones. |
-
-### 5.3. Implicaciones Teóricas
-
-1. **La base de datos como memoria externa**: Las bases de datos vectoriales funcionan como una memoria asociativa que complementa la memoria paramétrica del modelo.
-2. **Latencia como factor crítico**: La experiencia del usuario depende tanto de la velocidad del LLM como de la latencia de la consulta vectorial y transaccional.
-3. **Alucinaciones como fallo sistémico**: Desde una perspectiva teórica, las alucinaciones en sistemas RAG no son solo fallos del modelo, sino fallos en la recuperación de datos (recuperación incompleta o desactualizada).
+En practicas reales de RAG, ANN suele ser estandar.
 
 ---
 
-## 6. Marco de Gobernanza y Ética
+### 6. Indices vectoriales
 
-### 6.1. Fundamentos de Gobernanza de Datos
+#### 6.1 HNSW
 
-La gobernanza se define como el ejercicio de autoridad y control sobre la gestión de datos (DAMA-DMBOK). Sus dimensiones teóricas incluyen:
+- alto recall con buena latencia,
+- consumo de memoria mayor,
+- muy usado en motores modernos.
 
-| Dimensión | Descripción |
-| :--- | :--- |
-| **Lineaje (Data Lineage)** | Trazabilidad del origen, transformaciones y flujo de los datos. Permite auditoría, depuración y evaluación de impacto. |
-| **Calidad de Datos** | Precisión, completitud, consistencia, actualidad, validez. Medida mediante métricas y reglas de validación. |
-| **Seguridad y Privacidad** | Control de acceso, cifrado, anonimización. Sustentado en normativas como GDPR, CCPA, HIPAA. |
-| **Custodia (Stewardship)** | Asignación de responsabilidades sobre conjuntos de datos específicos. |
+#### 6.2 IVF (segun motor)
 
-### 6.2. Ética de Datos e IA
-
-La ética aplicada a sistemas de datos se fundamenta en principios de:
-
-- **Transparencia**: Los modelos y procesos deben ser explicables (XAI – Explainable AI).
-- **Equidad**: Los sesgos históricos presentes en los datos no deben ser perpetuados o amplificados por algoritmos.
-- **Privacidad por diseño**: La protección de datos personales debe integrarse desde la fase de arquitectura.
-- **Responsabilidad**: Debe existir una cadena clara de responsabilidad por las decisiones automatizadas.
+- particiona por clusters,
+- configurable para balance precision/velocidad.
 
 ---
 
-## 7. Síntesis: Un Modelo Integrado
+### 7. `pgvector` en PostgreSQL
 
-La siguiente tabla sintetiza los niveles conceptuales del marco teórico presentado:
+Ventaja:
 
-| Nivel | Dimensiones | Fundamentos Teóricos |
-| :--- | :--- | :--- |
-| **Semántico** | Dato – Información – Conocimiento – Sabiduría | Pirámide DIKW; hermenéutica de la información. |
-| **Estructural** | Estructurado – Semiestructurado – No estructurado | Taxonomía de modelos de datos; poliglotismo. |
-| **Físico** | Jerarquía de memoria – Métodos de acceso – Formatos | Principio de localidad; complejidad algorítmica; modelos de almacenamiento. |
-| **Arquitectónico** | On-Premise – Cloud – Híbrido | Modelos de despliegue; CAP theorem; consistencia eventual. |
-| **Funcional** | SQL – NoSQL – Vectorial | Persistencia políglota; separación de responsabilidades; RAG. |
-| **Gobernanza** | Lineaje – Calidad – Seguridad – Ética | DAMA-DMBOK; principios FAIR (Findable, Accessible, Interoperable, Reusable). |
+Permite mantener datos relacionales y vectores en una sola plataforma.
+
+Uso base:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+
+CREATE TABLE documentos (
+    id BIGSERIAL PRIMARY KEY,
+    contenido TEXT NOT NULL,
+    embedding VECTOR(1536)
+);
+```
+
+Busqueda de similitud:
+
+```sql
+SELECT id, contenido
+FROM documentos
+ORDER BY embedding <-> '[0.1, 0.2, ...]'::vector
+LIMIT 5;
+```
 
 ---
 
-## 8. Conclusiones Teóricas
+### 8. Motores vectoriales especializados
 
-1. **No existe un modelo único óptimo**: La diversidad de datos, requisitos de rendimiento y restricciones normativas exige arquitecturas poliglotas que combinen motores especializados.
+Ejemplos:
 
-2. **El hardware es determinante**: La jerarquía de memoria y los índices definen límites físicos que condicionan la viabilidad de los algoritmos, incluida la IA.
+- Pinecone,
+- Milvus,
+- Weaviate.
 
-3. **La hibridación on-premise/cloud es la evolución natural**: Permite equilibrar control (soberanía de datos, latencia crítica) con elasticidad (picos de demanda, innovación ágil).
+Fortalezas:
 
-4. **La IA externaliza su memoria en bases de datos**: El paradigma RAG redefine la base de datos como un componente activo de la cognición artificial, no solo como un repositorio pasivo.
+- escalado especializado ANN,
+- funciones de recuperacion avanzadas.
 
-5. **La gobernanza no es opcional**: En entornos híbridos y con IA, el linaje, la calidad y la ética son condiciones necesarias para la confianza y el cumplimiento normativo.
+Trade-off:
+
+mas componentes de arquitectura y sincronizacion.
+
+---
+
+### 9. Pipeline de indexing semantico
+
+1. Ingesta de documentos.
+2. Limpieza y chunking.
+3. Generacion de embeddings.
+4. Almacenamiento vectorial.
+5. Indexacion ANN.
+6. Evaluacion de retrieval.
+
+---
+
+### 10. Chunking y calidad de recuperacion
+
+Decisiones:
+
+- tamano de chunk,
+- solapamiento,
+- estrategia por estructura del documento.
+
+Si chunk es muy grande:
+
+- ruido en contexto.
+
+Si chunk es muy pequeno:
+
+- perdida de coherencia semantica.
+
+---
+
+### 11. Filtrado hibrido
+
+Patron recomendado:
+
+- filtrar por metadatos estructurados (fecha, idioma, dominio),
+- luego ejecutar similitud vectorial.
+
+En PostgreSQL:
+
+```sql
+SELECT id, contenido
+FROM documentos
+WHERE idioma = 'es'
+ORDER BY embedding <-> $1::vector
+LIMIT 10;
+```
+
+---
+
+### 12. Evaluacion de retrieval
+
+Metricas utiles:
+
+- Recall@k,
+- Precision@k,
+- MRR (Mean Reciprocal Rank).
+
+No basta evaluar "suena bien"; se necesita evaluacion cuantitativa.
+
+---
+
+### 13. Riesgos comunes
+
+- embeddings desactualizados,
+- metadatos incompletos,
+- falta de control de versiones de modelo,
+- latencia alta por consultas sin filtros,
+- no medir calidad de recuperacion.
+
+---
+
+### 14. Seguridad y cumplimiento
+
+Consideraciones:
+
+- cifrado en reposo y transito,
+- control de acceso por coleccion/indice,
+- tratamiento de PII antes de vectorizar.
+
+Advertencia:
+
+un embedding puede contener señales sensibles del texto original.
+
+---
+
+### 15. Costo y operacion
+
+Componentes de costo:
+
+- generacion de embeddings,
+- almacenamiento de vectores,
+- consulta ANN.
+
+Estrategias:
+
+1. recalcular embeddings solo cuando cambia contenido,
+2. deduplicar documentos,
+3. usar politicas de retencion.
+
+---
+
+### 16. SQL relacional vs vectorial
+
+SQL relacional:
+
+- reglas de negocio,
+- integridad transaccional,
+- reportes estructurados.
+
+Vectorial:
+
+- busqueda semantica,
+- recuperacion por similitud,
+- soporte a RAG.
+
+Conclusión:
+
+no compiten, se complementan.
+
+---
+
+### 17. Caso aplicado
+
+Asistente academico:
+
+- PostgreSQL guarda cursos, usuarios y permisos.
+- Capa vectorial indexa material teorico.
+- Consulta final combina seguridad SQL + retrieval ANN.
+
+---
+
+### 18. Mini laboratorio
+
+1. Crear tabla de documentos con `pgvector`.
+2. Insertar 20 textos con embeddings de prueba.
+3. Ejecutar top-k por similitud.
+4. Agregar filtro por categoria.
+5. Evaluar manualmente relevancia de resultados.
+
+---
+
+### 19. Checklist de dominio
+
+- Explico embedding y similitud.
+- Diferencio exact search y ANN.
+- Justifico cuando usar HNSW.
+- Integro filtros estructurados y vectoriales.
+- Mido calidad con metricas adecuadas.
+
+---
+
+### 20. Preguntas de autoevaluacion
+
+1. Por que ANN es clave en RAG productivo?
+2. Que riesgo trae chunking mal calibrado?
+3. En que casos `pgvector` es suficiente?
+4. Que aporta filtrar por metadatos antes de ANN?
+5. Como detectas degradacion de retrieval?
+
+---
+
+### 21. Referencias recomendadas
+
+1. pgvector documentation.
+2. Pinecone docs: vector search basics.
+3. Milvus docs: ANN and HNSW.
+4. Weaviate docs: hybrid search.
+5. Papers introductorios de embeddings y retrieval.
 
