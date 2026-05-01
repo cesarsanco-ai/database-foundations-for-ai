@@ -1,4 +1,4 @@
-# 📘 Temario: Bases de Datos Vectoriales y RAG
+# 📘 Temario: Bases de Datos Vectoriales
 
 
 ## 1. Fundamentos de Búsqueda Semántica
